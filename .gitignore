@@ -12,3 +12,5 @@ coverage/
 
 # Local browser/agent runtime state (may contain session credentials)
 .gstack/
+.vercel
+.env*

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+	<defs>
+		<g id="v"><path d="M0 0C-7 -4 -10.5 -12 -9.5 -18.5C-9 -21.5 -5.5 -21.5 -4 -19C-1.5 -14.5 0 -8 0 0Z" /><path d="M0 0C-7 -4 -10.5 -12 -9.5 -18.5C-9 -21.5 -5.5 -21.5 -4 -19C-1.5 -14.5 0 -8 0 0Z" transform="scale(-1 1)" /></g>
+	</defs>
+	<rect width="32" height="32" rx="7" fill="#465e9d" />
+	<g fill="#faf3dc">
+		<use href="#v" transform="translate(16 15.5) scale(.85 .52)" />
+		<use href="#v" transform="translate(16 27) scale(.85 .52)" />
+	</g>
+</svg>

@@ -10,8 +10,27 @@ import { chart, TILE_ROWS, TILE_ST } from './yarn';
  * Step text marks stitch counts as **n**; the UI renders those in bold.
  */
 
-export type Step = { text: string; count?: string };
-export type PatternSection = { id: string; title: string; steps: Step[] };
+/** Rounds (or rows) to tick off one at a time: what each one is, and the number of the first. */
+export type Tally = { unit: 'Round' | 'Row'; first: number; rows: string[] };
+export type Step = {
+	text: string;
+	/** Stitches on the needles once the step is done. */
+	count?: string;
+	/** A definition or heading to read, not a step to tick off. */
+	note?: boolean;
+	/** Extra help for the beginner view. */
+	tip?: string;
+	tally?: Tally;
+};
+export type PatternSection = {
+	id: string;
+	title: string;
+	/** What this part of the garment is, for the beginner view. */
+	intro: string;
+	steps: Step[];
+	/** Set when the section is worked twice: names for the two passes. */
+	twice?: [string, string];
+};
 export type Counts = {
 	castOn: number;
 	back0: number;
@@ -129,6 +148,14 @@ export function estimate(d: Design) {
 	return { yarn, yards: mainYards + contrastYards, mainYards, contrastYards, skeins: skeins(mainYards) + (contrastYards ? skeins(contrastYards) : 0), mainSkeins: skeins(mainYards), contrastSkeins: contrastYards ? skeins(contrastYards) : 0, level };
 }
 
+// ── Beginner tips used in more than one place ──
+const TIPS = {
+	evenly: `Spread these out around the whole edge. The spacing does not have to be exact; ending with the right number of stitches is what matters.`,
+	rib: `Rib is columns of knit and purl stitches, which makes a stretchy edge. Bring the yarn to the front between the needles before a purl stitch and to the back before a knit stitch. After the first time around you can read your knitting: knit the stitches that look like a V, purl the ones with a bump.`,
+	bindOff: `“In pattern” means knit the knit stitches and purl the purl stitches as you bind them off. Keep it loose. If the edge pulls in, undo it and bind off again with a needle one or two sizes bigger.`,
+	pickUp: `To pick up and knit: push the needle tip through the edge of the fabric, wrap the yarn around it and pull a loop through. Each loop is one new stitch.`
+};
+
 // ── Edges: hems, cuffs ──────────────────────────────────────────────────
 /** Steps to finish an open edge of n sts with the chosen finish. */
 function edgeSteps(finish: string, ribKey: string, depth: number, n: number, flat: boolean, k: number): Step[] {
@@ -137,18 +164,22 @@ function edgeSteps(finish: string, ribKey: string, depth: number, n: number, fla
 	if (finish === 'Ribbed') {
 		const rib = ribOf(ribKey);
 		const to = fitTo(n, rib.rep);
-		if (to !== n) steps.push({ text: `Next ${u}: ${evenly(n, to)}.`, count: sts(to) });
-		steps.push({ text: `Change to the smaller needle. Work in ${rib.name} (${rib.work}${flat ? '; on WS rows work the sts as they appear' : ''}) for ${len(depth)}.` });
-		steps.push({ text: `Bind off loosely in pattern.` });
+		if (to !== n) steps.push({ text: `Next ${u}: ${evenly(n, to)}.`, count: sts(to), tip: TIPS.evenly });
+		steps.push({
+			text: `Change to the smaller needle. Work in ${rib.name} (${rib.work}${flat ? '; on WS rows work the sts as they appear' : ''}) for ${len(depth)}.`,
+			tip: rib.rep > 1 ? TIPS.rib : undefined
+		});
+		steps.push({ text: `Bind off loosely in pattern.`, tip: TIPS.bindOff });
 	} else if (finish === 'Folded hem') {
 		steps.push({ text: `Knit ${len(depth)}.` });
-		steps.push({ text: `Turning ${u}: ${flat ? 'knit 1 WS row' : 'purl 1 round'}.` });
+		steps.push({ text: `Turning ${u}: ${flat ? 'knit 1 WS row' : 'purl 1 round'}.`, tip: `This one ${u} of bumps makes a crease, so the hem folds in a straight line.` });
 		steps.push({ text: `${flat ? 'Work in stockinette' : 'Knit'} ${len(depth)} more, then bind off loosely. Fold the edge to the inside along the turning ${u} and sew it down loosely.` });
 	} else if (finish === 'Rolled edge') {
 		steps.push({ text: `${flat ? 'Work in stockinette' : 'Knit'} ${len(2 * k)} more, then bind off loosely. The edge rolls to the right side on its own.` });
 	} else {
 		steps.push({
-			text: `I-cord bind-off: cast on ${sts(3)} at the start of the left needle. *K2, ssk (the last cord st together with 1 st of the ${flat ? 'piece' : 'round'}), slip the 3 sts back to the left needle; rep from * until all sts are bound off. ${flat ? 'Bind off the 3 cord sts.' : 'Graft or sew the cord ends together.'}`
+			text: `I-cord bind-off: cast on ${sts(3)} at the start of the left needle. *K2, ssk (the last cord st together with 1 st of the ${flat ? 'piece' : 'round'}), slip the 3 sts back to the left needle; rep from * until all sts are bound off. ${flat ? 'Bind off the 3 cord sts.' : 'Graft or sew the cord ends together.'}`,
+			tip: `This makes a small round cord along the edge. It is slow, and much easier to follow after watching it done once.`
 		});
 	}
 	return steps;
@@ -286,7 +317,7 @@ export function writePattern(d: Design): Pattern {
 	/** Compress a run of rows into "Rounds 1–24: inc round, knit round; work these 2 rounds 12 times." lines. */
 	const schedule = (from: number, to: number, flat: boolean, numberFrom = from): Step[] => {
 		const out: Step[] = [];
-		const word = flat ? 'Row' : 'Round';
+		const word: Tally['unit'] = flat ? 'Row' : 'Round';
 		let i = from;
 		while (i < to) {
 			let best = { n: 1, reps: 1 };
@@ -301,10 +332,11 @@ export function writePattern(d: Design): Pattern {
 			const first = i - numberFrom + 1;
 			const range = span === 1 ? `${word} ${first}` : `${word}s ${first}–${first + span - 1}`;
 			const text = reps > 1 ? `${range}: ${unit.join(', ')}${n > 1 ? `; work these ${n} ${word.toLowerCase()}s ${reps} times` : ` × ${reps}`}.` : `${range}: ${cap(unit.join(', '))}.`;
+			const tally: Tally = { unit: word, first, rows: rows.slice(i, i + span).map((r) => cap(label(r))) };
 			for (let x = i; x < i + span; x++) apply(rows[x]);
 			// Between the two cardigan cast-on rows the fronts differ, so show only the total there.
 			const lopsided = rows[i + span - 1].co > 0 && !rows[i + span - 1].rs;
-			out.push({ text: text.replace(/: (\w)/, (_, c) => `: ${c.toUpperCase()}`), count: lopsided ? sts(front + back + 2 * sleeve) : countText(flat) });
+			out.push({ text: text.replace(/: (\w)/, (_, c) => `: ${c.toUpperCase()}`), count: lopsided ? sts(front + back + 2 * sleeve) : countText(flat), tally });
 			i += span;
 		}
 		return out;
@@ -319,13 +351,17 @@ export function writePattern(d: Design): Pattern {
 	const colour: Step[] = [];
 	if (stripes)
 		colour.push({
+			note: true,
 			text: `Stripes: in every stockinette section (yoke, body, sleeves) work a 16-${R} repeat of 11 ${R}s main colour, then 5 ${R}s contrast colour. Carry the unused colour up the inside at the start of the ${R}${cardigan ? '' : ' and use a jogless join'}. Start the stripes once the neck shaping is done.`
 		});
 	if (fairIsle)
 		colour.push({
+			note: true,
+			tip: `Knit a plain sweater first if you can. Colourwork pulls the fabric tighter than plain knitting, so swatch in the chart pattern and go up a needle size if your stitches come out smaller.`,
 			text: `Fair Isle: in every stockinette section (yoke, body, sleeves) work the chart, a ${TILE_ST}-st, ${TILE_ROWS}-${R} repeat, reading rows from top to bottom (the sweater is knit top down). Start once the neck shaping is done. Work new yoke increases into the chart as they appear. On the body the repeat fits exactly; on the sleeves centre it on the top of the arm and let it break at the underarm. Keep floats loose, and catch any float longer than 5 sts.`
 		});
-	if (colour.length) sections.push({ id: 'colour', title: stripes ? 'Stripes' : 'Colourwork', steps: colour });
+	if (colour.length)
+		sections.push({ id: 'colour', title: stripes ? 'Stripes' : 'Colourwork', intro: `This applies to the whole garment. Read it now and come back to it when you reach the plain knitting after the neck.`, steps: colour });
 
 	// ── Yoke ──
 	const yoke: Step[] = [];
@@ -333,26 +369,45 @@ export function writePattern(d: Design): Pattern {
 	if (cardigan || vNeck)
 		yoke.push({
 			text: `With the main needle, cast on ${sts(2)} (front), pm, ${sts(S0)} (sleeve), pm, ${sts(B0)} (back), pm, ${sts(S0)} (sleeve), pm, ${sts(2)} (front). Do not join; work back and forth.`,
-			count: sts(castOn)
+			count: sts(castOn),
+			tip: `A long-tail cast-on works well. You start by working back and forth in rows, because the front of the neck sits lower than the back; the two front edges grow ${cardigan ? 'towards the centre' : 'towards each other until they meet'}. The right side (RS) is the smooth outside of the sweater, the wrong side (WS) is the bumpy inside.`
 		});
 	else
 		yoke.push({
 			text: `With the main needle, cast on ${sts(castOn)} loosely. Join to work in the round without twisting. Set up the ${markers}: k${B0 / 2} (half the back), pm, k${S0} (sleeve), pm, k${F0} (front), pm, k${S0} (sleeve), pm, k${B0 / 2} (rest of the back). Place a different marker for the beginning of round (BOR) at centre back.`,
-			count: `${B(F0)} front, ${B(B0)} back, ${B(S0)} each sleeve`
+			count: `${B(F0)} front, ${B(B0)} back, ${B(S0)} each sleeve`,
+			tip: `A long-tail cast-on works well. Cast on over a needle one size bigger so the neck stretches over a head. Before you join, lay the needle flat and check that the cast-on edge is not twisted around it: the bottom of every stitch should point to the middle of the circle. There are too few stitches to reach around the long needle at first, so use magic loop (or a 40 cm needle) until the yoke has grown.`
 		});
-	yoke.push({ text: `Raglan inc ${cardigan ? 'row (RS)' : vNeck ? 'row (RS) or round' : 'round'}: *knit to 1 st before marker, M1R, k1, sm, k1, M1L; rep from * 3 more times, knit to end. 8 sts increased.` });
+	yoke.push({
+		text: `Raglan inc ${cardigan ? 'row (RS)' : vNeck ? 'row (RS) or round' : 'round'}: *knit to 1 st before marker, M1R, k1, sm, k1, M1L; rep from * 3 more times, knit to end. 8 sts increased.`,
+		note: true,
+		tip: `This is a recipe you will use in the steps below, not a step of its own. Every marker gets one new stitch on each side of it. Those pairs of increases draw the four diagonal raglan lines from the neck to the underarms.`
+	});
 	if (rows.some((r) => r.kind === 'body'))
-		yoke.push({ text: `Body inc ${cardigan ? 'row (RS)' : 'round'}: increases on the back and front only. *Knit to 1 st before marker, M1R, k1, sm, knit to next marker, sm, k1, M1L; rep from * once more, knit to end. 4 sts increased.` });
+		yoke.push({
+			note: true,
+			text: `Body inc ${cardigan ? 'row (RS)' : 'round'}: increases on the back and front only. *Knit to 1 st before marker, M1R, k1, sm, knit to next marker, sm, k1, M1L; rep from * once more, knit to end. 4 sts increased.`,
+			tip: `Another recipe. It is used near the end of the yoke, once the sleeves are wide enough but the body still needs to grow.`
+		});
 	if (rows.some((r) => r.kind === 'sleeve'))
-		yoke.push({ text: `Sleeve inc ${cardigan ? 'row (RS)' : 'round'}: increases on the sleeves only. *Knit to marker, sm, k1, M1L, knit to 1 st before next marker, M1R, k1, sm; rep from * once more, knit to end. 4 sts increased.` });
+		yoke.push({
+			note: true,
+			text: `Sleeve inc ${cardigan ? 'row (RS)' : 'round'}: increases on the sleeves only. *Knit to marker, sm, k1, M1L, knit to 1 st before next marker, M1R, k1, sm; rep from * once more, knit to end. 4 sts increased.`,
+			tip: `Another recipe. It is used near the end of the yoke, once the body is wide enough but the sleeves still need to grow.`
+		});
 	if (neckRows)
-		yoke.push({ text: `Neck incs: on rows marked "with neck incs", start the row with k1, M1L and end it with M1R, k1 (instead of knitting the last st). 2 more sts increased. A "neck inc row" has only these.` });
+		yoke.push({
+			note: true,
+			tip: `These extra increases at the two front edges slowly bring the fronts ${cardigan ? 'towards the centre' : 'together'} to shape the neckline.`,
+			text: `Neck incs: on rows marked "with neck incs", start the row with k1, M1L and end it with M1R, k1 (instead of knitting the last st). 2 more sts increased. A "neck inc row" has only these.`
+		});
 
 	if (srPairs) {
 		const t = Math.max(1, Math.round(F0 * 0.06));
 		const step = srPairs > 1 ? Math.min(4, Math.max(1, Math.floor((F0 / 2 - 2 - t) / (srPairs - 1)))) : 0;
 		yoke.push({
-			text: `Raise the back neck with German short rows (no increases yet). Short row 1 (RS): knit across the back and sleeve to the front marker, sm, k${t}, turn. Short row 2 (WS): make a double stitch (MDS), purl back across the sleeve, the back (past BOR) and the other sleeve to the other front marker, sm, p${t}, turn.`
+			text: `Raise the back neck with German short rows (no increases yet). Short row 1 (RS): knit across the back and sleeve to the front marker, sm, k${t}, turn. Short row 2 (WS): make a double stitch (MDS), purl back across the sleeve, the back (past BOR) and the other sleeve to the other front marker, sm, p${t}, turn.`,
+			tip: `Short rows are part-rows: you turn around before the end, which adds height at the back of the neck only, so the sweater does not ride up at your throat. On a first sweater you can skip all the short-row steps and go straight to Round 1. The stitch counts stay the same; the neck just sits a little higher at the front.`
 		});
 		if (srPairs > 1)
 			yoke.push({
@@ -362,28 +417,37 @@ export function writePattern(d: Design): Pattern {
 	}
 
 	if (cardigan) {
-		yoke.push({ text: `Shape the front neck:` });
+		yoke.push({ text: `Shape the front neck:`, note: true });
 		yoke.push(...schedule(0, neckRows, true));
-		yoke.push({ text: `Continue the raglan, working flat:` });
+		yoke.push({ text: `Continue the raglan, working flat:`, note: true });
 		yoke.push(...schedule(neckRows, Ry, true, 0));
 	} else if (vNeck) {
-		yoke.push({ text: `Shape the V-neck, working flat:` });
+		yoke.push({ text: `Shape the V-neck, working flat:`, note: true });
 		yoke.push(...schedule(0, neckRows, true));
 		const join = 2 * neckCo;
 		yoke.push({
 			text: `Join: ${join ? `cast on ${sts(join / 2)}, pm for BOR, cast on ${sts(join / 2)}` : 'pm for BOR'}, then join to the first st to work in the round. BOR is at centre front.`,
-			count: ((front += join), countText(false))
+			count: ((front += join), countText(false)),
+			tip: `From here on you knit in circles instead of back and forth, so every round is knit: no more purl rows. Check that the work is not twisted before you join.`
 		});
-		yoke.push({ text: `Continue in the round:` });
+		yoke.push({ text: `Continue in the round:`, note: true });
 		yoke.push(...schedule(neckRows, Ry, false));
 	} else yoke.push(...schedule(srRows, Ry, false));
 	if (Ry > yokeRowsPlanned)
-		yoke.push({ text: `The yoke needs a few extra ${R}s to fit all the increases, so it measures about ${len(Ry / rowPerCm)} at centre back instead of ${len(yokeRowsPlanned / rowPerCm)}.` });
+		yoke.push({ note: true, text: `The yoke needs a few extra ${R}s to fit all the increases, so it measures about ${len(Ry / rowPerCm)} at centre back instead of ${len(yokeRowsPlanned / rowPerCm)}.` });
 	yoke.push({
 		text: `Divide ${cardigan ? 'row (RS)' : 'round'}: *knit to the next sleeve marker, remove it, slip the ${sts(sleeve)} of the sleeve to waste yarn, remove the next marker, cast on ${sts(u / 2)}, pm (side), cast on ${sts(u / 2)}; rep from * once more, knit to end.`,
-		count: sts(front + back + 2 * u)
+		count: sts(front + back + 2 * u),
+		tip: `This is where it starts to look like a sweater. Thread waste yarn onto the tapestry needle, run it through the sleeve stitches and slide them off the needle; they wait there until you knit the sleeves. Cast on the underarm stitches with a backward loop. Then try it on: the yoke should reach your underarms comfortably.`
 	});
-	sections.push({ id: 'yoke', title: 'Yoke', steps: yoke });
+	const firstTally = yoke.find((s) => s.tally);
+	if (firstTally) firstTally.tip = `Tick off each ${R} as you finish it, so you always know which kind comes next. When the step is done, count your stitches against the numbers below it. If one section is a stitch short, add an increase there on the next ${R}.`;
+	sections.push({
+		id: 'yoke',
+		title: 'Yoke',
+		intro: `The yoke is everything from the neck down to the underarms. You start with a small ${cardigan || vNeck ? 'strip' : 'ring'} of stitches at the neck and keep adding stitches along four diagonal lines until it is wide enough to go around the chest and both arms. The markers show where those lines are.`,
+		steps: yoke
+	});
 
 	// ── Body ──
 	const body: Step[] = [];
@@ -391,29 +455,39 @@ export function writePattern(d: Design): Pattern {
 	const rolled = d.hemFinish === 'Rolled edge' ? 2 * k : 0;
 	const bodyLen = m.ya - m.hemH - rolled;
 	const fabric = cardigan ? 'Work in stockinette (knit RS rows, purl WS rows)' : 'Knit every round';
+	const bodyTip = `The long, easy stretch. Measure with the work lying flat, straight down from the underarm cast-on, without stretching it. Because you knit from the top down you can try it on at any point, and stop earlier or later to change the length.`;
 	if (slits) {
 		const half = bodySts / 2;
-		body.push({ text: `${fabric} until the body measures ${len(bodyLen - m.slitH)} from the underarm.` });
+		body.push({ text: `${fabric} until the body measures ${len(bodyLen - m.slitH)} from the underarm.`, tip: bodyTip });
 		body.push({
 			text: `Side slits: from here the back and front are finished separately, flat. Keep the front sts on hold. Work the back sts back and forth, knitting the first 2 and last 2 sts of every row for a neat slit edge, for ${len(m.slitH)}.`,
-			count: sts(half)
+			count: sts(half),
+			tip: `Leave the front stitches resting on the needle cable, or move them to waste yarn, while you work the back.`
 		});
 		body.push(...edgeSteps(d.hemFinish, d.bodyRib, m.hemH, half, true, k));
 		body.push({ text: `Work the front sts the same way.` });
 	} else {
-		body.push({ text: `${fabric} until the body measures ${len(bodyLen)} from the underarm${cardigan ? ', ending with a WS row' : ''}.` });
+		body.push({ text: `${fabric} until the body measures ${len(bodyLen)} from the underarm${cardigan ? ', ending with a WS row' : ''}.`, tip: bodyTip });
 		body.push(...edgeSteps(d.hemFinish, d.bodyRib, m.hemH, bodySts, cardigan, k));
 	}
-	sections.push({ id: 'body', title: 'Body', steps: body });
+	sections.push({
+		id: 'body',
+		title: 'Body',
+		intro: `The sleeve stitches wait on waste yarn while you knit the body ${cardigan ? 'straight down' : 'as one plain tube'} to the hem. No shaping, no counting.`,
+		steps: body
+	});
 
 	// ── Sleeves ──
 	const sl: Step[] = [];
 	const top = sleeve + u;
 	sl.push({
 		text: `Move the ${sts(sleeve)} of one sleeve to the shorter needle (or DPNs / magic loop). Starting at the centre of the underarm cast-on, pick up and knit ${sts(u / 2)}, knit the sleeve sts, pick up and knit ${sts(u / 2)} from the rest of the cast-on. Pm for BOR.`,
-		count: sts(top)
+		count: sts(top),
+		tip: `A sleeve is too narrow to stretch around the long needle, so use magic loop, double-pointed needles or a short circular needle. Slide the waiting stitches from the waste yarn back onto the needle first. ${TIPS.pickUp} Small holes at the corners of the underarm are normal; you close them with a yarn tail at the end.`
 	});
 	const sleeveRows = rowsOf(sleeveBody);
+	const plainRounds = (n: number): Tally | undefined => (n > 0 ? { unit: 'Round', first: 1, rows: Array.from({ length: n }, () => 'Knit round') } : undefined);
+	const untilTip = `Try it on to check the length. Write down how many rounds you knit here, so the second sleeve comes out the same.`;
 	let cur = top;
 	if (d.sleeveShape === 'Straight') {
 		const end = toMult(sleeveAt(sleeveBody, top), 2);
@@ -422,11 +496,20 @@ export function writePattern(d: Design): Pattern {
 		const avail = sleeveRows - lead - rowsOf(2.5 * k);
 		if (decs > 0 && avail >= decs) {
 			const every = Math.max(1, Math.floor(avail / decs));
-			sl.push({ text: `Knit ${B(lead)} rounds.` });
-			sl.push({ text: `Dec round: k1, k2tog, knit to the last 3 sts, ssk, k1. 2 sts decreased.` });
-			sl.push({ text: `Work a dec round ${every === 1 ? 'every round' : `every ${B(every)} rounds`}, ${B(decs)} times in all.`, count: sts((cur = top - 2 * decs)) });
+			sl.push({ text: `Knit ${B(lead)} rounds.`, tally: plainRounds(lead) });
+			sl.push({
+				text: `Dec round: k1, k2tog, knit to the last 3 sts, ssk, k1. 2 sts decreased.`,
+				note: true,
+				tip: `A recipe for the next step. The two decreases sit either side of the underarm, and narrow the sleeve towards the wrist.`
+			});
+			sl.push({
+				text: `Work a dec round ${every === 1 ? 'every round' : `every ${B(every)} rounds`}, ${B(decs)} times in all.`,
+				count: sts((cur = top - 2 * decs)),
+				tally: { unit: 'Round', first: 1, rows: Array.from({ length: (decs - 1) * every + 1 }, (_, j) => (j % every ? 'Knit round' : 'Dec round')) },
+				tip: `Start with a dec round, then knit plain rounds in between. The counter shows which rounds are dec rounds.`
+			});
 		}
-		sl.push({ text: `Knit until the sleeve measures ${len(sleeveBody)} from the underarm.` });
+		sl.push({ text: `Knit until the sleeve measures ${len(sleeveBody)} from the underarm.`, tip: untilTip });
 	} else {
 		// Balloon and puff sleeves: follow the 3D outline with evenly spaced increases / decreases.
 		const every = Math.max(2, rowsOf(3 * Math.sqrt(k)));
@@ -436,12 +519,12 @@ export function writePattern(d: Design): Pattern {
 			const change = Math.abs(want - cur) >= Math.max(4, cur * 0.06);
 			if (!change) continue;
 			const to = Math.max(Math.ceil(cur / 2), want);
-			if (r > last) sl.push({ text: `Knit ${B(r - last)} round${r - last > 1 ? 's' : ''}.` });
-			sl.push({ text: `Next round: ${evenly(cur, to)}.`, count: sts(to) });
+			if (r > last) sl.push({ text: `Knit ${B(r - last)} round${r - last > 1 ? 's' : ''}.`, tally: plainRounds(r - last) });
+			sl.push({ text: `Next round: ${evenly(cur, to)}.`, count: sts(to), tip: TIPS.evenly });
 			cur = to;
 			last = r + 1;
 		}
-		sl.push({ text: `Knit until the sleeve measures ${len(sleeveBody)} from the underarm.` });
+		sl.push({ text: `Knit until the sleeve measures ${len(sleeveBody)} from the underarm.`, tip: untilTip });
 	}
 	const sleeveEndSts = cur;
 	// Cuff: rib draws in a little more than plain fabric.
@@ -449,21 +532,28 @@ export function writePattern(d: Design): Pattern {
 	const ribbedCuff = d.cuffFinish === 'Ribbed';
 	let cuffSts = Math.max(Math.ceil(cur / 2), Math.round(((top * m.cuffR) / m.armR(l0)) * (ribbedCuff && d.sleeveRib !== 'Stockinette' ? 0.9 : 1)));
 	if (ribbedCuff) cuffSts = fitTo(cuffSts, cuffRib.rep);
-	if (Math.abs(cuffSts - cur) >= 2 || (ribbedCuff && cuffSts !== cur)) sl.push({ text: `Cuff set-up round: ${evenly(cur, cuffSts)}.`, count: sts(cuffSts) });
+	if (Math.abs(cuffSts - cur) >= 2 || (ribbedCuff && cuffSts !== cur)) sl.push({ text: `Cuff set-up round: ${evenly(cur, cuffSts)}.`, count: sts(cuffSts), tip: TIPS.evenly });
 	else cuffSts = cur;
 	sl.push(...edgeSteps(d.cuffFinish, d.sleeveRib, m.cuffLen, cuffSts, false, k));
-	sl.push({ text: `Work the second sleeve the same way.` });
-	sections.push({ id: 'sleeves', title: 'Sleeves', steps: sl });
+	sl.push({ text: `Work the second sleeve the same way.`, note: true });
+	sections.push({
+		id: 'sleeves',
+		title: 'Sleeves',
+		intro: `Each sleeve is a narrower tube, knit from the underarm down to the cuff. You make two, one after the other, the same way.`,
+		steps: sl,
+		twice: ['First sleeve', 'Second sleeve']
+	});
 
 	// ── Neckband ──
 	const nk: Step[] = [];
 	const neckRib = ribOf(d.neckRib);
 	const edgeV = Math.round(0.75 * neckRows); // pick up 3 sts for every 4 rows along a shaped edge
+	const neckTip = `${TIPS.pickUp} Go under both strands of each cast-on stitch.${neckRows ? ' “3 for every 4 rows” means: pick up a stitch in three row ends, then skip one.' : ''}`;
 	let neckband = 0;
 	if (cardigan) {
 		const pick = castOn + 2 * edgeV + 2 * neckCo;
 		neckband = d.neckline === 'I-cord' ? pick : fitTo(pick, neckRib.rep);
-		nk.push({ text: `With RS facing and the smaller needle, start at the right front neck edge and pick up and knit about ${sts(pick)} around the neck: 1 st in every cast-on st and 3 sts for every 4 rows along the shaped edges.` });
+		nk.push({ text: `With RS facing and the smaller needle, start at the right front neck edge and pick up and knit about ${sts(pick)} around the neck: 1 st in every cast-on st and 3 sts for every 4 rows along the shaped edges.`, tip: neckTip });
 		if (d.neckline === 'I-cord') nk.push(...edgeSteps('I-cord', d.neckRib, 0, pick, true, k));
 		else {
 			if (neckband !== pick) nk.push({ text: `Next row (WS): ${evenly(pick, neckband)}.`, count: sts(neckband) });
@@ -471,14 +561,15 @@ export function writePattern(d: Design): Pattern {
 		}
 	} else if (d.neckline === 'I-cord') {
 		neckband = castOn + (vNeck ? 2 * edgeV + 2 * neckCo : 0);
-		nk.push({ text: `With RS facing, start at centre back and pick up and knit 1 st in every cast-on st around the neck.`, count: sts(neckband) });
+		nk.push({ text: `With RS facing, start at centre back and pick up and knit 1 st in every cast-on st around the neck.`, count: sts(neckband), tip: neckTip });
 		nk.push(...edgeSteps('I-cord', d.neckRib, 0, neckband, false, k));
 	} else if (vNeck) {
 		const pick = castOn - 4 + 2 * edgeV + 2 * neckCo + 1;
 		neckband = pick;
 		nk.push({
 			text: `With RS facing and the smaller needle, start at centre back and pick up and knit 1 st in every cast-on st, 3 sts for every 4 rows down each side of the V, and 1 st at the point of the V (mark this centre st).`,
-			count: `about ${sts(pick)}`
+			count: `about ${sts(pick)}`,
+			tip: neckTip
 		});
 		nk.push({ text: `Every round: work in ${neckRib.name} to 1 st before the centre st, s2kp (centre double decrease), work in rib to end. Line the rib up so it is the same on both sides of the centre st.` });
 		nk.push({ text: `Continue until the band measures ${len(m.collarH)}. Bind off loosely in pattern.` });
@@ -486,12 +577,17 @@ export function writePattern(d: Design): Pattern {
 		const pick = castOn;
 		neckband = fitTo(pick, neckRib.rep);
 		const what = d.neckline === 'Turtleneck' ? 'turtleneck' : d.neckline === 'Mock neck' ? 'mock neck' : 'neckband';
-		nk.push({ text: `With RS facing and the smaller needle, start at centre back and pick up and knit 1 st in every cast-on st around the neck.`, count: sts(pick) });
-		if (neckband !== pick) nk.push({ text: `Next round: ${evenly(pick, neckband)}.`, count: sts(neckband) });
+		nk.push({ text: `With RS facing and the smaller needle, start at centre back and pick up and knit 1 st in every cast-on st around the neck.`, count: sts(pick), tip: neckTip });
+		if (neckband !== pick) nk.push({ text: `Next round: ${evenly(pick, neckband)}.`, count: sts(neckband), tip: TIPS.evenly });
 		nk.push({ text: `Work in ${neckRib.name} (${neckRib.work}) until the ${what} measures ${len(m.collarH)}.${d.neckline === 'Turtleneck' ? ' Change to the main needle halfway so the collar folds over easily.' : ''}` });
-		nk.push({ text: `Bind off loosely in pattern, using a stretchy bind-off so it fits over the head.` });
+		nk.push({ text: `Bind off loosely in pattern, using a stretchy bind-off so it fits over the head.`, tip: `Before you cut the yarn, check that the neck goes over your head. If it is tight, undo the bind-off and work it more loosely.` });
 	}
-	sections.push({ id: 'neck', title: d.neckline === 'Turtleneck' || d.neckline === 'Mock neck' ? 'Collar' : 'Neckband', steps: nk });
+	sections.push({
+		id: 'neck',
+		title: d.neckline === 'Turtleneck' || d.neckline === 'Mock neck' ? 'Collar' : 'Neckband',
+		intro: `The neck edge is finished last: you pick up stitches around the opening you cast on at the very start and knit a band upwards from it.`,
+		steps: nk
+	});
 
 	// ── Cardigan front bands ──
 	let buttons = 0;
@@ -506,23 +602,36 @@ export function writePattern(d: Design): Pattern {
 		buttonMm = Math.round(19 * Math.sqrt(k));
 		const holes = Array.from({ length: buttons }, (_, b) => Math.max(2, Math.round(((2.5 * k + ((yTop - 2.9 * k) * b) / (buttons - 1)) / edgeCm) * pick)));
 		const fb: Step[] = [];
-		fb.push({ text: `Button band: with RS facing and the smaller needle, pick up and knit ${sts(pick)} along one front edge, from the top of the neckband down to the hem (about 3 sts for every 4 rows).`, count: sts(pick) });
+		fb.push({ text: `Button band: with RS facing and the smaller needle, pick up and knit ${sts(pick)} along one front edge, from the top of the neckband down to the hem (about 3 sts for every 4 rows).`, count: sts(pick), tip: `${TIPS.pickUp} “3 for every 4 rows” means: pick up a stitch in three row ends, then skip one.` });
 		fb.push({ text: `Work in ${bandRib.name} (RS: ${bandRib.work}; WS: work sts as they appear) for ${len(bandCm)}. Bind off loosely in pattern.` });
 		fb.push({ text: `Buttonhole band: pick up ${sts(pick)} along the other front edge, from the hem up to the top of the neckband. Work in rib as for the button band until it measures ${len(bandCm / 2)}.` });
 		fb.push({
-			text: `Buttonhole row (RS): make ${B(buttons)} buttonholes, each ${buttonMm > 15 ? 'by binding off 2 sts (cast them back on over the gap on the next row)' : 'with a yo, k2tog'}, at sts ${holes.map((h) => B(h)).join(', ')} counted from the hem. Work the rest of the row in rib.`
+			text: `Buttonhole row (RS): make ${B(buttons)} buttonholes, each ${buttonMm > 15 ? 'by binding off 2 sts (cast them back on over the gap on the next row)' : 'with a yo, k2tog'}, at sts ${holes.map((h) => B(h)).join(', ')} counted from the hem. Work the rest of the row in rib.`,
+			tip: `Before you start, lay the buttons along the finished button band to see the spacing, and mark the buttonhole stitches with removable markers or scraps of yarn.`
 		});
 		fb.push({ text: `Continue in rib until the band matches the button band. Bind off loosely in pattern.` });
-		sections.push({ id: 'bands', title: 'Front bands', steps: fb });
+		sections.push({
+			id: 'bands',
+			title: 'Front bands',
+			intro: `Two ribbed strips down the front edges: one holds the buttons, the other has the buttonholes.`,
+			steps: fb
+		});
 	}
 
 	// ── Finishing ──
 	sections.push({
 		id: 'finishing',
 		title: 'Finishing',
+		intro: `The last hour of work, and the one that makes the sweater look finished.`,
 		steps: [
-			{ text: `Use the yarn tails to close any small gaps at the underarms. Weave in all ends.` },
-			{ text: `Wet block: soak, squeeze out the water, and lay flat to the finished measurements to dry.${cardigan ? ` Sew the ${B(buttons)} buttons to the button band opposite the buttonholes.` : ''}` }
+			{
+				text: `Use the yarn tails to close any small gaps at the underarms. Weave in all ends.`,
+				tip: `Thread each tail onto the tapestry needle and run it through the backs of the stitches on the inside for about 5 cm, then trim it.`
+			},
+			{
+				tip: `Blocking evens out your stitches and lets the fabric relax to its real size. It makes a bigger difference than you would expect, so do not skip it.`,
+				text: `Wet block: soak, squeeze out the water, and lay flat to the finished measurements to dry.${cardigan ? ` Sew the ${B(buttons)} buttons to the button band opposite the buttonholes.` : ''}`
+			}
 		]
 	});
 

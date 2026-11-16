@@ -1,0 +1,19 @@
+# Knit It
+
+> Knit It is a free, browser-based sweater designer. You choose a garment, size, fit, neckline, sleeves, edge finishes, yarn weight and colours, see the result on a live 3D model, and get a written top-down raglan knitting pattern with stitch counts calculated for that exact design. No account or install is needed.
+
+## Key facts
+
+- Garments: sweater, T-shirt, cardigan, slipover. Wearers: adult, junior, kid, baby. Sizes XS to XL in fitted, relaxed or oversized fit.
+- Necklines: crew, V-neck, boat, I-cord, mock neck, turtleneck. Sleeves: short, 3/4 or full length; straight, balloon or puff.
+- Yarn weights and gauges (stitches per 4 in / 10 cm): fingering 28, DK 22, worsted 18, bulky 13.
+- Colourwork: solid, stripes or Fair Isle (with a chart), in 12 colours.
+- Written patterns are available for raglan sweaters, T-shirts and cardigans. Slipovers and set-in sleeves are 3D preview only for now.
+- Each pattern lists materials, yardage and skeins, needle sizes, gauge, finished measurements (cm and inches), step-by-step instructions with stitch counts, and abbreviations. It can be printed or saved as a PDF.
+- Patterns are rated Beginner or Intermediate.
+- The pattern has a Concise view (standard shorthand) and a Beginner view (abbreviations written out, tips, links to free tutorials). Steps can be ticked off and repeated rounds counted; the design and progress are saved in the browser.
+
+## Pages
+
+- [Sweater designer](https://knit.walkersutton.com/): the interactive 3D designer and pattern generator
+- [How it works and FAQ](https://knit.walkersutton.com/about): the design steps, yarn weight table and answers to common questions

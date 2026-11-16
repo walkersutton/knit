@@ -1,10 +1,43 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import Choice from '$lib/sweater/Choice.svelte';
 	import Stage from '$lib/sweater/Stage.svelte';
 	import { measure, type Design } from '$lib/sweater/garment';
 	import { labelOf, sections, summary, visible } from '$lib/sweater/options';
 	import { estimate, writePattern } from '$lib/sweater/pattern';
 	import PatternView from '$lib/sweater/PatternView.svelte';
+	import { load, save, signature, type Mode, type Progress } from '$lib/sweater/progress';
+	import Seo from '$lib/Seo.svelte';
+	import { SITE } from '$lib/site';
+
+	const title = 'Knit It — Custom sweater pattern generator with 3D preview';
+	const description =
+		'Design a sweater, cardigan or tee in 3D, then get a free written top-down raglan knitting pattern sized to your yarn weight, gauge and measurements.';
+	const jsonLd = {
+		'@context': 'https://schema.org',
+		'@type': 'WebApplication',
+		name: SITE.name,
+		url: SITE.url + '/',
+		description,
+		image: SITE.image,
+		applicationCategory: 'DesignApplication',
+		operatingSystem: 'Any',
+		browserRequirements: 'Requires JavaScript and WebGL',
+		isAccessibleForFree: true,
+		offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+		featureList: [
+			'Live 3D sweater preview',
+			'Written top-down raglan knitting patterns with stitch counts',
+			'Sweaters, T-shirts, cardigans and slipovers',
+			'Adult, junior, kid and baby sizes from XS to XL',
+			'Fingering, DK, worsted and bulky yarn weights',
+			'Yarn yardage, skein and needle size estimates',
+			'Stripes and Fair Isle colourwork with a chart',
+			'Beginner view with plain-language steps, tips and links to tutorials',
+			'Tick off steps and count rounds, with your place saved in the browser',
+			'Print or save the pattern as a PDF'
+		]
+	};
 
 	let design = $state<Design>({
 		wearer: 'Adult',
@@ -46,16 +79,46 @@
 
 	let est = $derived(estimate(design));
 	let pattern = $derived(writePattern(design));
+
+	// ── Reading and tracking the pattern ──
+	let reading = $derived(tab === 'pattern');
+	let mode = $state<Mode>('beginner');
+	/** The knitter's place in each pattern they have started, by design signature. */
+	let progress = $state<Record<string, Progress>>({});
+	let sig = $derived(signature(design));
+	let place = $derived(progress[sig] ?? {});
+	function setStep(key: string, value: number) {
+		const p = (progress[sig] ??= {});
+		if (value > 0) p[key] = value;
+		else delete p[key];
+	}
+
+	// The design, the view and the knitter's place are kept in this browser between visits.
+	let restored = $state(false);
+	onMount(() => {
+		const saved = load(design);
+		if (saved.design) design = saved.design;
+		if (saved.mode) mode = saved.mode;
+		progress = saved.progress;
+		// Someone who has started knitting comes back to knit: open where they left off.
+		if (Object.keys(saved.progress[signature(design)] ?? {}).length && writePattern(design).ok) tab = 'pattern';
+		restored = true;
+	});
+	$effect(() => {
+		const state = { design: $state.snapshot(design), mode, progress: $state.snapshot(progress) };
+		if (restored) save(state, sig);
+	});
 </script>
 
-<svelte:head>
-	<title>Sweater Designer</title>
-	<meta name="description" content="Design your own sweater pattern and see it in 3D." />
-</svelte:head>
+<Seo {title} {description} path="/" {jsonLd} />
 
 <div class="app">
-	<header class="top"><strong>Sweater designer</strong><span>{summary(design)}</span></header>
-	<div class="layout">
+	<header class="top">
+		<h1>Sweater designer</h1>
+		<span>{summary(design)}</span>
+		<a href="/about">How it works</a>
+	</header>
+	<div class="layout" class:reading>
 		<aside bind:this={panel}>
 			<div class="tabs" role="tablist" aria-label="Pattern steps">
 				{#each tabs as t, i (t.id)}
@@ -66,7 +129,9 @@
 			</div>
 			<div id="panel" role="tabpanel" aria-labelledby="tab-{tab}">
 				{#if tab === 'pattern'}
-					<PatternView {pattern} main={design.color} contrast={design.contrast} />
+					<div class="sheet">
+						<PatternView {pattern} main={design.color} contrast={design.contrast} bind:mode progress={place} interactive onstep={setStep} onreset={() => delete progress[sig]} />
+					</div>
 				{:else if section}
 					{#each section.groups as group (group.id)}
 						{@const fields = visible(group, design)}
@@ -144,26 +209,10 @@
 		</main>
 	</div>
 </div>
-<div class="print-only"><PatternView {pattern} main={design.color} contrast={design.contrast} /></div>
+<div class="print-only"><PatternView {pattern} main={design.color} contrast={design.contrast} {mode} /></div>
 
 <style>
-	:global(*) {
-		box-sizing: border-box;
-	}
-	:global(body) {
-		margin: 0;
-		background: #f4f4f5;
-		color: #18181b;
-		font: 13px/1.35 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-		-webkit-font-smoothing: antialiased;
-	}
 	.app {
-		--ink: #18181b;
-		--muted: #6b6b74;
-		--line: #dcdce0;
-		--surface: #fff;
-		--wash: #f4f4f5;
-		--focus: #2563eb;
 		display: flex;
 		flex-direction: column;
 		height: 100dvh;
@@ -171,18 +220,41 @@
 	.top {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		gap: 16px;
 		flex: none;
 		height: 44px;
 		padding: 0 16px;
 		border-bottom: 1px solid var(--line);
 		background: var(--surface);
 	}
-	.top strong {
+	.top h1 {
+		margin: 0 auto 0 0;
+		font: inherit;
 		font-weight: 600;
+		white-space: nowrap;
 	}
 	.top span {
+		min-width: 0;
+		overflow: hidden;
 		color: var(--muted);
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.top a {
+		color: var(--ink);
+		font-weight: 500;
+		text-decoration: none;
+		white-space: nowrap;
+	}
+	.top a:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
+		border-radius: 2px;
+	}
+	@media (hover: hover) and (pointer: fine) {
+		.top a:hover {
+			text-decoration: underline;
+		}
 	}
 	.layout {
 		display: grid;
@@ -192,19 +264,39 @@
 	}
 	aside {
 		overflow-y: auto;
-		padding: 4px 16px 24px;
+		padding: 0 16px 24px;
 		border-right: 1px solid var(--line);
 		background: var(--surface);
+	}
+	/* ── Reading the pattern: the text takes the wide column, the model steps aside ── */
+	.layout.reading {
+		grid-template-columns: minmax(0, 1fr) clamp(260px, 30%, 420px);
+	}
+	.reading aside {
+		--column: 720px;
+		--gutter: max(16px, (100% - var(--column)) / 2);
+		--sticky-top: 50px;
+		padding-inline: var(--gutter);
+	}
+	.reading .tabs {
+		margin-inline: calc(-1 * var(--gutter));
+		padding-inline: max(12px, var(--gutter) - 4px);
+	}
+	.reading .pattern dl {
+		display: none;
+	}
+	.reading .pattern {
+		justify-content: flex-end;
 	}
 	.tabs {
 		position: sticky;
 		top: 0;
-		z-index: 1;
+		z-index: 2;
 		display: grid;
 		grid-template-columns: repeat(5, 1fr);
 		gap: 2px;
 		margin: 0 -16px;
-		padding: 8px 12px 0;
+		padding: 12px 12px 0;
 		border-bottom: 1px solid var(--line);
 		background: var(--surface);
 	}
@@ -486,6 +578,16 @@
 		}
 		.tabs {
 			position: static;
+		}
+		/* On a phone the pattern gets the whole screen. */
+		.reading main {
+			position: static;
+		}
+		.reading .stage {
+			display: none;
+		}
+		.reading aside {
+			--sticky-top: 0px;
 		}
 	}
 </style>
