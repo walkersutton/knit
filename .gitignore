@@ -1,0 +1,14 @@
+node_modules/
+.svelte-kit/
+build/
+dist/
+.vite/
+coverage/
+
+# Local editor and operating system files
+.DS_Store
+.idea/
+.vscode/
+
+# Local browser/agent runtime state (may contain session credentials)
+.gstack/
