@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tick } from 'svelte';
+	import { onDestroy, tick, untrack } from 'svelte';
 	import { primer, spellOut, techniques, techniquesIn, type Technique } from './learn';
 	import type { Pattern, PatternSection, Step } from './pattern';
 	import { doneOf, isDone, stepKey, summarize, tasksOf, type Mode, type Progress, type Task } from './progress';
@@ -12,6 +12,7 @@
 		progress = {},
 		interactive = false,
 		onstep,
+		onview,
 		onreset
 	}: {
 		pattern: Pattern;
@@ -23,6 +24,8 @@
 		/** Off for the printed copy: no controls, and empty boxes to tick with a pen. */
 		interactive?: boolean;
 		onstep?: (key: string, value: number) => void;
+		/** Told which step is being read as the pattern scrolls; undefined above the first step. */
+		onview?: (key: string | undefined) => void;
 		onreset?: () => void;
 	} = $props();
 
@@ -64,6 +67,46 @@
 	const taskOf = (s: PatternSection, pass: number, step: Step, index: number): Task => ({ key: stepKey(s.id, pass, index), section: s.id, pass, index, step, total: step.tally?.rows.length || 1 });
 	const plural = (unit: string, n: number) => `${n} ${unit.toLowerCase()}${n === 1 ? '' : 's'}`;
 
+	// ── Which step is being read: the last one to have scrolled up past a line just below the middle of the view ──
+	let article = $state<HTMLElement>();
+	let viewing = $state<string>();
+	/** Which pass of each section is on the page; the steps to look for change with it. */
+	let passes = $derived(sections.map(passOf).join());
+	$effect(() => {
+		if (!interactive || !onview || !article) return;
+		const root = article;
+		const tell = onview;
+		let last = untrack(() => viewing);
+		let scroller: HTMLElement | null = root.parentElement;
+		while (scroller && !/auto|scroll/.test(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement;
+		const look = () => {
+			const el = scroller ?? document.documentElement;
+			const top = scroller ? scroller.getBoundingClientRect().top : 0;
+			const h = el.clientHeight;
+			// Near the end the line slides down to the bottom edge, so the last steps get their turn too.
+			const left = el.scrollHeight - h - el.scrollTop;
+			const line = top + h * (0.6 + 0.4 * Math.max(0, 1 - left / (0.4 * h)));
+			let key: string | undefined;
+			for (const li of root.querySelectorAll<HTMLElement>('li[data-step]')) {
+				if (li.getBoundingClientRect().top > line) break;
+				key = li.dataset.step;
+			}
+			if (key !== last) tell((viewing = last = key));
+		};
+		// The steps move when the text changes (beginner tips, the other sleeve), not only on scroll.
+		void [passes, mode];
+		look();
+		const target = scroller ?? window;
+		target.addEventListener('scroll', look, { passive: true });
+		const resized = new ResizeObserver(look);
+		resized.observe(root);
+		return () => {
+			target.removeEventListener('scroll', look);
+			resized.disconnect();
+		};
+	});
+	onDestroy(() => onview?.(undefined));
+
 	async function resume() {
 		const t = status.current;
 		if (!t) return;
@@ -85,7 +128,7 @@
 	{@const t = taskOf(s, pass, step, i)}
 	{@const n = doneOf(t, progress)}
 	{@const done = !step.note && n >= t.total}
-	<li id={interactive ? `step-${t.key}` : undefined} class:note={step.note} class:done={interactive && done} class:current={interactive && status.current?.key === t.key}>
+	<li id={interactive ? `step-${t.key}` : undefined} data-step={interactive && !step.note ? t.key : undefined} class:viewing={interactive && !step.note && viewing === t.key} class:note={step.note} class:done={interactive && done} class:current={interactive && status.current?.key === t.key}>
 		{#if step.note}
 			<span class="mark" aria-hidden="true"></span>
 		{:else if interactive}
@@ -124,7 +167,7 @@
 	</li>
 {/snippet}
 
-<article class="pattern" class:interactive>
+<article class="pattern" class:interactive bind:this={article}>
 	{#if !pattern.ok}
 		<p class="unsupported">{pattern.reason}</p>
 	{:else}
@@ -470,6 +513,16 @@
 		padding: 9px 10px;
 		border-radius: 8px;
 		scroll-margin-top: 120px;
+	}
+	/* The step the 3D model is showing. */
+	li.viewing {
+		box-shadow: inset 3px 0 0 var(--line, #d9dbe0);
+	}
+	/* On a phone the model is hidden while reading. */
+	@media (max-width: 760px) {
+		li.viewing:not(.current) {
+			box-shadow: none;
+		}
 	}
 	li.current {
 		background: var(--here, #f1f6f3);

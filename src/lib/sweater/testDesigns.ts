@@ -1,11 +1,14 @@
 import type { Design } from './garment';
+import { mainSizes, pickNeedles } from './needles';
+import { yarnWeights } from './options';
 
 /** Test fixtures: the default design, every single-option variation of it, and a seeded random spread. */
 export const baseDesign: Design = {
 	wearer: 'Adult', garment: 'Sweater', construction: 'Raglan', size: 'M', fit: 'Relaxed', bodyLength: 'Regular',
 	sleeveLength: 'Full', neckline: 'Crew', sleeveShape: 'Straight', hemFinish: 'Ribbed', bodyRib: '1×1',
 	bodyRibLength: 'Regular', slits: 'None', neckRib: '1×1', neckDepth: 'Regular', cuffFinish: 'Ribbed',
-	sleeveRib: '1×1', cuffLength: 'Regular', pattern: 'Solid', color: '#465e9d', contrast: '#faf3dc', gauge: 18
+	sleeveRib: '1×1', cuffLength: 'Regular', pattern: 'Solid', color: '#465e9d', contrast: '#faf3dc', gauge: 18,
+	needle: 0, ribNeedle: 0
 };
 
 const RIBS = ['1×1', '2×2', '2×1', 'Twisted', 'Stockinette'];
@@ -39,6 +42,11 @@ export function singleVariations(): Design[] {
 	const out: Design[] = [baseDesign];
 	for (const [key, values] of Object.entries(choices)) for (const v of values) if (v !== baseDesign[key as keyof Design]) out.push({ ...baseDesign, [key]: v });
 	return out;
+}
+
+/** Every yarn weight on every main needle it can be knitted on, as a knitter who owns only that size would get it. */
+export function needleVariations(): Design[] {
+	return yarnWeights.flatMap((w) => mainSizes(w.gauge).map((mm) => ({ ...baseDesign, gauge: w.gauge, ...pickNeedles(w.gauge, [mm]) })));
 }
 
 export function randomDesigns(n: number, seed = 1): Design[] {

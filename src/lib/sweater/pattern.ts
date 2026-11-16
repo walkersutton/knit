@@ -1,5 +1,5 @@
 import { measure, type Design } from './garment';
-import { yarnWeights } from './options';
+import { needleLabel, needlesOf, weightOf } from './needles';
 import { chart, TILE_ROWS, TILE_ST } from './yarn';
 
 /**
@@ -21,6 +21,8 @@ export type Step = {
 	/** Extra help for the beginner view. */
 	tip?: string;
 	tally?: Tally;
+	/** Length of fabric this step knits, in cm down the piece its section makes. The 3D view uses it to show the work so far. */
+	adds?: number;
 };
 export type PatternSection = {
 	id: string;
@@ -80,9 +82,6 @@ const RIB: Record<string, { rep: number; name: string; work: string }> = {
 };
 const ribOf = (key: string) => RIB[key] ?? RIB['1×1'];
 
-/** Smaller needle for ribbing, by gauge. */
-const RIB_NEEDLE: Record<number, string> = { 28: 'US 1½ (2.5 mm)', 22: 'US 4 (3.5 mm)', 18: 'US 6 (4 mm)', 13: 'US 9 (5.5 mm)' };
-
 // ── Small helpers ───────────────────────────────────────────────────────
 const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
 const lcm = (...ns: number[]) => ns.reduce((a, b) => (a / gcd(a, b)) * b, 1);
@@ -119,7 +118,7 @@ function evenly(from: number, to: number) {
 
 // ── Materials (also used by the bottom bar) ─────────────────────────────
 export function estimate(d: Design) {
-	const yarn = yarnWeights.find((w) => w.gauge === d.gauge) ?? yarnWeights[2];
+	const yarn = weightOf(d.gauge);
 	const m = measure(d);
 	const fairIsle = d.pattern === 'Fair isle';
 	// Fabric area (cm²): body, sleeves below the underarm, sleeve tops in the yoke, collar.
@@ -129,7 +128,7 @@ export function estimate(d: Design) {
 		(m.hasSleeves ? 2 * (0.8 * m.upperArm * sleeveBody + 0.6 * m.upperArm * (m.L - m.ya)) : 0) +
 		ellipse(m.N, m.Nd) * m.collarH;
 	// About 0.125 yd per cm² at worsted gauge (an adult M worsted sweater takes ~1,150 yd); finer
-	// yarn takes proportionally more. Stranded colourwork carries the unused colour behind the work.
+	// yarn, or the same yarn knitted tighter on a thinner needle, takes proportionally more. Stranded colourwork carries the unused colour behind the work.
 	const yards = Math.round(area * 0.125 * (m.gauge / 18) * (fairIsle ? 1.2 : 1));
 	let share = 0;
 	if (d.pattern === 'Stripes') share = 5 / TILE_ROWS;
@@ -145,7 +144,7 @@ export function estimate(d: Design) {
 		d.neckline === 'V-neck' || d.neckline === 'I-cord' || d.sleeveShape === 'Puff' || d.slits !== 'None' || d.hemFinish === 'Folded hem' || d.hemFinish === 'I-cord' || fairIsle
 			? 'Intermediate'
 			: 'Beginner';
-	return { yarn, yards: mainYards + contrastYards, mainYards, contrastYards, skeins: skeins(mainYards) + (contrastYards ? skeins(contrastYards) : 0), mainSkeins: skeins(mainYards), contrastSkeins: contrastYards ? skeins(contrastYards) : 0, level };
+	return { yarn, needles: needlesOf(d), gauge: m.gauge, yards: mainYards + contrastYards, mainYards, contrastYards, skeins: skeins(mainYards) + (contrastYards ? skeins(contrastYards) : 0), mainSkeins: skeins(mainYards), contrastSkeins: contrastYards ? skeins(contrastYards) : 0, level };
 }
 
 // ── Beginner tips used in more than one place ──
@@ -167,19 +166,21 @@ function edgeSteps(finish: string, ribKey: string, depth: number, n: number, fla
 		if (to !== n) steps.push({ text: `Next ${u}: ${evenly(n, to)}.`, count: sts(to), tip: TIPS.evenly });
 		steps.push({
 			text: `Change to the smaller needle. Work in ${rib.name} (${rib.work}${flat ? '; on WS rows work the sts as they appear' : ''}) for ${len(depth)}.`,
-			tip: rib.rep > 1 ? TIPS.rib : undefined
+			tip: rib.rep > 1 ? TIPS.rib : undefined,
+			adds: depth
 		});
 		steps.push({ text: `Bind off loosely in pattern.`, tip: TIPS.bindOff });
 	} else if (finish === 'Folded hem') {
-		steps.push({ text: `Knit ${len(depth)}.` });
+		steps.push({ text: `Knit ${len(depth)}.`, adds: depth });
 		steps.push({ text: `Turning ${u}: ${flat ? 'knit 1 WS row' : 'purl 1 round'}.`, tip: `This one ${u} of bumps makes a crease, so the hem folds in a straight line.` });
 		steps.push({ text: `${flat ? 'Work in stockinette' : 'Knit'} ${len(depth)} more, then bind off loosely. Fold the edge to the inside along the turning ${u} and sew it down loosely.` });
 	} else if (finish === 'Rolled edge') {
-		steps.push({ text: `${flat ? 'Work in stockinette' : 'Knit'} ${len(2 * k)} more, then bind off loosely. The edge rolls to the right side on its own.` });
+		steps.push({ text: `${flat ? 'Work in stockinette' : 'Knit'} ${len(2 * k)} more, then bind off loosely. The edge rolls to the right side on its own.`, adds: 2 * k });
 	} else {
 		steps.push({
 			text: `I-cord bind-off: cast on ${sts(3)} at the start of the left needle. *K2, ssk (the last cord st together with 1 st of the ${flat ? 'piece' : 'round'}), slip the 3 sts back to the left needle; rep from * until all sts are bound off. ${flat ? 'Bind off the 3 cord sts.' : 'Graft or sew the cord ends together.'}`,
-			tip: `This makes a small round cord along the edge. It is slow, and much easier to follow after watching it done once.`
+			tip: `This makes a small round cord along the edge. It is slow, and much easier to follow after watching it done once.`,
+			adds: 0.6 * Math.sqrt(k)
 		});
 	}
 	return steps;
@@ -336,7 +337,7 @@ export function writePattern(d: Design): Pattern {
 			for (let x = i; x < i + span; x++) apply(rows[x]);
 			// Between the two cardigan cast-on rows the fronts differ, so show only the total there.
 			const lopsided = rows[i + span - 1].co > 0 && !rows[i + span - 1].rs;
-			out.push({ text: text.replace(/: (\w)/, (_, c) => `: ${c.toUpperCase()}`), count: lopsided ? sts(front + back + 2 * sleeve) : countText(flat), tally });
+			out.push({ text: text.replace(/: (\w)/, (_, c) => `: ${c.toUpperCase()}`), count: lopsided ? sts(front + back + 2 * sleeve) : countText(flat), tally, adds: span / rowPerCm });
 			i += span;
 		}
 		return out;
@@ -458,16 +459,17 @@ export function writePattern(d: Design): Pattern {
 	const bodyTip = `The long, easy stretch. Measure with the work lying flat, straight down from the underarm cast-on, without stretching it. Because you knit from the top down you can try it on at any point, and stop earlier or later to change the length.`;
 	if (slits) {
 		const half = bodySts / 2;
-		body.push({ text: `${fabric} until the body measures ${len(bodyLen - m.slitH)} from the underarm.`, tip: bodyTip });
+		body.push({ text: `${fabric} until the body measures ${len(bodyLen - m.slitH)} from the underarm.`, tip: bodyTip, adds: bodyLen - m.slitH });
 		body.push({
 			text: `Side slits: from here the back and front are finished separately, flat. Keep the front sts on hold. Work the back sts back and forth, knitting the first 2 and last 2 sts of every row for a neat slit edge, for ${len(m.slitH)}.`,
 			count: sts(half),
+			adds: m.slitH,
 			tip: `Leave the front stitches resting on the needle cable, or move them to waste yarn, while you work the back.`
 		});
 		body.push(...edgeSteps(d.hemFinish, d.bodyRib, m.hemH, half, true, k));
 		body.push({ text: `Work the front sts the same way.` });
 	} else {
-		body.push({ text: `${fabric} until the body measures ${len(bodyLen)} from the underarm${cardigan ? ', ending with a WS row' : ''}.`, tip: bodyTip });
+		body.push({ text: `${fabric} until the body measures ${len(bodyLen)} from the underarm${cardigan ? ', ending with a WS row' : ''}.`, tip: bodyTip, adds: bodyLen });
 		body.push(...edgeSteps(d.hemFinish, d.bodyRib, m.hemH, bodySts, cardigan, k));
 	}
 	sections.push({
@@ -487,6 +489,10 @@ export function writePattern(d: Design): Pattern {
 	});
 	const sleeveRows = rowsOf(sleeveBody);
 	const plainRounds = (n: number): Tally | undefined => (n > 0 ? { unit: 'Round', first: 1, rows: Array.from({ length: n }, () => 'Knit round') } : undefined);
+	/** Rounds of the sleeve worked so far, so the "knit until" step knows how much is left for it. */
+	let worked = 0;
+	const rounds = (n: number) => ((worked += n), n / rowPerCm);
+	const rest = () => Math.max(0, sleeveBody - worked / rowPerCm);
 	const untilTip = `Try it on to check the length. Write down how many rounds you knit here, so the second sleeve comes out the same.`;
 	let cur = top;
 	if (d.sleeveShape === 'Straight') {
@@ -496,7 +502,7 @@ export function writePattern(d: Design): Pattern {
 		const avail = sleeveRows - lead - rowsOf(2.5 * k);
 		if (decs > 0 && avail >= decs) {
 			const every = Math.max(1, Math.floor(avail / decs));
-			sl.push({ text: `Knit ${B(lead)} rounds.`, tally: plainRounds(lead) });
+			sl.push({ text: `Knit ${B(lead)} rounds.`, tally: plainRounds(lead), adds: rounds(lead) });
 			sl.push({
 				text: `Dec round: k1, k2tog, knit to the last 3 sts, ssk, k1. 2 sts decreased.`,
 				note: true,
@@ -506,10 +512,11 @@ export function writePattern(d: Design): Pattern {
 				text: `Work a dec round ${every === 1 ? 'every round' : `every ${B(every)} rounds`}, ${B(decs)} times in all.`,
 				count: sts((cur = top - 2 * decs)),
 				tally: { unit: 'Round', first: 1, rows: Array.from({ length: (decs - 1) * every + 1 }, (_, j) => (j % every ? 'Knit round' : 'Dec round')) },
+				adds: rounds((decs - 1) * every + 1),
 				tip: `Start with a dec round, then knit plain rounds in between. The counter shows which rounds are dec rounds.`
 			});
 		}
-		sl.push({ text: `Knit until the sleeve measures ${len(sleeveBody)} from the underarm.`, tip: untilTip });
+		sl.push({ text: `Knit until the sleeve measures ${len(sleeveBody)} from the underarm.`, tip: untilTip, adds: rest() });
 	} else {
 		// Balloon and puff sleeves: follow the 3D outline with evenly spaced increases / decreases.
 		const every = Math.max(2, rowsOf(3 * Math.sqrt(k)));
@@ -519,12 +526,12 @@ export function writePattern(d: Design): Pattern {
 			const change = Math.abs(want - cur) >= Math.max(4, cur * 0.06);
 			if (!change) continue;
 			const to = Math.max(Math.ceil(cur / 2), want);
-			if (r > last) sl.push({ text: `Knit ${B(r - last)} round${r - last > 1 ? 's' : ''}.`, tally: plainRounds(r - last) });
-			sl.push({ text: `Next round: ${evenly(cur, to)}.`, count: sts(to), tip: TIPS.evenly });
+			if (r > last) sl.push({ text: `Knit ${B(r - last)} round${r - last > 1 ? 's' : ''}.`, tally: plainRounds(r - last), adds: rounds(r - last) });
+			sl.push({ text: `Next round: ${evenly(cur, to)}.`, count: sts(to), tip: TIPS.evenly, adds: rounds(1) });
 			cur = to;
 			last = r + 1;
 		}
-		sl.push({ text: `Knit until the sleeve measures ${len(sleeveBody)} from the underarm.`, tip: untilTip });
+		sl.push({ text: `Knit until the sleeve measures ${len(sleeveBody)} from the underarm.`, tip: untilTip, adds: rest() });
 	}
 	const sleeveEndSts = cur;
 	// Cuff: rib draws in a little more than plain fabric.
@@ -557,7 +564,7 @@ export function writePattern(d: Design): Pattern {
 		if (d.neckline === 'I-cord') nk.push(...edgeSteps('I-cord', d.neckRib, 0, pick, true, k));
 		else {
 			if (neckband !== pick) nk.push({ text: `Next row (WS): ${evenly(pick, neckband)}.`, count: sts(neckband) });
-			nk.push({ text: `Work in ${neckRib.name} (RS: ${neckRib.work}; WS: work sts as they appear) for ${len(m.collarH)}. Bind off loosely in pattern.` });
+			nk.push({ text: `Work in ${neckRib.name} (RS: ${neckRib.work}; WS: work sts as they appear) for ${len(m.collarH)}. Bind off loosely in pattern.`, adds: m.collarH });
 		}
 	} else if (d.neckline === 'I-cord') {
 		neckband = castOn + (vNeck ? 2 * edgeV + 2 * neckCo : 0);
@@ -572,14 +579,14 @@ export function writePattern(d: Design): Pattern {
 			tip: neckTip
 		});
 		nk.push({ text: `Every round: work in ${neckRib.name} to 1 st before the centre st, s2kp (centre double decrease), work in rib to end. Line the rib up so it is the same on both sides of the centre st.` });
-		nk.push({ text: `Continue until the band measures ${len(m.collarH)}. Bind off loosely in pattern.` });
+		nk.push({ text: `Continue until the band measures ${len(m.collarH)}. Bind off loosely in pattern.`, adds: m.collarH });
 	} else {
 		const pick = castOn;
 		neckband = fitTo(pick, neckRib.rep);
 		const what = d.neckline === 'Turtleneck' ? 'turtleneck' : d.neckline === 'Mock neck' ? 'mock neck' : 'neckband';
 		nk.push({ text: `With RS facing and the smaller needle, start at centre back and pick up and knit 1 st in every cast-on st around the neck.`, count: sts(pick), tip: neckTip });
 		if (neckband !== pick) nk.push({ text: `Next round: ${evenly(pick, neckband)}.`, count: sts(neckband), tip: TIPS.evenly });
-		nk.push({ text: `Work in ${neckRib.name} (${neckRib.work}) until the ${what} measures ${len(m.collarH)}.${d.neckline === 'Turtleneck' ? ' Change to the main needle halfway so the collar folds over easily.' : ''}` });
+		nk.push({ text: `Work in ${neckRib.name} (${neckRib.work}) until the ${what} measures ${len(m.collarH)}.${d.neckline === 'Turtleneck' ? ' Change to the main needle halfway so the collar folds over easily.' : ''}`, adds: m.collarH });
 		nk.push({ text: `Bind off loosely in pattern, using a stretchy bind-off so it fits over the head.`, tip: `Before you cut the yarn, check that the neck goes over your head. If it is tight, undo the bind-off and work it more loosely.` });
 	}
 	sections.push({
@@ -603,13 +610,13 @@ export function writePattern(d: Design): Pattern {
 		const holes = Array.from({ length: buttons }, (_, b) => Math.max(2, Math.round(((2.5 * k + ((yTop - 2.9 * k) * b) / (buttons - 1)) / edgeCm) * pick)));
 		const fb: Step[] = [];
 		fb.push({ text: `Button band: with RS facing and the smaller needle, pick up and knit ${sts(pick)} along one front edge, from the top of the neckband down to the hem (about 3 sts for every 4 rows).`, count: sts(pick), tip: `${TIPS.pickUp} “3 for every 4 rows” means: pick up a stitch in three row ends, then skip one.` });
-		fb.push({ text: `Work in ${bandRib.name} (RS: ${bandRib.work}; WS: work sts as they appear) for ${len(bandCm)}. Bind off loosely in pattern.` });
-		fb.push({ text: `Buttonhole band: pick up ${sts(pick)} along the other front edge, from the hem up to the top of the neckband. Work in rib as for the button band until it measures ${len(bandCm / 2)}.` });
+		fb.push({ text: `Work in ${bandRib.name} (RS: ${bandRib.work}; WS: work sts as they appear) for ${len(bandCm)}. Bind off loosely in pattern.`, adds: bandCm });
+		fb.push({ text: `Buttonhole band: pick up ${sts(pick)} along the other front edge, from the hem up to the top of the neckband. Work in rib as for the button band until it measures ${len(bandCm / 2)}.`, adds: bandCm / 2 });
 		fb.push({
 			text: `Buttonhole row (RS): make ${B(buttons)} buttonholes, each ${buttonMm > 15 ? 'by binding off 2 sts (cast them back on over the gap on the next row)' : 'with a yo, k2tog'}, at sts ${holes.map((h) => B(h)).join(', ')} counted from the hem. Work the rest of the row in rib.`,
 			tip: `Before you start, lay the buttons along the finished button band to see the spacing, and mark the buttonhole stitches with removable markers or scraps of yarn.`
 		});
-		fb.push({ text: `Continue in rib until the band matches the button band. Bind off loosely in pattern.` });
+		fb.push({ text: `Continue in rib until the band matches the button band. Bind off loosely in pattern.`, adds: bandCm / 2 });
 		sections.push({
 			id: 'bands',
 			title: 'Front bands',
@@ -644,8 +651,8 @@ export function writePattern(d: Design): Pattern {
 			`${yarn.label} weight. Main colour: about ${est.mainYards} yd (${Math.round(est.mainYards * 0.9144)} m), ${est.mainSkeins} × ${yarn.yardage} yd skeins` +
 				(est.contrastYards ? `. Contrast colour: about ${est.contrastYards} yd (${Math.round(est.contrastYards * 0.9144)} m), ${est.contrastSkeins} skein${est.contrastSkeins > 1 ? 's' : ''}` : '')
 		],
-		['Main needle', `${yarn.needle} circular, ${circ} long, plus DPNs or a long circular for magic loop (sleeves)`],
-		['Smaller needle', `${RIB_NEEDLE[yarn.gauge] ?? 'two sizes smaller than the main needle'}, for ribbing and bands`],
+		['Main needle', `${needleLabel(est.needles.main)} circular, ${circ} long, plus DPNs or a long circular for magic loop (sleeves)`],
+		['Smaller needle', `${needleLabel(est.needles.rib)}, for ribbing and bands`],
 		['Notions', `4 stitch markers plus 1 in a different colour (BOR), waste yarn, tapestry needle${cardigan ? `, ${buttons} buttons about ${buttonMm} mm across` : ''}`]
 	];
 	const measurements: [string, string][] = [
@@ -677,7 +684,7 @@ export function writePattern(d: Design): Pattern {
 		title: `${wearer}${d.neckline} raglan ${d.garment.toLowerCase()}, size ${d.size}`,
 		level: est.level,
 		materials,
-		gauge: `${yarn.gauge} sts and ${rowGauge} ${cardigan ? 'rows' : 'rounds'} = 10 cm (4 in) in stockinette on the main needle, after blocking. Knit a swatch and change needle size if needed: the stitch counts depend on matching the stitch gauge.`,
+		gauge: `${est.gauge} sts and ${rowGauge} ${cardigan ? 'rows' : 'rounds'} = 10 cm (4 in) in stockinette on the main needle, after blocking. Knit a swatch and change needle size if needed: the stitch counts depend on matching the stitch gauge.`,
 		measurements,
 		abbreviations,
 		sections,

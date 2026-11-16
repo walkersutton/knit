@@ -1,11 +1,14 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { buildGarment, shapeKey, type Design, type Garment } from './garment';
+import { buildGarment, PIECE, shapeKey, type Design, type Garment } from './garment';
+import type { Knitted } from './progress';
 import { makeKnitMaps, type KnitMaps } from './yarn';
 import { RIBS } from './options';
 
 export type ViewerHandle = {
 	setDesign(design: Design): void;
+	/** Show only what has been knitted so far; null shows the finished garment. */
+	setKnitted(knitted: Knitted | null): void;
 	/** Spin half a turn. */
 	turn(): void;
 	dispose(): void;
@@ -16,6 +19,8 @@ const YAW = -0.36;
 const PITCH = 0.06;
 const FUZZ = 5000;
 const ZOOM_MAX = 3;
+/** `when` limits (see Garment) that show every piece whole. */
+const WHOLE = [2, 2, 2, 1, 1];
 
 export function createViewer(host: HTMLElement, onView: (view: string) => void, intro = true): ViewerHandle {
 	const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -71,14 +76,32 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 	// ── Materials ───────────────────────────────────────────────────────
 	// Wool is matte: almost no specular, a soft sheen at grazing angles.
 	const cloth = () => new THREE.MeshPhysicalMaterial({ roughness: 1, specularIntensity: 0.12, sheen: 0.6, sheenRoughness: 0.75, vertexColors: true });
-	const fabricMat = cloth();
-	const ribMats = new Map(RIBS.map((kind) => [kind, cloth()]));
+	// How far each piece has been knitted: fabric whose `knit` attribute lies past its piece's limit is not drawn.
+	const knitNow = Float32Array.from(WHOLE);
+	const knitTo = Float32Array.from(WHOLE);
+	const knitUniform = { value: knitNow };
+	/** Makes a material draw only the knitted part of its geometry. */
+	const knitted = <T extends THREE.Material>(mat: T): T => {
+		mat.onBeforeCompile = (shader) => {
+			shader.uniforms.uKnit = knitUniform;
+			shader.vertexShader = 'attribute vec2 knit;\nvarying vec2 vKnit;\n' + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvKnit = knit;');
+			shader.fragmentShader =
+				'uniform float uKnit[5];\nvarying vec2 vKnit;\n' +
+				shader.fragmentShader.replace('void main() {', 'void main() {\n\tif (vKnit.y > uKnit[int(vKnit.x + 0.5)] + 0.004) discard;');
+		};
+		mat.customProgramCacheKey = () => 'knit';
+		return mat;
+	};
+	const fabricMat = knitted(cloth());
+	const ribMats = new Map(RIBS.map((kind) => [kind, knitted(cloth())]));
 	// The inside of the garment (seen through the neck and cuffs) is the same knit, lit and shadowed like the outside.
-	const insideMat = new THREE.MeshStandardMaterial({ color: 0xb4b4b4, roughness: 1, side: THREE.BackSide });
+	const insideMat = knitted(new THREE.MeshStandardMaterial({ color: 0xb4b4b4, roughness: 1, side: THREE.BackSide }));
 	const holeMat = new THREE.MeshBasicMaterial({ color: 0x2c2630, side: THREE.DoubleSide });
-	const trimMat = new THREE.MeshStandardMaterial({ roughness: 0.35 });
-	const seamMat = new THREE.MeshStandardMaterial({ roughness: 1 });
-	const fuzzMat = new THREE.LineBasicMaterial({ transparent: true, opacity: 0.2, depthWrite: false });
+	const trimMat = knitted(new THREE.MeshStandardMaterial({ roughness: 0.35 }));
+	const seamMat = knitted(new THREE.MeshStandardMaterial({ roughness: 1 }));
+	const fuzzMat = knitted(new THREE.LineBasicMaterial({ transparent: true, opacity: 0.2, depthWrite: false }));
+	// Unknitted fabric casts no shadow.
+	const shadowMat = knitted(new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking }));
 
 	let maps: KnitMaps[] = [];
 	let key_ = '';
@@ -125,7 +148,10 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 		for (const lining of linings) lining.receiveShadow = true;
 		garment.add(...linings);
 		if (built.trim) solids.push(new THREE.Mesh(built.trim, trimMat));
-		for (const mesh of solids) mesh.castShadow = mesh.receiveShadow = true;
+		for (const mesh of solids) {
+			mesh.castShadow = mesh.receiveShadow = true;
+			mesh.customDepthMaterial = shadowMat;
+		}
 		garment.add(...solids);
 		if (built.holes) garment.add(new THREE.Mesh(built.holes, holeMat));
 
@@ -162,13 +188,21 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 					const hit = ray.intersectObjects(targets, false)[0];
 					if (hit) pts.push(hit.point.clone().setZ(hit.point.z + face * 0.05));
 				}
-				if (pts.length > 3) garment.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, 0.13, 6), seamMat));
+				if (pts.length < 4) continue;
+				// The seam appears with the yoke rows it runs across.
+				const tube = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, 0.13, 6);
+				const pos = tube.getAttribute('position');
+				const knit = new Float32Array(pos.count * 2);
+				for (let k = 0; k < pos.count; k++) knit.set([PIECE.body, g.bodyWhen(pos.getY(k))], k * 2);
+				tube.setAttribute('knit', new THREE.BufferAttribute(knit, 2));
+				garment.add(new THREE.Mesh(tube, seamMat));
 			}
 	}
 
 	/** A halo of short loose fibres, the thing that makes knitwear look soft at its edges. */
 	function addFuzz(sources: THREE.Mesh[]) {
 		const out = new Float32Array(FUZZ * 12);
+		const knit = new Float32Array(FUZZ * 8);
 		let o = 0;
 		const a = new THREE.Vector3();
 		const b = new THREE.Vector3();
@@ -181,6 +215,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 		for (const mesh of sources) {
 			const pos = mesh.geometry.getAttribute('position');
 			const nor = mesh.geometry.getAttribute('normal');
+			const when = mesh.geometry.getAttribute('knit');
 			const idx = mesh.geometry.getIndex()!;
 			const tris = idx.count / 3;
 			const count = Math.round((FUZZ * tris) / totalTris);
@@ -200,11 +235,14 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 				out.set([p.x, p.y, p.z, q.x, q.y, q.z], o);
 				p.copy(q).addScaledVector(n, len * 0.25).add(a.set(rnd(), rnd() - 0.2, rnd()).multiplyScalar(len * 0.8));
 				out.set([q.x, q.y, q.z, p.x, p.y, p.z], o + 6);
+				// A fibre is there once the stitch it grows from is.
+				for (let e = 0; e < 4; e++) knit.set([when.getX(ia), when.getY(ia)], (o / 3 + e) * 2);
 				o += 12;
 			}
 		}
 		const g = new THREE.BufferGeometry();
 		g.setAttribute('position', new THREE.BufferAttribute(out.subarray(0, o), 3));
+		g.setAttribute('knit', new THREE.BufferAttribute(knit.subarray(0, (o / 3) * 2), 2));
 		garment.add(new THREE.LineSegments(g, fuzzMat));
 	}
 
@@ -220,6 +258,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 	let view = '';
 	let zoom = 1;
 	let baseDist = 1;
+	let drawn = false;
 
 	function fit() {
 		const w = host.clientWidth || 1;
@@ -241,14 +280,22 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 		pitch += (pitchT - pitch) * f;
 		pivot.rotation.set(pitch, yaw, 0);
 		camera.position.z = baseDist / zoom;
+		// The fabric grows (or unravels) to the knitter's new place.
+		let growing = 0;
+		for (let i = 0; i < knitNow.length; i++) {
+			knitNow[i] += (knitTo[i] - knitNow[i]) * f;
+			growing += Math.abs(knitTo[i] - knitNow[i]);
+		}
+		if (growing < 2e-3) knitNow.set(knitTo);
 		renderer.render(scene, camera);
+		drawn = true;
 
 		const turn = (((yawT % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) / Math.PI;
 		const name = turn < 0.25 || turn > 1.75 ? 'Front' : turn > 0.75 && turn < 1.25 ? 'Back' : 'Side';
 		if (name !== view) onView((view = name));
 
 		const settled = Math.abs(yawT - yaw) + Math.abs(pitchT - pitch) < 4e-4;
-		if (dragging || !settled) raf = requestAnimationFrame(frame);
+		if (dragging || !settled || growing >= 2e-3) raf = requestAnimationFrame(frame);
 		else running = false;
 	}
 	function invalidate() {
@@ -368,6 +415,14 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 				key_ = next;
 				setShape(d);
 			}
+			invalidate();
+		},
+		setKnitted(k) {
+			// Body and sleeves count 0–1 down the yoke, then 1–2 on to the hem or cuff. A piece not yet begun shows nothing.
+			const hang = (part: number) => (k!.yoke < 1 ? k!.yoke || -1 : 1 + part);
+			knitTo.set(k ? [hang(k.body), hang(k.sleeves[0]), hang(k.sleeves[1]), k.neck || -1, k.bands || -1] : WHOLE);
+			// Nothing on screen yet: open at the knitter's place instead of unravelling to it.
+			if (reduced || !drawn) knitNow.set(knitTo);
 			invalidate();
 		},
 		turn() {

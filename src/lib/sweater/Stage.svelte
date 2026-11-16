@@ -1,17 +1,24 @@
 <script lang="ts">
 	import Viewer from './Viewer.svelte';
 	import type { Design } from './garment';
+	import type { Knitted } from './progress';
 
-	let { design, intro = true }: { design: Design; intro?: boolean } = $props();
+	/** `knitted` is how far the step being read gets; when set, the model shows that much of the garment. */
+	let { design, knitted = null, intro = true }: { design: Design; knitted?: Knitted | null; intro?: boolean } = $props();
+	/** Look at the finished garment while part-way through knitting it. */
+	let finished = $state(false);
 	let view = $state('Front');
 	let viewer = $state<Viewer>();
 </script>
 
 <div class="stage">
-	<Viewer bind:this={viewer} {design} {intro} onview={(v) => (view = v)} />
+	<Viewer bind:this={viewer} {design} knitted={finished ? null : knitted} {intro} onview={(v) => (view = v)} />
 	<span class="tag">{view}</span>
 	<span class="hint">Drag to rotate</span>
 	<button class="turn" type="button" onclick={() => viewer?.turn()}>{view === 'Back' ? 'Show front' : 'Show back'}</button>
+	{#if knitted}
+		<button class="turn so-far" type="button" aria-pressed={!finished} onclick={() => (finished = !finished)}>{finished ? 'Show this step' : 'Show finished'}</button>
+	{/if}
 </div>
 
 <style>
@@ -56,6 +63,10 @@
 		font-weight: 500;
 		cursor: pointer;
 		transition: background-color 120ms ease-out, transform 120ms ease-out;
+	}
+	.so-far {
+		top: auto;
+		bottom: 10px;
 	}
 	.turn:active {
 		transform: scale(0.97);

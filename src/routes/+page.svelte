@@ -3,10 +3,12 @@
 	import Choice from '$lib/sweater/Choice.svelte';
 	import Stage from '$lib/sweater/Stage.svelte';
 	import { measure, type Design } from '$lib/sweater/garment';
+	import { needleLabel, pickNeedles } from '$lib/sweater/needles';
+	import Needles from '$lib/sweater/Needles.svelte';
 	import { labelOf, sections, summary, visible } from '$lib/sweater/options';
 	import { estimate, writePattern } from '$lib/sweater/pattern';
 	import PatternView from '$lib/sweater/PatternView.svelte';
-	import { load, save, signature, type Mode, type Progress } from '$lib/sweater/progress';
+	import { knittedOf, load, progressAt, save, signature, tasksOf, type Mode, type Progress } from '$lib/sweater/progress';
 	import Seo from '$lib/Seo.svelte';
 	import { SITE } from '$lib/site';
 
@@ -32,9 +34,11 @@
 			'Adult, junior, kid and baby sizes from XS to XL',
 			'Fingering, DK, worsted and bulky yarn weights',
 			'Yarn yardage, skein and needle size estimates',
+			'Patterns written for the needle sizes you already own',
 			'Stripes and Fair Isle colourwork with a chart',
 			'Beginner view with plain-language steps, tips and links to tutorials',
 			'Tick off steps and count rounds, with your place saved in the browser',
+			'3D model that grows as you read through the pattern',
 			'Print or save the pattern as a PDF'
 		]
 	};
@@ -61,8 +65,14 @@
 		pattern: 'Solid',
 		color: '#465e9d',
 		contrast: '#faf3dc',
-		gauge: 18
+		gauge: 18,
+		needle: 0,
+		ribNeedle: 0
 	});
+	/** Needle sizes (mm) the knitter owns. */
+	let owned = $state<number[]>([]);
+	/** The design as it will be knitted: on the knitter's own needles where they suit the yarn. */
+	let knit = $derived<Design>({ ...design, ...pickNeedles(design.gauge, owned) });
 
 	const tabs = [...sections.map(({ id, label }) => ({ id, label })), { id: 'summary', label: 'Summary' }, { id: 'pattern', label: 'Pattern' }];
 	let tab = $state('design');
@@ -74,19 +84,22 @@
 		panel?.scrollTo({ top: 0 });
 	}
 
-	let size = $derived(measure(design));
+	let size = $derived(measure(knit));
 	const both = (cm: number) => `${Math.round(cm)} cm · ${Math.round(cm / 1.27) / 2} in`;
 
-	let est = $derived(estimate(design));
-	let pattern = $derived(writePattern(design));
+	let est = $derived(estimate(knit));
+	let pattern = $derived(writePattern(knit));
 
 	// ── Reading and tracking the pattern ──
 	let reading = $derived(tab === 'pattern');
 	let mode = $state<Mode>('beginner');
 	/** The knitter's place in each pattern they have started, by design signature. */
 	let progress = $state<Record<string, Progress>>({});
-	let sig = $derived(signature(design));
+	let sig = $derived(signature(knit));
 	let place = $derived(progress[sig] ?? {});
+	/** The step scrolled to in the pattern. The 3D model shows the garment as it is once that step is knitted. */
+	let viewing = $state<string>();
+	let knitted = $derived(reading && pattern.ok && viewing ? knittedOf(pattern.sections, progressAt(tasksOf(pattern.sections), viewing, place)) : null);
 	function setStep(key: string, value: number) {
 		const p = (progress[sig] ??= {});
 		if (value > 0) p[key] = value;
@@ -99,13 +112,14 @@
 		const saved = load(design);
 		if (saved.design) design = saved.design;
 		if (saved.mode) mode = saved.mode;
+		owned = saved.needles;
 		progress = saved.progress;
 		// Someone who has started knitting comes back to knit: open where they left off.
-		if (Object.keys(saved.progress[signature(design)] ?? {}).length && writePattern(design).ok) tab = 'pattern';
+		if (Object.keys(saved.progress[sig] ?? {}).length && pattern.ok) tab = 'pattern';
 		restored = true;
 	});
 	$effect(() => {
-		const state = { design: $state.snapshot(design), mode, progress: $state.snapshot(progress) };
+		const state = { design: $state.snapshot(design), mode, needles: $state.snapshot(owned), progress: $state.snapshot(progress) };
 		if (restored) save(state, sig);
 	});
 </script>
@@ -130,7 +144,7 @@
 			<div id="panel" role="tabpanel" aria-labelledby="tab-{tab}">
 				{#if tab === 'pattern'}
 					<div class="sheet">
-						<PatternView {pattern} main={design.color} contrast={design.contrast} bind:mode progress={place} interactive onstep={setStep} onreset={() => delete progress[sig]} />
+						<PatternView {pattern} main={design.color} contrast={design.contrast} bind:mode progress={place} interactive onstep={setStep} onview={(key) => (viewing = key)} onreset={() => delete progress[sig]} />
 					</div>
 				{:else if section}
 					{#each section.groups as group (group.id)}
@@ -147,6 +161,15 @@
 							</section>
 						{/if}
 					{/each}
+					{#if section.id === 'yarn'}
+						<section>
+							<h2>Needles</h2>
+							<div class="field">
+								<div class="label"><span>Sizes you have</span></div>
+								<Needles design={knit} bind:owned />
+							</div>
+						</section>
+					{/if}
 				{:else}
 					<section>
 						<h2>Finished size</h2>
@@ -179,6 +202,17 @@
 							{/each}
 						</section>
 					{/each}
+					<section>
+						<div class="head">
+							<h2>Needles</h2>
+							<button type="button" class="edit" onclick={() => go('yarn')}>Edit</button>
+						</div>
+						<dl class="spec">
+							<div><dt>Main needle</dt><dd>{needleLabel(est.needles.main)}</dd></div>
+							<div><dt>Ribbing needle</dt><dd>{needleLabel(est.needles.rib)}</dd></div>
+							<div><dt>Gauge</dt><dd>{est.gauge} sts / 4 in</dd></div>
+						</dl>
+					</section>
 				{/if}
 			</div>
 			<div class="steps">
@@ -191,12 +225,12 @@
 			</div>
 		</aside>
 		<main>
-			<div class="stage"><Stage {design} /></div>
+			<div class="stage"><Stage design={knit} {knitted} /></div>
 			<div class="pattern">
 				<dl>
 					<div><dt>Yarn</dt><dd>{est.yards} yd · {est.skeins} {est.skeins === 1 ? 'skein' : 'skeins'}</dd></div>
-					<div><dt>Needles</dt><dd>{est.yarn.needle}</dd></div>
-					<div><dt>Gauge</dt><dd>{design.gauge} sts / 4 in</dd></div>
+					<div><dt>Needles</dt><dd>{needleLabel(est.needles.main)}</dd></div>
+					<div><dt>Gauge</dt><dd>{est.gauge} sts / 4 in</dd></div>
 					<div><dt>Skill</dt><dd>{est.level}</dd></div>
 				</dl>
 				{#if tab !== 'pattern' && pattern.ok}

@@ -3,6 +3,7 @@
 	import { SITE } from '$lib/site';
 	import { colors, sections, yarnWeights } from '$lib/sweater/options';
 	import type { Design } from '$lib/sweater/garment';
+	import { needleLabel } from '$lib/sweater/needles';
 
 	const title = 'How Knit It works — custom knitting patterns and FAQ';
 	const description =
@@ -38,7 +39,11 @@
 		},
 		{
 			q: 'Which yarn weights and gauges are supported?',
-			a: `${yarnWeights.map((w) => `${w.label} at ${w.gauge} stitches per 4 inches (10 cm) on ${w.needle} needles`).join('; ')}. Ribbing and bands are worked on a smaller needle.`
+			a: `${yarnWeights.map((w) => `${w.label} at ${w.gauge} stitches per 4 inches (10 cm) on ${needleLabel(w.needle)} needles`).join('; ')}. Ribbing and bands are worked on a smaller needle.`
+		},
+		{
+			q: 'Can I use the needles I already have?',
+			a: 'Yes. On the Yarn step, pick the needle sizes you own. If one of them is within a size or two of the usual needle for your yarn weight, the pattern is written for that needle and its gauge, so the stitch counts change to keep the finished size the same. Ribbing uses a smaller needle from your set when you have one. Any size you would still need is marked “To buy”.'
 		},
 		{
 			q: 'How is the yarn amount estimated?',
@@ -98,7 +103,7 @@
 		<ol>
 			<li><strong>Design.</strong> Pick the garment type, who it is for, the size and fit, the neckline and the sleeves.</li>
 			<li><strong>Details.</strong> Choose how the hem, cuffs and neckband are finished: rib structure, rib length, folded hems, rolled edges or I-cord.</li>
-			<li><strong>Yarn.</strong> Choose a yarn weight, which sets the gauge and needle size, then a colour and an optional stripe or Fair Isle pattern.</li>
+			<li><strong>Yarn.</strong> Choose a yarn weight, which sets the gauge and needle size, then a colour and an optional stripe or Fair Isle pattern. Pick the needle sizes you already have and the pattern uses them where it can.</li>
 			<li><strong>Summary.</strong> Check the finished chest and length, the yardage, the number of skeins and the skill level.</li>
 			<li><strong>Pattern.</strong> Read the instructions on screen, or print them and save as a PDF.</li>
 		</ol>
@@ -111,7 +116,7 @@
 			</thead>
 			<tbody>
 				{#each yarnWeights as w (w.label)}
-					<tr><td>{w.label}</td><td>{w.gauge}</td><td>{w.needle}</td><td>{w.yardage} yd</td></tr>
+					<tr><td>{w.label}</td><td>{w.gauge}</td><td>{needleLabel(w.needle)}</td><td>{w.yardage} yd</td></tr>
 				{/each}
 			</tbody>
 		</table>

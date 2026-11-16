@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { stitchGauge } from './needles';
 import { TILE_ROWS, TILE_ST } from './yarn';
 
 export type Design = {
@@ -25,9 +26,22 @@ export type Design = {
 	pattern: string;
 	color: string;
 	contrast: string;
+	/** Yarn weight, as its standard gauge (stitches per 4 in). */
 	gauge: number;
+	/** Main needle in mm when it is not the yarn weight's standard one (0). It changes the stitch gauge: see `stitchGauge`. */
+	needle: number;
+	/** Ribbing needle in mm when it is not the usual one for the main needle (0). */
+	ribNeedle: number;
 };
 
+/** The pieces a knitter works one after another; the first value of the `knit` vertex attribute. */
+export const PIECE = { body: 0, sleeve: 1, sleeve2: 2, neck: 3, bands: 4 } as const;
+
+/**
+ * Every knitted geometry carries a `knit` attribute (piece, when), so the viewer can show a garment
+ * part-way through its pattern. For the body and sleeves `when` runs from 0 at the neck to 1 at the
+ * underarm (the yoke), then on to 2 at the hem or cuff; for the neckband and front bands, 0 to 1.
+ */
 export type Garment = {
 	fabric: THREE.BufferGeometry;
 	/** Ribbed parts, one geometry per rib structure ('1×1', '2×2', …). */
@@ -37,13 +51,15 @@ export type Garment = {
 	holes: THREE.BufferGeometry | null;
 	/** Raglan seam paths in the XY plane; the viewer projects them onto the surface. */
 	seams: [THREE.Vector2, THREE.Vector2][];
+	/** `when` (see above) for a point on the body at height y. */
+	bodyWhen: (y: number) => number;
 	/** Relative size of the wearer, for camera framing. */
 	scale: number;
 };
 
 /** Everything that changes the mesh (colour and pattern only change the textures). */
 export const shapeKey = (d: Design) => {
-	const { color: _c, contrast: _x, pattern: _p, ...shape } = d;
+	const { color: _c, contrast: _x, pattern: _p, ribNeedle: _r, ...shape } = d;
 	return JSON.stringify(shape);
 };
 
@@ -66,7 +82,7 @@ export function measure(d: Design) {
 	const raglan = d.construction === 'Raglan' && hasSleeves;
 
 	// ── Gauge ───────────────────────────────────────────────────────────
-	const gauge = Math.min(40, Math.max(8, d.gauge || 18)); // stitches per 4 in (10.16 cm)
+	const gauge = Math.min(40, Math.max(8, stitchGauge(d) || 18)); // stitches per 4 in (10.16 cm)
 	const stPerCm = gauge / 10.16;
 	const rowPerCm = stPerCm * 1.35; // assumed stockinette row:stitch ratio
 
@@ -206,6 +222,15 @@ function sheet(cols: number, rows: number, pos: PosFn, uv: (i: number, j: number
 	return g;
 }
 
+/** Tags a geometry with the piece it belongs to and when it is knitted: one value, or one per row of a sheet `cols` wide. */
+function knitAt(g: THREE.BufferGeometry, piece: number, when: number | ((row: number) => number), cols = 0) {
+	const n = g.getAttribute('position').count;
+	const K = new Float32Array(n * 2);
+	for (let k = 0; k < n; k++) K.set([piece, typeof when === 'number' ? when : when(Math.floor(k / (cols + 1)))], k * 2);
+	g.setAttribute('knit', new THREE.BufferAttribute(K, 2));
+	return g;
+}
+
 function flip(g: THREE.BufferGeometry) {
 	const idx = g.getIndex()!;
 	for (let k = 0; k < idx.count; k += 3) {
@@ -245,6 +270,9 @@ export function buildGarment(d: Design): Garment {
 
 	const wraps = (circ: number, stretch = 1) => Math.max(1, Math.round((circ * stPerCm * stretch) / TILE_ST));
 	const vOf = (cm: number) => (cm * rowPerCm) / TILE_ROWS;
+
+	// Knitted top down: the yoke from the neck to the underarm, then the body on to the hem.
+	const bodyWhen = (y: number) => (y >= ya ? (L - y) / (L - ya) : 1 + (ya - y) / ya);
 
 	const pull = hemDraws ? 0.93 : 1;
 	const E = 2.5;
@@ -476,7 +504,7 @@ export function buildGarment(d: Design): Garment {
 	const sleeveReach = !hasSleeves ? 0 : d.sleeveLength === 'Short' ? 12 * k : 60 * k;
 	const bodyBuried = new Uint8Array((COLS + 1) * rowY.length);
 	fabric.push(
-		cull(sheet(
+		knitAt(cull(sheet(
 			COLS,
 			rowY.length - 1,
 			(i, j, out) => {
@@ -510,7 +538,7 @@ export function buildGarment(d: Design): Garment {
 				const band = Math.exp(-(top[i] - y) / (1.4 * k)) * 0.14 + (hemH ? Math.exp(-(y - hemH) / (2.2 * k)) * 0.1 : 0);
 				return 1 - underSleeve - armpit - band + 0.07 * pleat(a, y) + 0.05 * sag(a, y) + 0.03 * wob(p.x / (3 * k), p.y / (2 * k), p.z);
 			}
-		), bodyBuried)
+		), bodyBuried), PIECE.body, (j) => bodyWhen(rowY[j]), COLS)
 	);
 
 	/** A rolled rim (I-cord or stockinette curl) around an edge loop. */
@@ -538,7 +566,7 @@ export function buildGarment(d: Design): Garment {
 	// Hem: a rib or folded band, or a rolled / I-cord rim.
 	if (hemH)
 		(ribbed ? rib(d.bodyRib) : fabric).push(
-			sheet(
+			knitAt(sheet(
 				COLS,
 				6,
 				(i, j, out) => {
@@ -550,11 +578,11 @@ export function buildGarment(d: Design): Garment {
 				},
 				(i, j) => [(i / COLS) * (ribbed ? wraps(girth, drawn(d.bodyRib)) : bodyWraps), vOf(lift((i / COLS) * TAU, (j / 6) * hemH))],
 				(_i, j, out) => out.set(0, (j / 6) * hemH, 0)
-			)
+			), PIECE.body, (j) => bodyWhen((j / 6) * hemH), COLS)
 		);
 	else
 		fabric.push(
-			roll(
+			knitAt(roll(
 				COLS,
 				(i, out) => {
 					const a = (i / COLS) * TAU;
@@ -567,14 +595,14 @@ export function buildGarment(d: Design): Garment {
 				new THREE.Vector3(0, -1, 0),
 				rimR(d.hemFinish),
 				bodyWraps
-			)
+			), PIECE.body, 2)
 		);
 
 	// ── Neckband / collar ───────────────────────────────────────────────
 	if (iCordNeck)
 		// A cord worked straight onto the neck edge, no band.
 		fabric.push(
-			roll(
+			knitAt(roll(
 				COLS,
 				(i, out) => bodyPoint((i / COLS) * TAU, top[i], out),
 				(i, out) => {
@@ -584,7 +612,7 @@ export function buildGarment(d: Design): Garment {
 				new THREE.Vector3(0, 1, 0),
 				0.6 * Math.sqrt(k),
 				wraps(TAU * N)
-			)
+			), PIECE.neck, 1)
 		);
 	else {
 		const tall = m.standH;
@@ -620,7 +648,7 @@ export function buildGarment(d: Design): Garment {
 		}
 		const laid = new THREE.Vector3();
 		rib(d.neckRib).push(
-			sheet(
+			knitAt(sheet(
 				COLS,
 				ROWS,
 				(i, j, out) => {
@@ -643,7 +671,7 @@ export function buildGarment(d: Design): Garment {
 				},
 				(i, j) => [(i / COLS) * wraps(TAU * N, drawn(d.neckRib)), vOf((j / ROWS) * h)],
 				(i, j, out) => out.set(0, top[i] + (j / ROWS) * h, 0)
-			)
+			), PIECE.neck, (j) => j / ROWS, COLS)
 		);
 	}
 
@@ -698,12 +726,16 @@ export function buildGarment(d: Design): Garment {
 					return 1 - 0.24 * inner * inner * smooth(inside + 4 * k, inside + 14 * k, ring.l) - cuffShade + 1.6 * crease(ring, a) + 0.03 * wob(p.x / (3 * k), p.y / (2 * k), p.z);
 				}
 			);
+		// The top of the sleeve grows with the yoke, from the shoulder point to the underarm; the rest is knitted later, down to the cuff.
+		const l0 = m.tubeLen - m.sleeveBody;
+		const whenAt = (l: number) => (l <= l0 ? lerp(bodyWhen(ys), 1, Math.max(0, (l - inside) / (l0 - inside))) : 1 + (l - l0) / (total - l0));
+		const both = (g: THREE.BufferGeometry, when: number | ((row: number) => number)) => [knitAt(g, PIECE.sleeve, when, SC), knitAt(mirrorX(g), PIECE.sleeve2, when, SC)];
 		const sleeve = cull(tube(0, split, wraps(TAU * R)), sleeveBuried);
-		fabric.push(sleeve, mirrorX(sleeve));
+		fabric.push(...both(sleeve, (j) => whenAt(rings[j].l)));
 		const end = rings[STEPS];
 		if (cuffLen) {
 			const cuff = tube(split, STEPS, wraps(TAU * endR, cuffRibbed ? drawn(d.sleeveRib) : 1));
-			(cuffRibbed ? rib(d.sleeveRib) : fabric).push(cuff, mirrorX(cuff));
+			(cuffRibbed ? rib(d.sleeveRib) : fabric).push(...both(cuff, (j) => whenAt(rings[split + j].l)));
 		} else {
 			const rim = roll(
 				SC,
@@ -716,7 +748,7 @@ export function buildGarment(d: Design): Garment {
 				rimR(d.cuffFinish),
 				wraps(TAU * endR)
 			);
-			fabric.push(rim, mirrorX(rim));
+			fabric.push(...both(rim, 2));
 		}
 
 	}
@@ -746,7 +778,7 @@ export function buildGarment(d: Design): Garment {
 			wraps(TAU * (ys - ya) * 0.4)
 		);
 		holes.push(opening, mirrorX(opening));
-		rib(d.bodyRib).push(edge, mirrorX(edge));
+		rib(d.bodyRib).push(knitAt(edge, PIECE.body, 1), knitAt(mirrorX(edge), PIECE.body, 1));
 	}
 
 	// ── Cardigan: button band + buttons ─────────────────────────────────
@@ -756,15 +788,16 @@ export function buildGarment(d: Design): Garment {
 		const xs = [-half, -half * 0.45, half * 0.45, half];
 		const ROWS = 40;
 		const at = (j: number) => Math.min((j / ROWS) * yTop, top[COLS / 2] - 0.01);
+		// The band shows once the first of the two is knitted, the buttons when both are.
 		rib(d.bodyRib).push(
-			sheet(
+			knitAt(sheet(
 				3,
 				ROWS,
 				(i, j, out) => out.set(xs[i], (j / ROWS) * yTop, bodyZ(xs[i], at(j)) + (i === 0 || i === 3 ? 0.1 : 0.45) * k),
 				(i, j) => [((xs[i] + half) * stPerCm * drawn(d.bodyRib)) / TILE_ST, vOf((j / ROWS) * yTop)],
 				(_i, j, out) => out.set(0, (j / ROWS) * yTop, 0),
 				false
-			)
+			), PIECE.bands, 0.5)
 		);
 		const count = Math.max(3, Math.round(yTop / (8.5 * Math.sqrt(k))));
 		for (let b = 0; b < count; b++) {
@@ -772,7 +805,7 @@ export function buildGarment(d: Design): Garment {
 			const button = new THREE.CylinderGeometry(0.95 * Math.sqrt(k), 0.95 * Math.sqrt(k), 0.4 * k, 24);
 			button.rotateX(Math.PI / 2);
 			button.translate(0, y, bodyZ(0, Math.min(y, top[COLS / 2] - 0.01)) + 0.65 * k);
-			trim.push(button);
+			trim.push(knitAt(button, PIECE.bands, 1));
 		}
 	}
 
@@ -788,6 +821,7 @@ export function buildGarment(d: Design): Garment {
 		trim: trim.length ? mergeGeometries(trim.map((g) => g.toNonIndexed()))! : null,
 		holes: holes.length ? mergeGeometries(holes)! : null,
 		seams,
+		bodyWhen,
 		scale: lerp(1, k, 0.6)
 	};
 }

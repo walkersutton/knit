@@ -33,12 +33,15 @@ export const colors: Option[] = [
 	{ label: 'Charcoal', value: '#302c32' }
 ];
 
-/** Yarn weight sets the gauge (stitches per 4 in), and with it the needle and skein size. */
+/**
+ * Yarn weight sets the standard gauge (stitches per 4 in), the needles that give it (mm: `needle`
+ * for the fabric, `rib` for ribbing and bands) and the skein size.
+ */
 export const yarnWeights = [
-	{ label: 'Fingering', gauge: 28, needle: 'US 3 (3.25 mm)', yardage: 400 },
-	{ label: 'DK', gauge: 22, needle: 'US 6 (4 mm)', yardage: 220 },
-	{ label: 'Worsted', gauge: 18, needle: 'US 8 (5 mm)', yardage: 200 },
-	{ label: 'Bulky', gauge: 13, needle: 'US 10.5 (6.5 mm)', yardage: 120 }
+	{ label: 'Fingering', gauge: 28, needle: 3.25, rib: 2.5, yardage: 400 },
+	{ label: 'DK', gauge: 22, needle: 4, rib: 3.5, yardage: 220 },
+	{ label: 'Worsted', gauge: 18, needle: 5, rib: 4, yardage: 200 },
+	{ label: 'Bulky', gauge: 13, needle: 6.5, rib: 5.5, yardage: 120 }
 ];
 
 export const sections: Section[] = [

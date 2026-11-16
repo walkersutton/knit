@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { writePattern } from './pattern';
-import { doneOf, isDone, signature, summarize, tasksOf } from './progress';
+import { doneOf, isDone, knittedOf, progressAt, signature, summarize, tasksOf } from './progress';
 import { baseDesign, randomDesigns, singleVariations } from './testDesigns';
 
 const sectionsOf = (d = baseDesign) => {
@@ -63,10 +63,92 @@ describe('summarize', () => {
 	});
 });
 
+describe('knittedOf', () => {
+	const sections = sectionsOf();
+	const tasks = tasksOf(sections);
+	const upTo = (n: number) => Object.fromEntries(tasks.slice(0, n).map((t) => [t.key, t.total]));
+	const first = (section: string, pass = 0) => tasks.findIndex((t) => t.section === section && t.pass === pass);
+
+	it('is nothing before the cast-on and everything at the end', () => {
+		expect(knittedOf(sections, {})).toBeNull();
+		expect(knittedOf(sections, upTo(tasks.length))).toEqual({ yoke: 1, body: 1, sleeves: [1, 1], neck: 1, bands: 0 });
+		const cardigan = sectionsOf({ ...baseDesign, garment: 'Cardigan' });
+		expect(knittedOf(cardigan, Object.fromEntries(tasksOf(cardigan).map((t) => [t.key, t.total])))!.bands).toBe(1);
+	});
+
+	it('grows piece by piece in knitting order', () => {
+		let last = 0;
+		for (let n = 1; n <= tasks.length; n++) {
+			const k = knittedOf(sections, upTo(n))!;
+			const sum = k.yoke + k.body + k.sleeves[0] + k.sleeves[1] + k.neck;
+			expect(sum).toBeGreaterThanOrEqual(last);
+			last = sum;
+		}
+		expect(knittedOf(sections, upTo(1))).toMatchObject({ body: 0, sleeves: [0, 0], neck: 0 });
+		expect(knittedOf(sections, upTo(1))!.yoke).toBeGreaterThan(0);
+		expect(knittedOf(sections, upTo(first('body')))).toMatchObject({ yoke: 1, body: 0 });
+		expect(knittedOf(sections, upTo(first('sleeves', 1)))).toMatchObject({ body: 1, sleeves: [1, 0], neck: 0 });
+	});
+
+	it('follows the round counter part-way through a step', () => {
+		const counted = tasks.find((t) => t.section === 'yoke' && t.total > 3)!;
+		const p = upTo(tasks.indexOf(counted));
+		const before = knittedOf(sections, p)!.yoke;
+		p[counted.key] = 2;
+		const during = knittedOf(sections, p)!.yoke;
+		p[counted.key] = counted.total;
+		expect(during).toBeGreaterThan(before);
+		expect(knittedOf(sections, p)!.yoke).toBeGreaterThan(during);
+	});
+
+	it('takes a later step as proof of the fabric before it', () => {
+		const until = tasks.find((t) => t.section === 'body')!;
+		const k = knittedOf(sections, { [until.key]: 1 })!;
+		expect(k.yoke).toBe(1);
+		expect(k.body).toBeGreaterThan(0.5);
+		expect(k.body).toBeLessThan(1);
+	});
+
+	it('gives every knitted piece a length, for every design', () => {
+		for (const d of [...singleVariations(), ...randomDesigns(200, 5)]) {
+			const p = writePattern(d);
+			if (!p.ok) continue;
+			const all = Object.fromEntries(tasksOf(p.sections).map((t) => [t.key, t.total]));
+			expect(knittedOf(p.sections, all)).toEqual({ yoke: 1, body: 1, sleeves: [1, 1], neck: 1, bands: d.garment === 'Cardigan' ? 1 : 0 });
+			for (const s of p.sections) for (const step of s.steps) expect(step.adds ?? 0).toBeGreaterThanOrEqual(0);
+		}
+	});
+});
+
+describe('progressAt', () => {
+	const sections = sectionsOf();
+	const tasks = tasksOf(sections);
+
+	it('is the place of someone who has just finished that step', () => {
+		const at = tasks.findIndex((t) => t.section === 'body');
+		const p = progressAt(tasks, tasks[at].key);
+		expect(Object.keys(p)).toEqual(tasks.slice(0, at + 1).map((t) => t.key));
+		expect(summarize(tasks, p)).toMatchObject({ done: at + 1, current: tasks[at + 1] });
+		expect(knittedOf(sections, p)).toMatchObject({ yoke: 1, sleeves: [0, 0], neck: 0 });
+		expect(progressAt(tasks, 'nothing.0.0')).toEqual({});
+	});
+
+	it('shows a step part-way through when its rounds are being counted', () => {
+		const counted = tasks.find((t) => t.section === 'yoke' && t.total > 3)!;
+		expect(progressAt(tasks, counted.key)[counted.key]).toBe(counted.total);
+		expect(progressAt(tasks, counted.key, { [counted.key]: 2 })[counted.key]).toBe(2);
+		const whole = knittedOf(sections, progressAt(tasks, counted.key))!.yoke;
+		expect(knittedOf(sections, progressAt(tasks, counted.key, { [counted.key]: 2 }))!.yoke).toBeLessThan(whole);
+	});
+});
+
 describe('signature', () => {
 	it('ignores colours but not anything that changes the pattern', () => {
 		expect(signature({ ...baseDesign, color: '#000000', contrast: '#ffffff' })).toBe(signature(baseDesign));
 		expect(signature({ ...baseDesign, size: 'L' })).not.toBe(signature(baseDesign));
 		expect(signature({ ...baseDesign, gauge: 22 })).not.toBe(signature(baseDesign));
+		// A different main needle changes the gauge; a different ribbing needle changes no step.
+		expect(signature({ ...baseDesign, needle: 4.5 })).not.toBe(signature(baseDesign));
+		expect(signature({ ...baseDesign, ribNeedle: 3.5 })).toBe(signature(baseDesign));
 	});
 });

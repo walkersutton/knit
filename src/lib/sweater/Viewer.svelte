@@ -2,8 +2,9 @@
 	import { onMount } from 'svelte';
 	import { createViewer, type ViewerHandle } from './viewer';
 	import type { Design } from './garment';
+	import type { Knitted } from './progress';
 
-	let { design, onview, intro = true }: { design: Design; onview: (view: string) => void; intro?: boolean } = $props();
+	let { design, knitted = null, onview, intro = true }: { design: Design; knitted?: Knitted | null; onview: (view: string) => void; intro?: boolean } = $props();
 	let host: HTMLDivElement;
 	let handle = $state.raw<ViewerHandle | null>(null);
 
@@ -16,6 +17,9 @@
 	$effect(() => {
 		const snapshot = { ...design };
 		handle?.setDesign(snapshot);
+	});
+	$effect(() => {
+		handle?.setKnitted(knitted && { ...knitted, sleeves: [...knitted.sleeves] });
 	});
 
 	export function turn() {
