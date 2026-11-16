@@ -2,6 +2,7 @@
 export const SITE = {
 	name: 'Knit It',
 	url: 'https://knit.walkersutton.com',
+	source: 'https://github.com/walkersutton/knit',
 	image: 'https://knit.walkersutton.com/og.png',
 	imageAlt: 'Knit It: design a sweater in 3D and get the written knitting pattern'
 };

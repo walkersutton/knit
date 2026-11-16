@@ -129,6 +129,7 @@
 
 		<p class="end"><a class="cta" href="/">Design a sweater</a></p>
 	</main>
+	<footer>Knit It is open source. <a href={SITE.source} target="_blank" rel="noopener">View the code on GitHub</a>.</footer>
 </div>
 
 <style>
@@ -235,6 +236,17 @@
 	}
 	.end {
 		margin-top: 40px;
+	}
+	footer {
+		max-width: 680px;
+		margin: 0 auto;
+		padding: 16px 16px 32px;
+		border-top: 1px solid var(--line);
+		color: var(--muted);
+		font-size: 13px;
+	}
+	footer a {
+		color: inherit;
 	}
 	.end .cta {
 		height: 40px;

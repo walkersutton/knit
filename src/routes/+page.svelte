@@ -131,6 +131,7 @@
 		<h1>Sweater designer</h1>
 		<span>{summary(design)}</span>
 		<a href="/about">How it works</a>
+		<a class="source" href={SITE.source} target="_blank" rel="noopener">Source</a>
 	</header>
 	<div class="layout" class:reading>
 		<aside bind:this={panel}>
@@ -279,6 +280,10 @@
 		font-weight: 500;
 		text-decoration: none;
 		white-space: nowrap;
+	}
+	.top .source {
+		color: var(--muted);
+		font-weight: 400;
 	}
 	.top a:focus-visible {
 		outline: 2px solid var(--focus);
