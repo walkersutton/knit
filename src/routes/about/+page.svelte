@@ -1,77 +1,18 @@
 <script lang="ts">
-	import Logo from '$lib/Logo.svelte';
 	import Seo from '$lib/Seo.svelte';
 	import { SITE } from '$lib/site';
-	import { colors, sections, yarnWeights } from '$lib/sweater/options';
-	import type { Design } from '$lib/sweater/garment';
-	import { needleLabel } from '$lib/sweater/needles';
+	import { CUSTOM } from '$lib/sweater/fit';
+	import { choose } from '$lib/sweater/options';
+	import { estimate, writePattern } from '$lib/sweater/pattern';
+	import { measure, type Design } from '$lib/sweater/garment';
+	import Chrome from './Chrome.svelte';
+	import Faq from './Faq.svelte';
+	import Garment from './Garment.svelte';
+	import { colors, contrastFor, defaultDesign, faq, needleLabel, reveal, steps, tiles, TILE_ROWS, TILE_ST, yarnWeights } from './content';
 
 	const title = 'How Knit It works — custom knitting patterns and FAQ';
 	const description =
 		'How Knit It turns your choices of garment, size, fit and yarn weight into a 3D preview and a written top-down raglan knitting pattern, plus answers to common questions.';
-
-	// Option lists come straight from the designer, so this page cannot drift from what it offers.
-	const fields = sections.flatMap((s) => s.groups).flatMap((g) => g.fields);
-	const list = (key: keyof Design) => {
-		const labels = fields.find((f) => f.key === key)!.options.map((o) => String(o.label));
-		return `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}`;
-	};
-
-	const faq = [
-		{
-			q: 'What is Knit It?',
-			a: 'Knit It is a free sweater designer that runs in your browser. You pick a garment, size, fit, neckline, sleeves, edge finishes, yarn weight and colours, watch the result update on a 3D model, and get a written knitting pattern with stitch counts worked out for that exact design.'
-		},
-		{
-			q: 'Is Knit It free?',
-			a: 'Yes. There is no account, no payment and nothing to install. Open the designer, make your choices and print the pattern.'
-		},
-		{
-			q: 'What can I design?',
-			a: `Garment types: ${list('garment')}. Made for: ${list('wearer')}. Sizes: ${list('size')}. Fit: ${list('fit')}. Body length: ${list('bodyLength')}. Necklines: ${list('neckline')}. Sleeve length: ${list('sleeveLength')}. Sleeve shape: ${list('sleeveShape')}. Hem and cuff finishes: ${list('hemFinish')}. Fabric: ${list('pattern')}, in ${colors.length} colours.`
-		},
-		{
-			q: 'Which designs come with a written pattern?',
-			a: 'Sweaters, T-shirts and cardigans with raglan sleeves come with a full written pattern, worked top-down. Slipovers and set-in sleeve constructions can be previewed in 3D, and their written patterns are coming soon.'
-		},
-		{
-			q: 'What does the pattern include?',
-			a: 'Materials (yarn weight, yardage and skeins per colour, needle sizes, notions), the gauge to match, finished measurements in centimetres and inches, step-by-step instructions for the yoke, body, sleeves, neckband and finishing with the stitch count after each shaping step, a chart for Fair Isle designs, and a list of abbreviations.'
-		},
-		{
-			q: 'Which yarn weights and gauges are supported?',
-			a: `${yarnWeights.map((w) => `${w.label} at ${w.gauge} stitches per 4 inches (10 cm) on ${needleLabel(w.needle)} needles`).join('; ')}. Ribbing and bands are worked on a smaller needle.`
-		},
-		{
-			q: 'Can I use the needles I already have?',
-			a: 'Yes. On the Yarn step, pick the needle sizes you own. If one of them is within a size or two of the usual needle for your yarn weight, the pattern is written for that needle and its gauge, so the stitch counts change to keep the finished size the same. Ribbing uses a smaller needle from your set when you have one. Any size you would still need is marked “To buy”.'
-		},
-		{
-			q: 'How is the yarn amount estimated?',
-			a: 'Yardage is calculated from the fabric area of the finished garment (body, sleeves, yoke and collar) and scaled by gauge, because finer yarn needs more length to cover the same area. Fair Isle adds about 20% for the strands carried behind the work, and contrast colours are estimated separately. Treat it as an estimate and buy a little extra.'
-		},
-		{
-			q: 'Do I need to knit a gauge swatch?',
-			a: 'Yes. Every stitch count in the pattern depends on matching the stitch gauge, measured in stockinette after blocking. If your swatch has too many stitches per 4 inches, go up a needle size; too few, go down.'
-		},
-		{
-			q: 'How hard are the patterns?',
-			a: 'Each design is rated Beginner or Intermediate. A plain raglan with ribbed edges is rated Beginner. V-necks, I-cord edges, puff sleeves, side slits, folded hems and Fair Isle colourwork make a design Intermediate.'
-		},
-		{
-			q: 'I am new to knitting. Can I follow the pattern?',
-			a: 'Yes, if you can cast on, knit, purl and bind off. The pattern has two views. Concise is the bare pattern in standard knitting shorthand. Beginner writes every abbreviation out in words, explains what each part of the sweater is, adds a tip to the steps that trip up first-timers, and links to free tutorials for each technique at the step where you first need it.'
-		},
-		{
-			q: 'Can I keep track of where I am?',
-			a: 'Yes. Tick off each step as you finish it, and use the round counter on steps that repeat: it shows which kind of round comes next. Each sleeve is tracked separately. Your design and your place are saved in your browser on that device, with no account, and “Find my place” takes you back to the next step.'
-		},
-		{
-			q: 'How do I save or print a pattern?',
-			a: 'Press “Print pattern” in the designer. To keep a copy, choose “Save as PDF” in the print dialog.'
-		}
-	];
-
 	const jsonLd = [
 		{
 			'@context': 'https://schema.org',
@@ -87,111 +28,618 @@
 			]
 		}
 	];
+
+	// ── The quilt is a small designer: every patch reads and changes the same design. ──
+	let design = $state<Design>({ ...defaultDesign });
+	const set = (key: keyof Design, value: string | number) => choose(design, key, value);
+	const setRib = (rib: string) => (design.bodyRib = design.neckRib = design.sleeveRib = rib);
+	const setFinish = (finish: string) => (design.hemFinish = design.cuffFinish = finish);
+
+	const garments = ['Sweater', 'T-shirt', 'Slipover', 'Cardigan'];
+	const sizes = ['XS', 'S', 'M', 'L', 'XL'].filter((s) => s !== CUSTOM);
+	const ribs = [
+		{ name: '1×1', run: [1, 1] },
+		{ name: '2×2', run: [2, 2] },
+		{ name: '2×1', run: [2, 1] },
+		{ name: 'Twisted', run: [1, 1], twist: true }
+	];
+	const finishes = ['Ribbed', 'Folded hem', 'Rolled edge', 'I-cord'];
+	const ribCols = (run: number[]) => {
+		const out: boolean[] = [];
+		while (out.length < 18) run.forEach((n, i) => out.push(...Array(n).fill(i === 0)));
+		return out.slice(0, 18);
+	};
+	const patterns = ['Solid', 'Stripes', 'Fair isle'];
+
+	let est = $derived(estimate(design));
+	let m = $derived(measure(design));
+	let pattern = $derived(writePattern(design));
+	let contrast = $derived(contrastFor(design.color));
+	let colorName = $derived(String(colors.find((c) => c.value === design.color)?.label ?? ''));
+	let yarnName = $derived(yarnWeights.find((w) => w.gauge === design.gauge)!.label);
+	let excerpt = $derived(pattern.ok ? pattern.sections.find((s) => s.steps.filter((x) => !x.note).length > 2) : undefined);
+	let lines = $derived(excerpt ? excerpt.steps.filter((s) => !s.note).slice(0, 3) : []);
+	const strip = (s: string) => s.replace(/\*\*/g, '');
+
+	const tone = ['#e9eef8', '#fbe9e3', '#f6efd2', '#e6efe7', '#fffdf5'];
+	const span = ['a', 'b', 'c', 'd', 'e'];
 </script>
 
 <Seo {title} {description} path="/about" {jsonLd} />
 
-<div class="page">
-	<header class="top"><a href="/" aria-label="Knit It home"><Logo size={24} /></a><a class="cta" href="/design">Open the designer</a></header>
-	<main>
-		<h1>How Knit It works</h1>
-		<p class="lede">
+<Chrome wide>
+	<section class="hero">
+		<p class="kicker" use:reveal>Five patches make a sweater</p>
+		<h1 use:reveal={60}>How Knit It works</h1>
+		<p class="lede" use:reveal={120}>
 			Knit It is a free sweater designer. Choose a garment, size, fit and yarn, see it on a 3D model, and get a written knitting pattern with the stitch
-			counts worked out for your design.
+			counts worked out for your design. Try each step below: every choice carries through to the next patch.
 		</p>
+	</section>
 
-		<h2>From choices to pattern</h2>
-		<ol>
-			<li><strong>Design.</strong> Pick the garment type, who it is for, the size and fit, the neckline and the sleeves.</li>
-			<li><strong>Details.</strong> Choose how the hem, cuffs and neckband are finished: rib structure, rib length, folded hems, rolled edges or I-cord.</li>
-			<li><strong>Yarn.</strong> Choose a yarn weight, which sets the gauge and needle size, then a colour and an optional stripe or Fair Isle pattern. Pick the needle sizes you already have and the pattern uses them where it can.</li>
-			<li><strong>Summary.</strong> Check the finished chest and length, the yardage, the number of skeins and the skill level.</li>
-			<li><strong>Pattern.</strong> Read the instructions on screen, or print them and save as a PDF.</li>
-		</ol>
-		<p>The 3D preview updates with every choice, and you can drag it to see the back.</p>
+	<ol class="quilt">
+		{#each steps as s, i (s.id)}
+			<li class="patch {span[i]}" style="--tone:{tone[i]}" use:reveal={i * 70}>
+				<div class="stitch">
+					<span class="num">{i + 1}</span>
+					<h2>{s.name}</h2>
+					<p>{s.text}</p>
 
-		<h2>Yarn weights</h2>
+					{#if s.id === 'design'}
+						<div class="art">
+							<div class="pick" role="group" aria-label="Garment">
+								{#each garments as g (g)}
+									<button type="button" class="opt" aria-pressed={design.garment === g} onclick={() => set('garment', g)}>
+										<Garment garment={g} color={design.color} pattern={design.pattern} size={64} />
+										<span>{g}</span>
+									</button>
+								{/each}
+							</div>
+							<div class="chips" role="group" aria-label="Size">
+								{#each sizes as z (z)}
+									<button type="button" class="chip" aria-pressed={design.size === z} onclick={() => set('size', z)}>{z}</button>
+								{/each}
+							</div>
+						</div>
+					{:else if s.id === 'details'}
+						<div class="art">
+							<div class="chips" role="group" aria-label="Hem and cuff finish">
+								{#each finishes as f (f)}
+									<button type="button" class="chip" aria-pressed={design.hemFinish === f} onclick={() => setFinish(f)}>{f}</button>
+								{/each}
+							</div>
+							<div class="pick ribs" class:dim={design.hemFinish !== 'Ribbed'} role="group" aria-label="Rib structure">
+								{#each ribs as r (r.name)}
+									<button type="button" class="opt" aria-pressed={design.bodyRib === r.name} onclick={() => setRib(r.name)}>
+										<svg viewBox="0 0 54 40" width="76" height="56" aria-hidden="true">
+											<rect width="54" height="40" rx="4" fill={design.color} />
+											{#each ribCols(r.run) as knit, c (c)}
+												<rect x={c * 3} width="3" height="40" fill={knit ? '#fff' : '#000'} fill-opacity={knit ? 0.14 : 0.24} transform={r.twist ? `skewX(${c % 2 ? -14 : 14})` : undefined} />
+											{/each}
+										</svg>
+										<span>{r.name}</span>
+									</button>
+								{/each}
+							</div>
+							<p class="note" aria-live="polite">
+								{design.hemFinish === 'Ribbed' ? `Body, cuffs and neckband in ${design.bodyRib} rib.` : `${design.hemFinish} on the body and cuffs; the neckband stays in rib.`}
+							</p>
+						</div>
+					{:else if s.id === 'yarn'}
+						<div class="art yarn">
+							<div class="controls">
+								<div class="group">
+									<span class="gl">Colour <b>{colorName}</b></span>
+									<div class="dots" role="group" aria-label="Colour">
+										{#each colors as c (c.label)}
+											<button type="button" class="dot" style="background:{c.value}" aria-label={String(c.label)} aria-pressed={design.color === c.value} onclick={() => set('color', c.value)}></button>
+										{/each}
+									</div>
+								</div>
+								<div class="group">
+									<span class="gl">Fabric</span>
+									<div class="pick" role="group" aria-label="Fabric pattern">
+										{#each patterns as p (p)}
+											<button type="button" class="opt" aria-pressed={design.pattern === p} onclick={() => set('pattern', p)}>
+												<svg viewBox="0 0 {TILE_ST} {TILE_ROWS}" width="44" height="58" shape-rendering="crispEdges" aria-hidden="true">
+													<rect width={TILE_ST} height={TILE_ROWS} fill={design.color} />
+													{#each tiles[p] ?? [] as [x, y] (`${x}-${y}`)}<rect {x} {y} width="1" height="1" fill={contrast} />{/each}
+												</svg>
+												<span>{p}</span>
+											</button>
+										{/each}
+									</div>
+								</div>
+								<div class="group">
+									<span class="gl">Yarn weight</span>
+									<div class="chips" role="group" aria-label="Yarn weight">
+										{#each yarnWeights as w (w.label)}
+											<button type="button" class="chip" aria-pressed={design.gauge === w.gauge} onclick={() => set('gauge', w.gauge)}>{w.label}</button>
+										{/each}
+									</div>
+								</div>
+							</div>
+							<div class="preview">
+								<Garment garment={design.garment} color={design.color} pattern={design.pattern} size={150} />
+								<span class="pcap">{colorName} {design.garment.toLowerCase()}</span>
+							</div>
+						</div>
+					{:else if s.id === 'summary'}
+						<dl class="art stats" aria-live="polite">
+							<div><dt>Finished chest</dt>{#key Math.round(m.chest)}<dd class="pop">{Math.round(m.chest)}<small> cm</small></dd>{/key}</div>
+							<div><dt>Yardage</dt>{#key est.yards}<dd class="pop">{est.yards.toLocaleString()}<small> yd</small></dd>{/key}</div>
+							<div><dt>Skeins</dt>{#key est.skeins}<dd class="pop">{est.skeins}</dd>{/key}</div>
+							<div><dt>Level</dt>{#key est.level}<dd class="pop lvl">{est.level}</dd>{/key}</div>
+							<p class="needle">{yarnName} on {needleLabel(est.needles.main)} needles.</p>
+						</dl>
+					{:else}
+						<div class="art paper" aria-live="polite">
+							{#if pattern.ok && excerpt}
+								{#key `${excerpt.title}${design.size}${design.gauge}${design.hemFinish}${design.bodyRib}${design.garment}`}
+									<div class="swap">
+										<p class="ptitle">{pattern.title} · {excerpt.title}</p>
+										{#each lines as l, k (k)}
+											<p class="pline">{strip(l.text)}{#if l.count}<span class="count">{strip(l.count)}</span>{/if}</p>
+										{/each}
+									</div>
+								{/key}
+							{:else if !pattern.ok}
+								<p class="pline soon">{pattern.reason}</p>
+							{/if}
+						</div>
+					{/if}
+				</div>
+			</li>
+		{/each}
+
+		<li class="patch go" use:reveal={100}>
+			<div class="stitch">
+				<div class="go-art" aria-hidden="true"><Garment garment={design.garment} color={design.color} pattern={design.pattern} size={132} /></div>
+				<div class="go-copy">
+					<h2>Ready to make it yours?</h2>
+					<p class="go-line">
+						You just sketched a {colorName.toLowerCase()} {design.garment.toLowerCase()}{design.pattern !== 'Solid' ? ` with ${design.pattern.toLowerCase()}` : ''}, about {est.yards.toLocaleString()} yd of
+						{yarnName.toLowerCase()}. The designer has every other choice waiting, and a 3D model to turn around.
+					</p>
+					<a class="launch" href="/design">Start designing <span class="arrow" aria-hidden="true">→</span></a>
+					<small>Free. No account. Runs in your browser.</small>
+				</div>
+			</div>
+		</li>
+	</ol>
+
+	<div class="text">
+		<h2 class="h">Yarn weights</h2>
 		<table>
-			<thead>
-				<tr><th>Yarn weight</th><th>Gauge (sts per 4 in / 10 cm)</th><th>Main needle</th><th>Skein used for estimates</th></tr>
-			</thead>
+			<thead><tr><th>Yarn weight</th><th>Gauge (sts per 4 in / 10 cm)</th><th>Main needle</th><th>Skein used for estimates</th></tr></thead>
 			<tbody>
 				{#each yarnWeights as w (w.label)}
-					<tr><td>{w.label}</td><td>{w.gauge}</td><td>{needleLabel(w.needle)}</td><td>{w.yardage} yd</td></tr>
+					<tr class:cur={w.gauge === design.gauge}><td>{w.label}</td><td>{w.gauge}</td><td>{needleLabel(w.needle)}</td><td>{w.yardage} yd</td></tr>
 				{/each}
 			</tbody>
 		</table>
-
-		<h2>Questions and answers</h2>
-		{#each faq as { q, a } (q)}
-			<h3>{q}</h3>
-			<p>{a}</p>
-		{/each}
-
-		<p class="end"><a class="cta" href="/design">Design a sweater</a></p>
-	</main>
-	<footer>Knit It is open source. <a href={SITE.source} target="_blank" rel="noopener">View the code on GitHub</a>.</footer>
-</div>
+		<h2 class="h">Questions and answers</h2>
+		<Faq />
+	</div>
+</Chrome>
 
 <style>
-	.page {
-		min-height: 100dvh;
-		font-size: 15px;
-		line-height: 1.6;
+	.hero {
+		padding: 16px 0 28px;
 	}
-	.top {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		height: 44px;
-		padding: 0 16px;
-		border-bottom: 1px solid var(--line);
-		font-size: 13px;
-	}
-	.top a:first-child {
-		color: var(--ink);
+	.kicker {
+		margin: 0 0 8px;
+		color: var(--muted);
+		font-size: 12px;
 		font-weight: 600;
-		text-decoration: none;
-	}
-	main {
-		max-width: 680px;
-		margin: 0 auto;
-		padding: 32px 16px 64px;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
 	}
 	h1 {
+		margin: 0 0 14px;
 		font-family: var(--display);
-		margin: 0 0 12px;
-		font-size: 28px;
+		font-size: clamp(32px, 6vw, 48px);
 		font-weight: 650;
-		line-height: 1.2;
-		letter-spacing: -0.01em;
-		text-wrap: balance;
+		line-height: 1.08;
+		letter-spacing: -0.015em;
 	}
 	.lede {
-		font-size: 17px;
+		margin: 0;
+		max-width: 62ch;
 		color: var(--muted);
+		font-size: 17px;
+	}
+	.quilt {
+		display: grid;
+		grid-template-columns: repeat(6, minmax(0, 1fr));
+		gap: 14px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.a,
+	.b {
+		grid-column: span 3;
+	}
+	.c {
+		grid-column: span 4;
+	}
+	.d {
+		grid-column: span 2;
+	}
+	.e,
+	.go {
+		grid-column: span 6;
+	}
+	.patch {
+		padding: 8px;
+		border-radius: 18px;
+		background: var(--tone);
+		box-shadow:
+			0 1px 2px rgba(24, 24, 27, 0.06),
+			0 8px 20px rgba(24, 24, 27, 0.05);
+	}
+	/* The running stitch around each patch. */
+	.stitch {
+		height: 100%;
+		padding: 16px;
+		border: 2px dashed #26335f55;
+		border-radius: 12px;
+	}
+	.num {
+		display: grid;
+		place-items: center;
+		width: 28px;
+		height: 28px;
+		margin-bottom: 8px;
+		border-radius: 50%;
+		background: #465e9d;
+		color: #faf3dc;
+		font-family: var(--display);
+		font-size: 14px;
+		font-weight: 600;
 	}
 	h2 {
+		margin: 0 0 4px;
 		font-family: var(--display);
-		margin: 40px 0 12px;
-		font-size: 19px;
-		font-weight: 600;
-		line-height: 1.3;
-	}
-	h3 {
-		font-family: var(--display);
-		margin: 24px 0 4px;
-		font-size: 15px;
+		font-size: 22px;
 		font-weight: 600;
 	}
-	p {
-		margin: 0 0 12px;
+	.stitch > p {
+		margin: 0 0 14px;
+		max-width: 54ch;
+		font-size: 14.5px;
+		line-height: 1.5;
 	}
-	ol {
+	.art {
+		display: grid;
+		gap: 12px;
+		padding: 12px;
+		border-radius: 10px;
+		background: color-mix(in srgb, #fff 70%, transparent);
+	}
+
+	/* Choices */
+	.pick {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	.opt {
+		display: grid;
+		justify-items: center;
+		gap: 4px;
+		padding: 8px 8px 6px;
+		border: 0;
+		border-radius: 10px;
+		background: transparent;
+		color: var(--muted);
+		font: inherit;
+		font-size: 12px;
+		cursor: pointer;
+		transition:
+			background-color 150ms ease-out,
+			color 150ms ease-out,
+			box-shadow 150ms ease-out,
+			transform 120ms ease-out;
+	}
+	.opt[aria-pressed='true'] {
+		background: #fff;
+		color: var(--ink);
+		box-shadow:
+			0 0 0 2px #465e9d,
+			0 2px 6px rgba(24, 24, 27, 0.1);
+	}
+	.opt:active,
+	.chip:active,
+	.dot:active {
+		transform: scale(0.95);
+	}
+	.chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+	.chip {
+		height: 32px;
+		padding: 0 12px;
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		background: #fff;
+		color: var(--ink);
+		font: inherit;
+		font-weight: 500;
+		cursor: pointer;
+		transition:
+			background-color 150ms ease-out,
+			color 150ms ease-out,
+			border-color 150ms ease-out,
+			transform 120ms ease-out;
+	}
+	.chip[aria-pressed='true'] {
+		border-color: #465e9d;
+		background: #465e9d;
+		color: #faf3dc;
+	}
+	.dots {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	.dot {
+		width: 28px;
+		height: 28px;
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14);
+		cursor: pointer;
+		transition:
+			box-shadow 150ms ease-out,
+			transform 120ms ease-out;
+	}
+	.dot[aria-pressed='true'] {
+		box-shadow:
+			inset 0 0 0 1px rgba(0, 0, 0, 0.14),
+			0 0 0 2px #fff,
+			0 0 0 4px var(--ink);
+	}
+	.opt:focus-visible,
+	.chip:focus-visible,
+	.dot:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
+	}
+	@media (hover: hover) and (pointer: fine) {
+		.opt:not([aria-pressed='true']):hover {
+			background: color-mix(in srgb, #fff 60%, transparent);
+			color: var(--ink);
+		}
+		.chip:not([aria-pressed='true']):hover {
+			background: var(--wash);
+		}
+	}
+	.ribs {
+		transition: opacity 200ms ease-out;
+	}
+	.ribs.dim {
+		opacity: 0.45;
+	}
+	.note {
+		margin: 0;
+		color: var(--muted);
+		font-size: 13px;
+	}
+
+	/* Yarn */
+	.yarn {
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: start;
+		gap: 16px;
+	}
+	.controls {
+		display: grid;
+		gap: 14px;
+	}
+	.group {
 		display: grid;
 		gap: 6px;
-		margin: 0 0 12px;
-		padding-left: 22px;
+	}
+	.gl {
+		color: var(--muted);
+		font-size: 12px;
+		font-weight: 500;
+	}
+	.gl b {
+		margin-left: 4px;
+		color: var(--ink);
+		font-weight: 600;
+	}
+	.preview {
+		display: grid;
+		justify-items: center;
+		gap: 6px;
+		padding: 12px;
+		border-radius: 10px;
+		background: color-mix(in srgb, var(--paper) 70%, #fff);
+		box-shadow: inset 0 0 0 1px #e8dfc3;
+	}
+	.pcap {
+		color: var(--muted);
+		font-size: 12px;
+	}
+
+	/* Summary */
+	.stats {
+		grid-template-columns: 1fr;
+		gap: 8px;
+		margin: 0;
+	}
+	.stats div {
+		padding: 8px 12px;
+		border-radius: 8px;
+		background: var(--wash);
+	}
+	dt {
+		color: var(--muted);
+		font-size: 12px;
+	}
+	dd {
+		margin: 0;
+		font-family: var(--display);
+		font-size: 24px;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+		line-height: 1.25;
+	}
+	dd small {
+		color: var(--muted);
+		font-size: 13px;
+		font-weight: 500;
+	}
+	.lvl {
+		font-size: 18px;
+		line-height: 30px;
+	}
+	.pop {
+		animation: pop 220ms cubic-bezier(0.23, 1, 0.32, 1);
+	}
+	@keyframes pop {
+		from {
+			opacity: 0.3;
+			transform: translateY(5px);
+		}
+	}
+	.needle {
+		margin: 0;
+		color: var(--muted);
+		font-size: 12.5px;
+	}
+
+	/* Pattern */
+	.paper {
+		background: #fffdf5;
+		box-shadow: inset 0 0 0 1px #e8dfc3;
+		font-size: 13.5px;
+		min-height: 150px;
+	}
+	.swap {
+		animation: pop 220ms cubic-bezier(0.23, 1, 0.32, 1);
+	}
+	.paper p {
+		margin: 0;
+	}
+	.ptitle {
+		margin-bottom: 6px !important;
+		font-family: var(--display);
+		font-size: 14px;
+		font-weight: 600;
+	}
+	.pline {
+		padding: 6px 0;
+		border-top: 1px dashed #e0d6b8;
+		line-height: 1.45;
+	}
+	.soon {
+		border-top: 0;
+		color: var(--muted);
+	}
+	.count {
+		display: inline-block;
+		margin-left: 8px;
+		padding: 0 7px;
+		border-radius: 999px;
+		background: #465e9d;
+		color: #fff;
+		font-size: 11.5px;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+
+	/* Closing patch: the call to action */
+	.go {
+		background: #465e9d;
+		box-shadow:
+			0 1px 2px rgba(24, 24, 27, 0.1),
+			0 14px 32px rgba(38, 51, 95, 0.28);
+	}
+	.go .stitch {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		align-items: center;
+		gap: 28px;
+		padding: 24px 28px;
+		border-color: #faf3dc88;
+		color: #faf3dc;
+	}
+	.go-art {
+		padding: 14px;
+		border-radius: 14px;
+		background: #faf3dc;
+		transform: rotate(-3deg);
+		box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+	}
+	.go h2 {
+		margin: 0 0 6px;
+		font-size: clamp(24px, 4vw, 32px);
+		line-height: 1.15;
+	}
+	.go-line {
+		margin: 0 0 18px;
+		max-width: 52ch;
+		color: #faf3dcd9;
+		font-size: 15px;
+		line-height: 1.5;
+	}
+	.launch {
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+		height: 52px;
+		padding: 0 26px;
+		border-radius: 999px;
+		background: #faf3dc;
+		color: #26335f;
+		font-family: var(--display);
+		font-size: 18px;
+		font-weight: 600;
+		text-decoration: none;
+		box-shadow: 0 4px 0 #c9bd94;
+		transition:
+			transform 140ms cubic-bezier(0.23, 1, 0.32, 1),
+			box-shadow 140ms cubic-bezier(0.23, 1, 0.32, 1);
+	}
+	.arrow {
+		display: inline-block;
+		transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+	}
+	.launch:active {
+		transform: translateY(3px);
+		box-shadow: 0 1px 0 #c9bd94;
+	}
+	.launch:focus-visible {
+		outline: 2px solid #faf3dc;
+		outline-offset: 4px;
+	}
+	@media (hover: hover) and (pointer: fine) {
+		.launch:hover .arrow {
+			transform: translateX(4px);
+		}
+	}
+	.go small {
+		display: block;
+		margin-top: 12px;
+		color: #faf3dcb3;
+		font-size: 13px;
+	}
+
+	.text {
+		max-width: 720px;
+		margin: 32px auto 0;
+	}
+	.h {
+		margin: 40px 0 12px;
+		font-size: 22px;
 	}
 	table {
 		width: 100%;
@@ -211,49 +659,61 @@
 		font-size: 12px;
 		font-weight: 500;
 	}
-	.cta {
-		display: inline-flex;
-		align-items: center;
-		height: 32px;
-		padding: 0 12px;
-		border-radius: 6px;
-		background: var(--ink);
-		color: #fff;
-		font-size: 13px;
-		font-weight: 500;
-		text-decoration: none;
-		transition: background-color 120ms ease-out, transform 120ms ease-out;
+	tr.cur td {
+		background: color-mix(in srgb, #465e9d 9%, transparent);
+		font-weight: 600;
 	}
-	.cta:active {
-		transform: scale(0.97);
-	}
-	a:focus-visible {
-		outline: 2px solid var(--focus);
-		outline-offset: 2px;
-		border-radius: 4px;
-	}
-	@media (hover: hover) and (pointer: fine) {
-		.cta:hover {
-			background: #3f3f46;
+
+	@media (max-width: 800px) {
+		.a,
+		.b,
+		.c,
+		.d,
+		.e,
+		.go {
+			grid-column: span 6;
+		}
+		.yarn {
+			grid-template-columns: 1fr;
+		}
+		.preview {
+			order: -1;
+		}
+		.go .stitch {
+			grid-template-columns: 1fr;
+			justify-items: start;
+			padding: 20px;
+		}
+		.stats {
+			grid-template-columns: 1fr 1fr;
+		}
+		.needle {
+			grid-column: span 2;
 		}
 	}
-	.end {
-		margin-top: 40px;
+	:global(.rv) {
+		opacity: 0;
+		transform: translateY(12px);
 	}
-	footer {
-		max-width: 680px;
-		margin: 0 auto;
-		padding: 16px 16px 32px;
-		border-top: 1px solid var(--line);
-		color: var(--muted);
-		font-size: 13px;
+	:global(.rv.rv-in) {
+		opacity: 1;
+		transform: none;
+		transition:
+			opacity 300ms ease-out var(--rv-delay, 0ms),
+			transform 300ms cubic-bezier(0.23, 1, 0.32, 1) var(--rv-delay, 0ms);
 	}
-	footer a {
-		color: inherit;
-	}
-	.end .cta {
-		height: 40px;
-		padding: 0 18px;
-		font-size: 14px;
+	@media (prefers-reduced-motion: reduce) {
+		.pop,
+		.swap {
+			animation: none;
+		}
+		.opt,
+		.chip,
+		.dot,
+		.ribs,
+		.launch,
+		.arrow {
+			transition: none;
+		}
 	}
 </style>
