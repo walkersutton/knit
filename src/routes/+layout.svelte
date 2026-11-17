@@ -1,12 +1,14 @@
 <script lang="ts">
 	import '@fontsource-variable/fredoka';
 	import Cursor from '$lib/Cursor.svelte';
+	import AccountSync from '$lib/AccountSync.svelte';
 
 	let { children } = $props();
 </script>
 
 {@render children()}
 <Cursor />
+<AccountSync />
 
 <style>
 	:global(*) {

@@ -30,7 +30,7 @@
 			'Patterns written for the needle sizes you already own',
 			'Stripes and Fair Isle colourwork with a chart',
 			'Beginner view with plain-language steps, tips and links to tutorials',
-			'Tick off steps and count rounds, with your place saved in the browser',
+			'Tick off steps and count rounds, with your place saved in the browser or synced across devices',
 			'3D model that grows as you read through the pattern',
 			'Print or save the pattern as a PDF'
 		]
@@ -69,7 +69,7 @@
 
 	const perks = [
 		{ label: 'Free', tone: 'mustard' },
-		{ label: 'No account', tone: 'sage' },
+		{ label: 'Optional account', tone: 'sage' },
 		{ label: 'Runs in your browser', tone: 'sky' }
 	];
 	const steps = [
@@ -84,7 +84,7 @@
 <div class="page">
 	<header>
 		<a class="home" href="/" aria-label="Knit It home"><Logo size={32} word={false} /></a>
-		<nav><a href="/about">How it works</a><a href={SITE.source} target="_blank" rel="noopener">Source</a></nav>
+		<nav><a href="/about">How it works</a><a href="/account">Account</a><a href={SITE.source} target="_blank" rel="noopener">Source</a></nav>
 	</header>
 
 	<main>

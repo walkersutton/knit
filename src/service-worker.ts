@@ -5,8 +5,8 @@
 
 /**
  * Keeps the whole app on the device, so a knitter who loses their connection mid-pattern can
- * reload or reopen the page and carry on. Every page is prerendered and the pattern is written in
- * the browser, so there is nothing else to fetch.
+ * reload or reopen the page and carry on. Pattern generation stays in the browser; optional account
+ * syncing uses the network when it is available.
  */
 import { build, files, prerendered, version } from '$service-worker';
 

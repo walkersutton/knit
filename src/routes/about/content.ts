@@ -16,7 +16,7 @@ export const faq = [
 	},
 	{
 		q: 'Is Knit It free?',
-		a: 'Yes. There is no account, no payment and nothing to install. Open the designer, make your choices and print the pattern.'
+		a: 'Yes. There is no payment and nothing to install. You can design and print patterns without an account; a Ravelry sign-in is optional and syncs saved work across devices.'
 	},
 	{
 		q: 'What can I design?',
@@ -56,7 +56,7 @@ export const faq = [
 	},
 	{
 		q: 'Can I keep track of where I am?',
-		a: 'Yes. Tick off each step as you finish it, and use the round counter on steps that repeat: it shows which kind of round comes next. Each sleeve is tracked separately. Your design and your place are saved in your browser on that device, with no account, and “Find my place” takes you back to the next step.'
+		a: 'Yes. Tick off each step as you finish it, and use the round counter on steps that repeat: it shows which kind of round comes next. Each sleeve is tracked separately. Your design and your place are saved in this browser. Sign in with Ravelry to sync them with your other devices, and “Find my place” takes you back to the next step.'
 	},
 	{
 		q: 'How do I save or print a pattern?',

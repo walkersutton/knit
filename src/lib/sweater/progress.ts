@@ -156,6 +156,7 @@ export function save(saved: Saved, current: string) {
 		const progress = Object.fromEntries(entries.slice(-(KEEP - 1)));
 		if (saved.progress[current] && Object.keys(saved.progress[current]).length) progress[current] = saved.progress[current];
 		localStorage.setItem(KEY, JSON.stringify({ ...saved, progress }));
+		window.dispatchEvent(new Event('knit:local-save'));
 	} catch {
 		// Nothing to do: the page works without it.
 	}

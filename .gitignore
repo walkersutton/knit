@@ -14,3 +14,5 @@ coverage/
 .gstack/
 .vercel
 .env*
+!.env.example
+!.env.production

@@ -12,6 +12,7 @@
 	import { estimate, writePattern } from '$lib/sweater/pattern';
 	import PatternView from '$lib/sweater/PatternView.svelte';
 	import { readMotifHash } from '$lib/sweater/library';
+	import { saveDesign } from '$lib/sweater/designs';
 	import { CUSTOM_PATTERN } from '$lib/sweater/motifs';
 	import { decodeDesign, knittedOf, load, progressAt, save, signature, tasksOf, type Mode, type Progress } from '$lib/sweater/progress';
 	import Seo from '$lib/Seo.svelte';
@@ -91,6 +92,10 @@
 		const p = (progress[sig] ??= {});
 		if (value > 0) p[key] = value;
 		else delete p[key];
+	}
+	function saveCurrentDesign() {
+		const name = prompt('Name this sweater design:', summary(design));
+		if (name !== null) saveDesign(knit, name);
 	}
 
 	// The design, the view and the knitter's place are kept in this browser between visits.
@@ -214,6 +219,7 @@
 				<button type="button" class="save" onclick={() => window.print()} disabled={!pattern.ok} title={pattern.ok ? 'Print, or choose “Save as PDF” in the print dialog' : pattern.reason}>
 					Print pattern
 				</button>
+				<button type="button" class="save save-design" onclick={saveCurrentDesign} disabled={!pattern.ok} title="Save this sweater design to your account or this device">Save design</button>
 			</div>
 		</main>
 	</div>

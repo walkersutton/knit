@@ -9,6 +9,7 @@
 	import { chartToText, parseChartText } from '$lib/sweater/chartText';
 	import { designLink, freshName, loadLibrary, newId, parseLibrary, readMotifHash, saveLibrary, type Library } from '$lib/sweater/library';
 	import { blankMotif, contrastShare, FINE_GAUGE, longestFloat, tileOfMotif } from '$lib/sweater/motifs';
+	import { markDeleted } from '$lib/sweater/deletions';
 	import { colors } from '$lib/sweater/options';
 
 	const title = 'Pattern designer — Knit It';
@@ -43,6 +44,7 @@
 	}
 	function remove() {
 		if (!confirm(`Delete “${current.name}”? This can't be undone.`)) return;
+		markDeleted('chart', current.id);
 		const at = lib.patterns.findIndex((p) => p.id === current.id);
 		lib.patterns.splice(at, 1);
 		if (!lib.patterns.length) add();

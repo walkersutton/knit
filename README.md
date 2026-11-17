@@ -18,7 +18,7 @@
   </a>
 </p>
 
-Knit It is a free sweater designer that runs entirely in the browser. Pick a garment, size, fit, neckline, sleeves, edge finishes and yarn, watch a 3D model update with every choice, and get a written top-down raglan or set-in pattern with the stitch counts worked out for that exact design. There is no account, no server and nothing to install.
+Knit It is a free sweater designer whose pattern calculations run in the browser. Pick a garment, size, fit, neckline, sleeves, edge finishes and yarn, watch a 3D model update with every choice, and get a written top-down raglan or set-in pattern with the stitch counts worked out for that exact design. An optional Ravelry sign-in syncs saved designs, charts and knitting progress across devices.
 
 ## Features
 
@@ -27,9 +27,11 @@ Knit It is a free sweater designer that runs entirely in the browser. Pick a gar
 - **Sized to your yarn.** Fingering, DK, worsted and bulky weights, with yardage and skein estimates per colour.
 - **Uses the needles you own.** Tell it which sizes you have and the pattern is rewritten for the closest workable needle and its gauge, keeping the finished size the same.
 - **Colourwork.** Solid, stripes or Fair Isle, with a chart.
+- **Saved designs and charts.** Keep named sweater designs and custom colourwork charts in your library.
 - **Beginner view.** Every abbreviation written out, tips on the steps that trip people up, and links to free tutorials at the step where you first need each technique.
 - **Progress tracking.** Tick off steps and count rounds. The 3D model grows to show the fabric you have knitted so far.
 - **Works offline.** A service worker keeps the whole app on the device, and your design and place are saved in the browser.
+- **Optional account sync.** Sign in with Ravelry to sync saved sweater designs, charts and knitting progress across devices.
 - **Print or save as PDF.**
 
 ### What you can design
@@ -58,6 +60,12 @@ pnpm dev
 ```
 
 Then open <http://localhost:5173>.
+
+### Account sync setup
+
+Account sync uses a Vercel server runtime and Neon Postgres. `DATABASE_URL` is injected by the Vercel Neon integration (for local dev, `vercel env pull .env.local`); run `db/schema.sql` against it once. `PUBLIC_ORIGIN` and the Ravelry client ID and secret live in the dotenvx-encrypted `.env.production`, which is committed: set them with `pnpm exec dotenvx set NAME value -f .env.production`. The private key is in `.env.keys` (gitignored) and in Vercel as `DOTENV_PRIVATE_KEY_PRODUCTION`; the server decrypts the file at runtime (`src/lib/server/env.ts`). Register `{PUBLIC_ORIGIN}/auth/ravelry/callback` as the Ravelry app's callback URL. For local sign-in, register `http://localhost:5173/auth/ravelry/callback` as an additional callback and set `PUBLIC_ORIGIN=http://localhost:5173` in `.env.local`.
+
+Ravelry access tokens are used server-side only to read the Ravelry account identity and are not stored. Knit It stores an opaque session token hash and each account's saved designs, charts and progress in Postgres. The browser continues to store a local copy for offline use.
 
 | Command | What it does |
 | --- | --- |

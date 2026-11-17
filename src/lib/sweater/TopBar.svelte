@@ -1,6 +1,7 @@
 <script lang="ts">
 	import HowItWorks from './HowItWorks.svelte';
 	import Logo from '$lib/Logo.svelte';
+	import AccountLink from '$lib/AccountLink.svelte';
 
 	type Step = { id: string; label: string; disabled?: boolean; reason?: string };
 	let {
@@ -39,6 +40,7 @@
 	</div>
 
 	<div class="right">
+		<AccountLink />
 		<HowItWorks />
 	</div>
 </header>

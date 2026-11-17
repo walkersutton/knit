@@ -202,7 +202,7 @@
 						{yarnName.toLowerCase()}. The designer has every other choice waiting, and a 3D model to turn around.
 					</p>
 					<a class="launch" href="/design">Start designing <span class="arrow" aria-hidden="true">→</span></a>
-					<small>Free. No account. Runs in your browser.</small>
+					<small>Free. Optional account. Runs in your browser.</small>
 				</div>
 			</div>
 		</li>

@@ -47,6 +47,7 @@ export function loadLibrary(): Library {
 export function saveLibrary(lib: Library) {
 	try {
 		localStorage.setItem(KEY, JSON.stringify(lib));
+		window.dispatchEvent(new Event('knit:local-save'));
 	} catch {
 		// Private windows and blocked storage: the page still works, it just forgets.
 	}
