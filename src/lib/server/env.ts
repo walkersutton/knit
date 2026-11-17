@@ -11,6 +11,8 @@ function load(): Record<string, string | undefined> {
 	const privateKey = platformEnv.DOTENV_PRIVATE_KEY_PRODUCTION;
 	if (!privateKey) return { ...platformEnv };
 	const decrypted = parse(encrypted, { privateKey, processEnv: {} });
+	const stuck = Object.keys(decrypted).filter((k) => decrypted[k]?.startsWith('encrypted:'));
+	if (stuck.length) throw new Error(`DOTENV_PRIVATE_KEY_PRODUCTION could not decrypt: ${stuck.join(', ')}`);
 	return { ...decrypted, ...platformEnv };
 }
 
