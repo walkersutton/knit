@@ -1,5 +1,6 @@
 import { CUSTOM, standardBody } from './fit';
 import type { Design } from './garment';
+import { PATTERNS, starterMotif, validMotif } from './motifs';
 
 export type Option = { label: string; value: string | number };
 export type Field = {
@@ -141,7 +142,7 @@ export const sections: Section[] = [
 						options: yarnWeights.map(({ label, gauge }) => ({ label, value: gauge }))
 					},
 					{ key: 'color', label: 'Color', kind: 'color', options: colors },
-					{ key: 'pattern', label: 'Pattern', kind: 'choice', options: opts('Solid', 'Stripes', 'Fair isle') },
+					{ key: 'pattern', label: 'Pattern', kind: 'choice', options: opts(...PATTERNS) },
 					{ key: 'contrast', label: 'Pattern color', kind: 'color', options: colors, show: (d) => d.pattern !== 'Solid' }
 				]
 			}
@@ -155,6 +156,7 @@ export function choose(d: Design, key: keyof Design, value: string | number) {
 	(d as Record<string, unknown>)[key] = value;
 	// Custom starts from the standard size they were looking at, so the numbers are never blank.
 	if (key === 'size' && value === CUSTOM && !d.custom) d.custom = standardBody(d.wearer, d.size === CUSTOM ? 'M' : d.size);
+	if (key === 'pattern' && value === 'Custom' && !validMotif(d.motif)) d.motif = starterMotif();
 	if (key === 'garment' && value === 'T-shirt') d.sleeveLength = 'Short';
 	if (key === 'garment' && value !== 'T-shirt' && d.sleeveLength === 'Short') d.sleeveLength = 'Full';
 }

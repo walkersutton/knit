@@ -1,6 +1,9 @@
 import { measure, type Design } from './garment';
 import { needleLabel, needlesOf, weightOf } from './needles';
-import { chart, TILE_ROWS, TILE_ST } from './yarn';
+import { contrastShare, longestFloat, TILE_ROWS, TILE_ST, tileOf } from './motifs';
+
+/** Patterns worked as stranded colourwork from a chart (everything except plain and stripes). */
+export const isColourwork = (pattern: string) => pattern !== 'Solid' && pattern !== 'Stripes';
 
 /**
  * Turns a design into a written, top-down raglan knitting pattern.
@@ -67,8 +70,10 @@ export type Pattern =
 			measurements: [string, string][];
 			abbreviations: [string, string][];
 			sections: PatternSection[];
-			/** Fair Isle chart, rows top to bottom in knitting order; true = contrast colour. */
+			/** Colourwork chart, rows top to bottom in knitting order; true = contrast colour. */
 			chart: boolean[][] | null;
+			/** Name of the charted pattern, e.g. "Fair Isle". */
+			chartName: string;
 			counts: Counts;
 	  };
 
@@ -120,7 +125,7 @@ function evenly(from: number, to: number) {
 export function estimate(d: Design) {
 	const yarn = weightOf(d.gauge);
 	const m = measure(d);
-	const fairIsle = d.pattern === 'Fair isle';
+	const fairIsle = isColourwork(d.pattern);
 	// Fabric area (cm²): body, sleeves below the underarm, sleeve tops in the yoke, collar.
 	const sleeveBody = m.sleeveBody + m.cuffLen;
 	const area =
@@ -133,9 +138,7 @@ export function estimate(d: Design) {
 	let share = 0;
 	if (d.pattern === 'Stripes') share = 5 / TILE_ROWS;
 	if (fairIsle) {
-		let on = 0;
-		for (let j = 0; j < TILE_ROWS; j++) for (let i = 0; i < TILE_ST; i++) on += +chart('Fair isle', i, j);
-		share = on / (TILE_ROWS * TILE_ST);
+		share = contrastShare(d.pattern, d.motif);
 	}
 	const contrastYards = share ? Math.max(20, Math.round(yards * share * 1.1)) : 0;
 	const mainYards = yards - Math.round(yards * share);
@@ -198,7 +201,7 @@ export function writePattern(d: Design): Pattern {
 	const { k, stPerCm, rowPerCm } = m;
 	const cardigan = d.garment === 'Cardigan';
 	const vNeck = d.neckline === 'V-neck';
-	const fairIsle = d.pattern === 'Fair isle';
+	const fairIsle = isColourwork(d.pattern);
 	const stripes = d.pattern === 'Stripes';
 	const slits = !cardigan && m.slitH > 0;
 	const rowsOf = (cm: number) => Math.max(0, Math.round(cm * rowPerCm));
@@ -349,17 +352,19 @@ export function writePattern(d: Design): Pattern {
 	const R = cardigan ? 'row' : 'round';
 
 	// ── Colourwork notes ──
+	const chartName = d.pattern === 'Fair isle' ? 'Fair Isle' : `Colourwork (${d.pattern === 'Custom' ? 'your own chart' : d.pattern.toLowerCase()})`;
 	const colour: Step[] = [];
 	if (stripes)
 		colour.push({
 			note: true,
 			text: `Stripes: in every stockinette section (yoke, body, sleeves) work a 16-${R} repeat of 11 ${R}s main colour, then 5 ${R}s contrast colour. Carry the unused colour up the inside at the start of the ${R}${cardigan ? '' : ' and use a jogless join'}. Start the stripes once the neck shaping is done.`
 		});
+	const floatMax = fairIsle ? longestFloat(d.pattern, d.motif) : 0;
 	if (fairIsle)
 		colour.push({
 			note: true,
 			tip: `Knit a plain sweater first if you can. Colourwork pulls the fabric tighter than plain knitting, so swatch in the chart pattern and go up a needle size if your stitches come out smaller.`,
-			text: `Fair Isle: in every stockinette section (yoke, body, sleeves) work the chart, a ${TILE_ST}-st, ${TILE_ROWS}-${R} repeat, reading rows from top to bottom (the sweater is knit top down). Start once the neck shaping is done. Work new yoke increases into the chart as they appear. On the body the repeat fits exactly; on the sleeves centre it on the top of the arm and let it break at the underarm. Keep floats loose, and catch any float longer than 5 sts.`
+			text: `${chartName}: in every stockinette section (yoke, body, sleeves) work the chart, a ${TILE_ST}-st, ${TILE_ROWS}-${R} repeat, reading rows from top to bottom (the sweater is knit top down). Start once the neck shaping is done. Work new yoke increases into the chart as they appear. On the body the repeat fits exactly; on the sleeves centre it on the top of the arm and let it break at the underarm. Keep floats loose, and catch any float longer than 5 sts.${floatMax > 5 ? ` This chart carries the yarn up to ${floatMax} sts, so catch those floats as you go.` : ''}`
 		});
 	if (colour.length)
 		sections.push({ id: 'colour', title: stripes ? 'Stripes' : 'Colourwork', intro: `This applies to the whole garment. Read it now and come back to it when you reach the plain knitting after the neck.`, steps: colour });
@@ -689,7 +694,8 @@ export function writePattern(d: Design): Pattern {
 		measurements,
 		abbreviations,
 		sections,
-		chart: fairIsle ? Array.from({ length: TILE_ROWS }, (_, j) => Array.from({ length: TILE_ST }, (_, i) => chart('Fair isle', i, j))) : null,
+		chart: fairIsle ? tileOf(d.pattern, d.motif) : null,
+			chartName: fairIsle ? (d.pattern === 'Fair isle' ? 'Fair Isle' : d.pattern) : '',
 		counts: {
 			castOn,
 			back0: B0,

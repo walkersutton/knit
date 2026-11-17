@@ -1,3 +1,4 @@
+import { PATTERNS } from './motifs';
 import { describe, expect, it } from 'vitest';
 import { CUSTOM, LIMITS } from './fit';
 import { buildGarment, measure } from './garment';
@@ -39,7 +40,7 @@ describe('randomDesign', () => {
 
 	it('covers every garment, size and pattern', () => {
 		for (const key of ['garment', 'wearer', 'size', 'pattern', 'neckline'] as const)
-			expect(new Set(designs.map((d) => d[key])).size, key).toBe(key === 'size' ? 6 : key === 'wearer' ? 4 : key === 'neckline' ? 6 : key === 'garment' ? 4 : 3);
+			expect(new Set(designs.map((d) => d[key])).size, key).toBe(key === 'size' ? 6 : key === 'wearer' ? 4 : key === 'neckline' ? 6 : key === 'garment' ? 4 : PATTERNS.length - 1);
 	});
 
 	it('builds a 3D model with sane measurements for every design', () => {

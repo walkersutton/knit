@@ -1,6 +1,6 @@
 import { colors, sections, yarnWeights } from '$lib/sweater/options';
 import type { Design } from '$lib/sweater/garment';
-import { chart, TILE_ROWS, TILE_ST } from '$lib/sweater/yarn';
+import { chart, PATTERNS, TILE_ROWS, TILE_ST } from '$lib/sweater/motifs';
 import { needleLabel } from '$lib/sweater/needles';
 
 const fields = sections.flatMap((s) => s.groups).flatMap((g) => g.fields);
@@ -93,6 +93,7 @@ export const defaultDesign: Design = {
 	sleeveRib: '1×1',
 	cuffLength: 'Regular',
 	pattern: 'Solid',
+	motif: '',
 	color: '#465e9d',
 	contrast: '#faf3dc',
 	gauge: 18,
@@ -136,7 +137,7 @@ export const contrastFor = (hex: string) => {
 
 /** Cells (column, row) of each stitch pattern's tile that are worked in the contrast colour. */
 export const tiles: Record<string, [number, number][]> = Object.fromEntries(
-	['Stripes', 'Fair isle'].map((name) => {
+	PATTERNS.filter((p) => p !== 'Solid' && p !== 'Custom').map((name) => {
 		const cells: [number, number][] = [];
 		for (let j = 0; j < TILE_ROWS; j++) for (let i = 0; i < TILE_ST; i++) if (chart(name, i, j)) cells.push([i, j]);
 		return [name, cells];

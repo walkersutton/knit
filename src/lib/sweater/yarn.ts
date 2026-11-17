@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
-/** One texture tile is a small stitch chart: TILE_ST stitches wide, TILE_ROWS rows tall. */
-export const TILE_ST = 12;
-export const TILE_ROWS = 16;
+import { chart, TILE_ROWS, TILE_ST } from './motifs';
+
+export { chart, TILE_ROWS, TILE_ST };
 
 const SW = 32; // px per stitch
 const RH = 24; // px per row
@@ -22,19 +22,6 @@ const hex = (h: string): RGB => {
 const css = (c: RGB, m = 1) => `rgb(${c.map((v) => Math.round(Math.min(255, v * m))).join(',')})`;
 const gray = (v: number) => css([255, 255, 255], v);
 const mod = (n: number, m: number) => ((n % m) + m) % m;
-
-/** true = this stitch is worked in the contrast colour */
-export function chart(pattern: string, i: number, j: number): boolean {
-	if (pattern === 'Stripes') return j < 5;
-	if (pattern !== 'Fair isle') return false;
-	if (j === 0 || j === 10) return true;
-	if (j >= 2 && j <= 8) {
-		const d = Math.abs(i - 6) + Math.abs(j - 5);
-		const d2 = Math.abs(mod(i + 6, 12) - 6) + Math.abs(j - 5);
-		return (d <= 3 && d !== 0) || d2 === 0;
-	}
-	return j === 13 && i % 4 === 2;
-}
 
 function leg(ctx: CanvasRenderingContext2D, x0: number, y0: number, side: number) {
 	const tx = x0 + SW * (side < 0 ? 0.15 : 0.85);
@@ -67,6 +54,8 @@ export type KnitOptions = {
 	color: string;
 	contrast: string;
 	pattern: string;
+	/** The knitter's own chart, when the pattern is Custom. */
+	motif?: string;
 	/** 0..1 — how strongly the stitch relief darkens the albedo */
 	shade: number;
 	/** normal-map strength */
@@ -114,7 +103,7 @@ export function makeKnitMaps(o: KnitOptions): KnitMaps {
 				const y0 = j * RH;
 				const isPurl = purlAt(ii);
 				if (pass === 0) {
-					const base = !rib && chart(o.pattern, ii, jj) ? alt : main;
+					const base = !rib && chart(o.pattern, ii, jj, o.motif) ? alt : main;
 					const jitter = 0.965 + 0.07 * (((ii * 7919 + jj * 104729) % 97) / 97);
 					cc.strokeStyle = css(base, jitter * (isPurl ? 0.95 : 1));
 					cc.lineWidth = SW * LEVELS[0][0];

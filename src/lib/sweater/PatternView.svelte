@@ -255,7 +255,7 @@
 					{@const rows = pattern.chart.length}
 					{@const cols = pattern.chart[0].length}
 					<figure>
-						<svg viewBox="0 0 {cols * CELL + 24} {rows * CELL}" width={cols * CELL + 24} height={rows * CELL} role="img" aria-label="Fair Isle chart, {cols} stitches by {rows} rows">
+						<svg viewBox="0 0 {cols * CELL + 24} {rows * CELL}" width={cols * CELL + 24} height={rows * CELL} role="img" aria-label="{pattern.chartName} chart, {cols} stitches by {rows} rows">
 							{#each pattern.chart as row, j (j)}
 								{#each row as on, i (i)}
 									<rect x={i * CELL} y={j * CELL} width={CELL} height={CELL} fill={on ? contrast : main} stroke="rgba(0,0,0,0.25)" stroke-width="0.5" />
