@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Seo from '$lib/Seo.svelte';
 	import Logo from '$lib/Logo.svelte';
+	import Roll from '$lib/sweater/Roll.svelte';
 	import { SITE } from '$lib/site';
 	import { yarn } from '$lib/yarn.svelte';
 
@@ -124,6 +125,8 @@
 		<p class="lede">Shape it in 3D, pick your yarn, and get a written pattern with every stitch count worked out.</p>
 		<p class="actions"><a class="cta" href="/design">Start designing</a><a class="link" href="/about">How Knit It works</a></p>
 	</main>
+
+	<Roll />
 
 	<section class="steps" aria-label="How it works">
 		<ol>

@@ -4,7 +4,8 @@
 	import type { Design } from './garment';
 	import type { Knitted } from './progress';
 
-	let { design, knitted = null, onview, intro = true }: { design: Design; knitted?: Knitted | null; onview: (view: string) => void; intro?: boolean } = $props();
+	/** Without a design the viewer stays empty, for use as an off-screen camera (see `snapshot`). */
+	let { design, knitted = null, onview, intro = true }: { design?: Design; knitted?: Knitted | null; onview: (view: string) => void; intro?: boolean } = $props();
 	let host: HTMLDivElement;
 	let handle = $state.raw<ViewerHandle | null>(null);
 
@@ -15,8 +16,7 @@
 	});
 
 	$effect(() => {
-		const snapshot = { ...design };
-		handle?.setDesign(snapshot);
+		if (design) handle?.setDesign({ ...design });
 	});
 	$effect(() => {
 		handle?.setKnitted(knitted && { ...knitted, sleeves: [...knitted.sleeves] });
@@ -24,6 +24,19 @@
 
 	export function turn() {
 		handle?.turn();
+	}
+	/** A design as a still and the frames of one turn, made without showing it. The viewer is left wearing it. */
+	export async function pictures(next: Design, size: { width: number; height: number; frames: number; background: string }) {
+		if (!handle) return null;
+		await handle.prefetch({ ...next });
+		handle.setDesign({ ...next });
+		const still = await handle.snapshot();
+		const frames = await handle.spin(size.frames, size.width, size.height, size.background);
+		return still && { still, frames };
+	}
+	/** Get a design ready in idle time, so showing it later is quick. */
+	export function prefetch(next: Design) {
+		return handle?.prefetch({ ...next }) ?? Promise.resolve();
 	}
 </script>
 

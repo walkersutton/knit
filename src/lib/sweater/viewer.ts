@@ -11,6 +11,12 @@ export type ViewerHandle = {
 	setKnitted(knitted: Knitted | null): void;
 	/** Spin half a turn. */
 	turn(): void;
+	/** Does the slow work for a design in idle time, so `setDesign` with it later is quick. */
+	prefetch(design: Design): Promise<void>;
+	/** The garment as it stands, front on, as a small image; null if the browser cannot encode one. */
+	snapshot(): Promise<Blob | null>;
+	/** One slow-down-to-front turn of the garment as `count + 1` frames (the last is the first again), over `background`. */
+	spin(count: number, width: number, height: number, background: string): Promise<ImageData[]>;
 	dispose(): void;
 };
 
@@ -108,10 +114,74 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 	let colorKey = '';
 	let frameScale = 1;
 
-	function setColors(d: Design) {
-		maps.forEach((m) => (m.map.dispose(), m.normalMap.dispose()));
+	// ── Preparing ahead ─────────────────────────────────────────────────
+	// Drawing the stitch textures and building the geometry is the slow part of changing the design.
+	// Both are written as stepped jobs: `setDesign` runs one straight through, `prefetch` runs it a step
+	// at a time in idle time, so that changing the design later only has to swap the finished pieces in.
+	type Shape = { children: THREE.Object3D[]; y: number; floorY: number; floorScale: [number, number]; scale: number };
+	const readyMaps = new Map<string, KnitMaps[]>();
+	const readyShapes = new Map<string, Shape>();
+	const inFlight = new Map<string, Promise<void>>();
+	const MAX_READY = 3;
+	let disposed = false;
+	const colorsOf = (d: Design) => [d.color, d.contrast, d.pattern].join('|');
+	const disposeMaps = (list: KnitMaps[]) => list.forEach((m) => (m.map.dispose(), m.normalMap.dispose()));
+	const disposeShape = (s: Shape) => s.children.forEach((c) => (c as THREE.Mesh).geometry?.dispose());
+	const idle = () =>
+		new Promise<void>((resolve) => ('requestIdleCallback' in window ? requestIdleCallback(() => resolve(), { timeout: 250 }) : setTimeout(resolve, 16)));
+
+	/** Runs a stepped job to the end without pausing. */
+	function finish<T>(job: Generator<void, T>): T {
+		for (;;) {
+			const step = job.next();
+			if (step.done) return step.value;
+		}
+	}
+
+	/** Runs a stepped job in idle time and keeps its result (a few at most) until `setDesign` asks for it. */
+	async function ahead<T>(store: Map<string, T>, key: string, job: Generator<void, T>, drop: (value: T) => void, current: () => boolean) {
+		if (store.has(key)) return;
+		const already = inFlight.get(key);
+		if (already) return already;
+		const task = (async () => {
+			for (;;) {
+				await idle();
+				if (disposed) return;
+				const step = job.next();
+				if (!step.done) continue;
+				// Not wanted any more: the design arrived while it was being prepared.
+				if (current()) return drop(step.value);
+				store.set(key, step.value);
+				if (store.size > MAX_READY) {
+					const [oldKey, old] = store.entries().next().value!;
+					store.delete(oldKey);
+					drop(old);
+				}
+				return;
+			}
+		})();
+		inFlight.set(key, task);
+		await task;
+		inFlight.delete(key);
+	}
+
+	/** One stitch texture pair per fabric: stockinette, then each rib. */
+	function* mapJob(d: Design): Generator<void, KnitMaps[]> {
 		const base = { color: d.color, contrast: d.contrast, pattern: d.pattern, shade: 0.3, bump: 3.4 };
-		maps = [makeKnitMaps({ ...base, kind: 'stockinette' }), ...RIBS.map((rib) => makeKnitMaps({ ...base, kind: 'rib', rib }))];
+		const made: KnitMaps[] = [];
+		for (const part of [{ kind: 'stockinette' as const }, ...RIBS.map((rib) => ({ kind: 'rib' as const, rib }))]) {
+			const m = makeKnitMaps({ ...base, ...part });
+			// Hand the pixels to the GPU now rather than on the first frame that shows them.
+			if (!disposed) (renderer.initTexture(m.map), renderer.initTexture(m.normalMap));
+			made.push(m);
+			yield;
+		}
+		return made;
+	}
+
+	function applyMaps(next: KnitMaps[], d: Design) {
+		disposeMaps(maps);
+		maps = next;
 		[fabricMat, ...ribMats.values()].forEach((mat, i) => {
 			mat.map = maps[i].map;
 			mat.normalMap = maps[i].normalMap;
@@ -137,38 +207,52 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 		}
 	}
 
-	function setShape(d: Design) {
-		clear();
+	function* shapeJob(d: Design): Generator<void, Shape> {
 		const built = buildGarment(d);
-		frameScale = built.scale;
+		yield;
+		const children: THREE.Object3D[] = [];
 		const solids: THREE.Mesh[] = [new THREE.Mesh(built.fabric, fabricMat)];
 		for (const r of built.ribs) solids.push(new THREE.Mesh(r.geometry, ribMats.get(r.kind) ?? ribMats.get(RIBS[0])!));
 		const knit = solids.slice();
 		const linings = solids.map((m) => new THREE.Mesh(m.geometry.clone(), insideMat));
 		for (const lining of linings) lining.receiveShadow = true;
-		garment.add(...linings);
+		children.push(...linings);
 		if (built.trim) solids.push(new THREE.Mesh(built.trim, trimMat));
 		for (const mesh of solids) {
 			mesh.castShadow = mesh.receiveShadow = true;
 			mesh.customDepthMaterial = shadowMat;
 		}
-		garment.add(...solids);
-		if (built.holes) garment.add(new THREE.Mesh(built.holes, holeMat));
+		children.push(...solids);
+		if (built.holes) children.push(new THREE.Mesh(built.holes, holeMat));
 
 		// Centre the garment on the pivot.
 		const box = new THREE.Box3().setFromBufferAttribute(built.fabric.getAttribute('position') as THREE.BufferAttribute);
 		const mid = box.getCenter(new THREE.Vector3());
-		garment.position.set(0, -mid.y, 0);
-		floor.position.y = box.min.y - mid.y - 7 * frameScale;
-		floor.scale.set((box.max.x - box.min.x) * 0.95, (box.max.z - box.min.z) * 2.6, 1);
+		yield;
+		if (built.seams.length) yield* addSeams(built, solids, children);
+		yield;
+		addFuzz(knit, built.scale, children);
+		return {
+			children,
+			y: -mid.y,
+			floorY: box.min.y - mid.y - 7 * built.scale,
+			floorScale: [(box.max.x - box.min.x) * 0.95, (box.max.z - box.min.z) * 2.6],
+			scale: built.scale
+		};
+	}
 
-		if (built.seams.length) addSeams(built, solids);
-		addFuzz(knit);
+	function applyShape(shape: Shape) {
+		clear();
+		frameScale = shape.scale;
+		garment.add(...shape.children);
+		garment.position.set(0, shape.y, 0);
+		floor.position.y = shape.floorY;
+		floor.scale.set(shape.floorScale[0], shape.floorScale[1], 1);
 		fit();
 	}
 
 	/** Project the raglan lines onto whatever surface is outermost, front and back. */
-	function addSeams(g: Garment, solids: THREE.Mesh[]) {
+	function* addSeams(g: Garment, solids: THREE.Mesh[], out: THREE.Object3D[]): Generator<void> {
 		const ray = new THREE.Raycaster();
 		const origin = new THREE.Vector3();
 		const dir = new THREE.Vector3();
@@ -176,6 +260,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 		const targets = [new THREE.Mesh(solids[0].geometry, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }))];
 		for (const [a, b] of g.seams)
 			for (const face of [1, -1]) {
+				yield; // one seam side at a time, so preparing ahead never holds up a frame
 				const pts: THREE.Vector3[] = [];
 				for (let s = 0; s <= 22; s++) {
 					const t = s / 22;
@@ -195,13 +280,13 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 				const knit = new Float32Array(pos.count * 2);
 				for (let k = 0; k < pos.count; k++) knit.set([PIECE.body, g.bodyWhen(pos.getY(k))], k * 2);
 				tube.setAttribute('knit', new THREE.BufferAttribute(knit, 2));
-				garment.add(new THREE.Mesh(tube, seamMat));
+				out.push(new THREE.Mesh(tube, seamMat));
 			}
 	}
 
 	/** A halo of short loose fibres, the thing that makes knitwear look soft at its edges. */
-	function addFuzz(sources: THREE.Mesh[]) {
-		const out = new Float32Array(FUZZ * 12);
+	function addFuzz(sources: THREE.Mesh[], scale: number, out: THREE.Object3D[]) {
+		const fibres = new Float32Array(FUZZ * 12);
 		const knit = new Float32Array(FUZZ * 8);
 		let o = 0;
 		const a = new THREE.Vector3();
@@ -219,7 +304,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 			const idx = mesh.geometry.getIndex()!;
 			const tris = idx.count / 3;
 			const count = Math.round((FUZZ * tris) / totalTris);
-			for (let h = 0; h < count && o < out.length; h++) {
+			for (let h = 0; h < count && o < fibres.length; h++) {
 				const t = Math.floor(Math.random() * tris) * 3;
 				const [ia, ib, ic] = [idx.getX(t), idx.getX(t + 1), idx.getX(t + 2)];
 				let u = Math.random();
@@ -230,20 +315,20 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 				c.fromBufferAttribute(pos, ic);
 				p.copy(a).addScaledVector(b.sub(a), u).addScaledVector(c.sub(a), v);
 				n.fromBufferAttribute(nor, ia);
-				const len = (0.2 + Math.random() * Math.random() * 0.8) * frameScale;
+				const len = (0.2 + Math.random() * Math.random() * 0.8) * scale;
 				q.copy(p).addScaledVector(n, len * 0.55).add(a.set(rnd(), rnd() - 0.15, rnd()).multiplyScalar(len * 0.7));
-				out.set([p.x, p.y, p.z, q.x, q.y, q.z], o);
+				fibres.set([p.x, p.y, p.z, q.x, q.y, q.z], o);
 				p.copy(q).addScaledVector(n, len * 0.25).add(a.set(rnd(), rnd() - 0.2, rnd()).multiplyScalar(len * 0.8));
-				out.set([q.x, q.y, q.z, p.x, p.y, p.z], o + 6);
+				fibres.set([q.x, q.y, q.z, p.x, p.y, p.z], o + 6);
 				// A fibre is there once the stitch it grows from is.
 				for (let e = 0; e < 4; e++) knit.set([when.getX(ia), when.getY(ia)], (o / 3 + e) * 2);
 				o += 12;
 			}
 		}
 		const g = new THREE.BufferGeometry();
-		g.setAttribute('position', new THREE.BufferAttribute(out.subarray(0, o), 3));
+		g.setAttribute('position', new THREE.BufferAttribute(fibres.subarray(0, o), 3));
 		g.setAttribute('knit', new THREE.BufferAttribute(knit.subarray(0, (o / 3) * 2), 2));
-		garment.add(new THREE.LineSegments(g, fuzzMat));
+		out.push(new THREE.LineSegments(g, fuzzMat));
 	}
 
 	// ── Camera + motion ─────────────────────────────────────────────────
@@ -436,17 +521,55 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 
 	return {
 		setDesign(d) {
-			const nextColor = [d.color, d.contrast, d.pattern].join('|');
+			const nextColor = colorsOf(d);
 			if (nextColor !== colorKey) {
 				colorKey = nextColor;
-				setColors(d);
+				const ready = readyMaps.get(nextColor);
+				readyMaps.delete(nextColor);
+				applyMaps(ready ?? finish(mapJob(d)), d);
 			}
 			const next = shapeKey(d);
 			if (next !== key_) {
 				key_ = next;
-				setShape(d);
+				const ready = readyShapes.get(next);
+				readyShapes.delete(next);
+				applyShape(ready ?? finish(shapeJob(d)));
 			}
 			invalidate();
+		},
+		snapshot() {
+			// Draw now, in this task, so the canvas still holds the frame when it is read.
+			pivot.rotation.set(pitch, yaw, 0);
+			camera.position.set(panX, panY, baseDist / zoom);
+			renderer.render(scene, camera);
+			return new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.88));
+		},
+		async spin(count, width, height, background) {
+			const out = document.createElement('canvas');
+			out.width = width;
+			out.height = height;
+			const ctx = out.getContext('2d', { willReadFrequently: true })!;
+			const frames: ImageData[] = [];
+			camera.position.set(panX, panY, baseDist / zoom);
+			for (let k = 0; k <= count; k++) {
+				// Fast at first, easing to a stop facing front, the way `turn` does.
+				const t = k / count;
+				pivot.rotation.set(pitch, yaw + Math.PI * 2 * (1 - (1 - t) ** 3), 0);
+				renderer.render(scene, camera);
+				ctx.fillStyle = background;
+				ctx.fillRect(0, 0, width, height);
+				ctx.drawImage(canvas, 0, 0, width, height);
+				frames.push(ctx.getImageData(0, 0, width, height));
+				if (k % 4 === 3) await new Promise((resolve) => setTimeout(resolve));
+			}
+			pivot.rotation.set(pitch, yaw, 0);
+			return frames;
+		},
+		async prefetch(d) {
+			const colors = colorsOf(d);
+			const shape = shapeKey(d);
+			await ahead(readyMaps, colors, mapJob(d), disposeMaps, () => colors === colorKey);
+			await ahead(readyShapes, shape, shapeJob(d), disposeShape, () => shape === key_);
 		},
 		setKnitted(k) {
 			// Body and sleeves count 0–1 down the yoke, then 1–2 on to the hem or cuff. A piece not yet begun shows nothing.
@@ -462,12 +585,16 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 			invalidate();
 		},
 		dispose() {
+			disposed = true;
+			readyMaps.forEach(disposeMaps);
+			readyShapes.forEach(disposeShape);
 			cancelAnimationFrame(raf);
 			observer.disconnect();
 			clear();
 			maps.forEach((m) => (m.map.dispose(), m.normalMap.dispose()));
 			scene.environment?.dispose();
 			renderer.dispose();
+			renderer.forceContextLoss(); // hand the graphics memory back now, not when the garbage collector gets round to it
 			canvas.remove();
 		}
 	};
