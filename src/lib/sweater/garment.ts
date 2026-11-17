@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { ARM_SHARE, CUSTOM, sizeStep, wearerScale, type Custom } from './fit';
 import { stitchGauge } from './needles';
-import { TILE_ROWS, TILE_ST } from './yarn';
+import { TILE_ROWS, TILE_ST, tileFor } from './yarn';
 
 export type Design = {
 	wearer: string;
@@ -64,7 +64,8 @@ export type Garment = {
 /** Everything that changes the mesh (colour and pattern only change the textures). */
 export const shapeKey = (d: Design) => {
 	const { color: _c, contrast: _x, pattern: _p, ribNeedle: _r, ...shape } = d;
-	return JSON.stringify(shape);
+	// A finer colourwork chart repeats half as often, which changes the UVs but nothing else.
+	return JSON.stringify({ ...shape, fine: tileFor(d.pattern, stitchGauge(d) || 18).fine });
 };
 
 /** Rib depth in cm (adult) for the 'Rib length' choice. */
@@ -271,14 +272,16 @@ function mirrorX(src: THREE.BufferGeometry) {
 
 export function buildGarment(d: Design): Garment {
 	const m = measure(d);
-	const { k, W, L, ya, ys, S, hemH, slitH, N, Nd, dropF, dropB, hasSleeves, raglan, stPerCm, rowPerCm } = m;
+	const { k, W, L, ya, ys, S, hemH, slitH, N, Nd, dropF, dropB, hasSleeves, raglan, stPerCm, rowPerCm, gauge } = m;
 	const ribbed = d.hemFinish === 'Ribbed';
 	// Rib draws in and gathers the fabric above it; a stockinette band lies flat at full width.
 	const drawn = (kind: string) => (kind === 'Stockinette' ? 1 : 1.5);
 	const hemDraws = ribbed && d.bodyRib !== 'Stockinette';
 	const iCordNeck = d.neckline === 'I-cord';
 
-	const wraps = (circ: number, stretch = 1) => Math.max(1, Math.round((circ * stPerCm * stretch) / TILE_ST));
+	// Whole chart repeats round every tube, so the texture meets at the seam. The UVs count standard tiles; a fine chart is two of them wide.
+	const unit = tileFor(d.pattern, gauge).fine ? 2 : 1;
+	const wraps = (circ: number, stretch = 1) => unit * Math.max(1, Math.round((circ * stPerCm * stretch) / (TILE_ST * unit)));
 	const vOf = (cm: number) => (cm * rowPerCm) / TILE_ROWS;
 
 	// Knitted top down: the yoke from the neck to the underarm, then the body on to the hem.

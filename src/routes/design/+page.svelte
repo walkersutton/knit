@@ -10,7 +10,7 @@
 	import { labelOf, sections, summary, visible } from '$lib/sweater/options';
 	import { estimate, writePattern } from '$lib/sweater/pattern';
 	import PatternView from '$lib/sweater/PatternView.svelte';
-	import { knittedOf, load, progressAt, save, signature, tasksOf, type Mode, type Progress } from '$lib/sweater/progress';
+	import { decodeDesign, knittedOf, load, progressAt, save, signature, tasksOf, type Mode, type Progress } from '$lib/sweater/progress';
 	import Seo from '$lib/Seo.svelte';
 
 	const title = 'Sweater designer — Knit It';
@@ -94,6 +94,12 @@
 	onMount(() => {
 		const saved = load(design);
 		if (saved.design) design = saved.design;
+		// A design opened from a link (the sweaters on the home page) wins over the one saved here.
+		const linked = location.hash.startsWith('#d=') ? decodeDesign(location.hash.slice(3), design) : undefined;
+		if (linked) {
+			design = linked;
+			history.replaceState(null, '', location.pathname);
+		}
 		if (saved.mode) mode = saved.mode;
 		owned = saved.needles;
 		progress = saved.progress;

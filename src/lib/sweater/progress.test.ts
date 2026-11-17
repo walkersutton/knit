@@ -152,3 +152,17 @@ describe('signature', () => {
 		expect(signature({ ...baseDesign, ribNeedle: 3.5 })).toBe(signature(baseDesign));
 	});
 });
+
+describe('design links', () => {
+	it('round-trips a design and rejects anything else', async () => {
+		const { encodeDesign, decodeDesign } = await import('./progress');
+		const { randomDesign, seeded } = await import('./random');
+		const like = randomDesign(seeded(1));
+		for (let i = 2; i < 40; i++) {
+			const d = randomDesign(seeded(i));
+			expect(decodeDesign(encodeDesign(d), like)).toEqual(d);
+		}
+		expect(decodeDesign('nonsense', like)).toBeUndefined();
+		expect(decodeDesign(encodeDesign({ ...like, fit: 'Nope' }), like)).toBeUndefined();
+	});
+});

@@ -7,7 +7,10 @@
 </script>
 
 <div class="page">
-	<header class="top"><a href="/" aria-label="Knit It home"><Logo size={24} /></a><a class="cta" href="/design">Open the designer</a></header>
+	<header class="top">
+		<a class="home" href="/" aria-label="Knit It home"><Logo size={32} word={false} /></a>
+		<a class="cta" href="/design">Open the designer</a>
+	</header>
 	<main class:wide>{@render children()}</main>
 	<footer>Knit It is open source. <a href={SITE.source} target="_blank" rel="noopener">View the code on GitHub</a>.</footer>
 </div>
@@ -22,15 +25,16 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		height: 44px;
+		height: 60px;
 		padding: 0 16px;
 		border-bottom: 1px solid var(--line);
 		background: color-mix(in srgb, var(--paper) 88%, transparent);
-		font-size: 13px;
 	}
-	.top a:first-child {
+	.home {
+		display: flex;
+		align-items: center;
+		height: 44px;
 		color: var(--ink);
-		font-weight: 600;
 		text-decoration: none;
 	}
 	main {
@@ -44,20 +48,23 @@
 	.cta {
 		display: inline-flex;
 		align-items: center;
-		height: 32px;
-		padding: 0 12px;
-		border-radius: 6px;
-		background: var(--ink);
-		color: #fff;
-		font-size: 13px;
-		font-weight: 500;
+		height: 40px;
+		padding: 0 18px;
+		border-radius: 12px;
+		background: #c8543e;
+		box-shadow: 0 3px 0 #8f3a2a;
+		color: #fff8e6;
+		font-family: var(--display);
+		font-size: 15px;
+		font-weight: 600;
 		text-decoration: none;
 		transition:
-			background-color 120ms ease-out,
-			transform 120ms ease-out;
+			transform 120ms ease-out,
+			box-shadow 120ms ease-out;
 	}
 	.cta:active {
-		transform: scale(0.97);
+		transform: translateY(2px);
+		box-shadow: 0 1px 0 #8f3a2a;
 	}
 	a:focus-visible {
 		outline: 2px solid var(--focus);
@@ -66,7 +73,7 @@
 	}
 	@media (hover: hover) and (pointer: fine) {
 		.cta:hover {
-			background: #3f3f46;
+			background: #d0604a;
 		}
 	}
 	footer {

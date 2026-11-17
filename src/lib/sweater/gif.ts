@@ -6,15 +6,17 @@
 
 export type Frame = { data: Uint8ClampedArray | Uint8Array; width: number; height: number };
 
-const key5 = (r: number, g: number, b: number) => ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+/** 6 bits per channel: fine enough that soft shading on the yarn does not band. */
+const key5 = (r: number, g: number, b: number) => ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2);
+const KEYS = 1 << 18;
 
 /** 256 colours (r,g,b triples) for a set of frames, with `background` as entry 0. */
 export function buildPalette(frames: Frame[], background: [number, number, number]): Uint8Array {
-	const count = new Uint32Array(32768);
-	const sum = new Float64Array(32768 * 3);
+	const count = new Uint32Array(KEYS);
+	const sum = new Float64Array(KEYS * 3);
 	for (const { data } of frames)
-		// Every third pixel is plenty to find the colours of a picture this size.
-		for (let i = 0; i < data.length; i += 12) {
+		// Every second pixel is plenty to find the colours of a picture this size.
+		for (let i = 0; i < data.length; i += 8) {
 			const k = key5(data[i], data[i + 1], data[i + 2]);
 			count[k]++;
 			sum[k * 3] += data[i];
@@ -22,11 +24,11 @@ export function buildPalette(frames: Frame[], background: [number, number, numbe
 			sum[k * 3 + 2] += data[i + 2];
 		}
 	const all: number[] = [];
-	for (let k = 0; k < 32768; k++) if (count[k]) all.push(k);
+	for (let k = 0; k < KEYS; k++) if (count[k]) all.push(k);
 
-	const channel = (k: number, c: number) => (c === 0 ? k >> 10 : c === 1 ? (k >> 5) & 31 : k & 31);
+	const channel = (k: number, c: number) => (c === 0 ? k >> 12 : c === 1 ? (k >> 6) & 63 : k & 63);
 	const range = (box: number[], c: number) => {
-		let lo = 31;
+		let lo = 63;
 		let hi = 0;
 		for (const k of box) {
 			const v = channel(k, c);
@@ -96,22 +98,30 @@ export function indexFrame(frame: Frame, palette: Uint8Array, lookup: Int16Array
 	return out;
 }
 
-/** GIF's variable-width LZW: codes start at 9 bits and grow to 12, with a clear code when the table fills. */
-export function lzw(indices: Uint8Array): number[] {
+/**
+ * GIF's variable-width LZW: codes start at 9 bits and grow to 12, with a clear code when the table fills.
+ * The string table is an open-addressed hash in typed arrays, which is several times faster than a Map.
+ */
+const HASH = 1 << 13;
+const hashKeys = new Int32Array(HASH);
+const hashCodes = new Int16Array(HASH);
+export function lzw(indices: Uint8Array): Uint8Array {
 	const minSize = 8;
 	const clear = 1 << minSize;
 	const eoi = clear + 1;
-	const out: number[] = [];
+	// Worst case is about 12 bits per pixel; a generous bound avoids any growth.
+	const out = new Uint8Array(Math.ceil((indices.length * 13) / 8) + 16);
+	let n = 0;
 	let acc = 0;
 	let nbits = 0;
 	let size = minSize + 1;
 	let next = eoi + 1;
-	let table = new Map<number, number>();
+	hashKeys.fill(-1);
 	const emit = (code: number) => {
 		acc |= code << nbits;
 		nbits += size;
 		while (nbits >= 8) {
-			out.push(acc & 255);
+			out[n++] = acc & 255;
 			acc >>>= 8;
 			nbits -= 8;
 		}
@@ -121,8 +131,16 @@ export function lzw(indices: Uint8Array): number[] {
 	for (let i = 1; i < indices.length; i++) {
 		const k = indices[i];
 		const key = (current << 8) | k;
-		const hit = table.get(key);
-		if (hit !== undefined) {
+		let h = (Math.imul(key, 2654435761) >>> 19) & (HASH - 1);
+		let hit = -1;
+		while (hashKeys[h] !== -1) {
+			if (hashKeys[h] === key) {
+				hit = hashCodes[h];
+				break;
+			}
+			h = (h + 1) & (HASH - 1);
+		}
+		if (hit >= 0) {
 			current = hit;
 			continue;
 		}
@@ -131,17 +149,18 @@ export function lzw(indices: Uint8Array): number[] {
 			emit(clear);
 			next = eoi + 1;
 			size = minSize + 1;
-			table = new Map();
+			hashKeys.fill(-1);
 		} else {
 			if (next >= 1 << size) size++;
-			table.set(key, next++);
+			hashKeys[h] = key;
+			hashCodes[h] = next++;
 		}
 		current = k;
 	}
 	emit(current);
 	emit(eoi);
-	if (nbits > 0) out.push(acc & 255);
-	return out;
+	if (nbits > 0) out[n++] = acc & 255;
+	return out.subarray(0, n);
 }
 
 const le16 = (n: number) => [n & 255, (n >> 8) & 255];
@@ -154,23 +173,30 @@ const idle = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 export async function encodeGif(frames: Frame[], opts: { delay: number; background: [number, number, number]; loop?: boolean }): Promise<Blob> {
 	const { width, height } = frames[0];
 	const palette = buildPalette(frames, opts.background);
-	const lookup = new Int16Array(32768).fill(-1);
-	const bytes: number[] = [...'GIF89a'].map((c) => c.charCodeAt(0));
+	const lookup = new Int16Array(KEYS).fill(-1);
+	const parts: BlobPart[] = [];
+	const head: number[] = [...'GIF89a'].map((c) => c.charCodeAt(0));
 	// Logical screen: a global colour table of 256 entries; background index 0.
-	bytes.push(...le16(width), ...le16(height), 0xf7, 0, 0, ...palette);
-	if (opts.loop) bytes.push(0x21, 0xff, 11, ...[...'NETSCAPE2.0'].map((c) => c.charCodeAt(0)), 3, 1, 0, 0, 0);
+	head.push(...le16(width), ...le16(height), 0xf7, 0, 0, ...palette);
+	if (opts.loop) head.push(0x21, 0xff, 11, ...[...'NETSCAPE2.0'].map((c) => c.charCodeAt(0)), 3, 1, 0, 0, 0);
+	parts.push(new Uint8Array(head));
 	for (let f = 0; f < frames.length; f++) {
 		const packed = lzw(indexFrame(frames[f], palette, lookup));
 		// Graphic control (keep the previous frame underneath; delay in 1/100 s), then the frame itself.
-		bytes.push(0x21, 0xf9, 4, 0x04, ...le16(Math.round(opts.delay / 10)), 0, 0);
-		bytes.push(0x2c, 0, 0, 0, 0, ...le16(width), ...le16(height), 0, 8);
+		const blocks = new Uint8Array(8 + 10 + 2 + packed.length + Math.ceil(packed.length / 255) + 1);
+		let n = 0;
+		for (const b of [0x21, 0xf9, 4, 0x04, ...le16(Math.round(opts.delay / 10)), 0, 0, 0x2c, 0, 0, 0, 0, ...le16(width), ...le16(height), 0, 8]) blocks[n++] = b;
 		for (let at = 0; at < packed.length; at += 255) {
-			const block = packed.slice(at, at + 255);
-			bytes.push(block.length, ...block);
+			const len = Math.min(255, packed.length - at);
+			blocks[n++] = len;
+			blocks.set(packed.subarray(at, at + len), n);
+			n += len;
 		}
-		bytes.push(0);
-		if (f % 4 === 3) await idle();
+		blocks[n++] = 0;
+		parts.push(blocks.subarray(0, n));
+		// Frames are quick now; only give the page a breather every few.
+		if (f % 8 === 7) await idle();
 	}
-	bytes.push(0x3b);
-	return new Blob([new Uint8Array(bytes)], { type: 'image/gif' });
+	parts.push(new Uint8Array([0x3b]));
+	return new Blob(parts, { type: 'image/gif' });
 }

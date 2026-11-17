@@ -1,6 +1,6 @@
 import { measure, type Design } from './garment';
 import { needleLabel, needlesOf, weightOf } from './needles';
-import { chart, TILE_ROWS, TILE_ST } from './yarn';
+import { chart, tileFor, TILE_ROWS } from './yarn';
 
 /**
  * Turns a design into a written, top-down raglan knitting pattern.
@@ -133,9 +133,10 @@ export function estimate(d: Design) {
 	let share = 0;
 	if (d.pattern === 'Stripes') share = 5 / TILE_ROWS;
 	if (fairIsle) {
+		const tile = tileFor(d.pattern, m.gauge);
 		let on = 0;
-		for (let j = 0; j < TILE_ROWS; j++) for (let i = 0; i < TILE_ST; i++) on += +chart('Fair isle', i, j);
-		share = on / (TILE_ROWS * TILE_ST);
+		for (let j = 0; j < tile.rows; j++) for (let i = 0; i < tile.st; i++) on += +chart('Fair isle', i, j, tile);
+		share = on / (tile.rows * tile.st);
 	}
 	const contrastYards = share ? Math.max(20, Math.round(yards * share * 1.1)) : 0;
 	const mainYards = yards - Math.round(yards * share);
@@ -200,6 +201,7 @@ export function writePattern(d: Design): Pattern {
 	const vNeck = d.neckline === 'V-neck';
 	const fairIsle = d.pattern === 'Fair isle';
 	const stripes = d.pattern === 'Stripes';
+	const tile = tileFor(d.pattern, m.gauge);
 	const slits = !cardigan && m.slitH > 0;
 	const rowsOf = (cm: number) => Math.max(0, Math.round(cm * rowPerCm));
 	const stsOf = (cm: number) => cm * stPerCm;
@@ -216,7 +218,7 @@ export function writePattern(d: Design): Pattern {
 	// ── Starting counts ──
 	const hemRib = ribOf(d.bodyRib);
 	const hemRep = d.hemFinish === 'Ribbed' ? hemRib.rep : 1;
-	const bodyMult = lcm(4, cardigan ? 1 : slits ? 2 * hemRep : hemRep, fairIsle ? TILE_ST : 1);
+	const bodyMult = lcm(4, cardigan ? 1 : slits ? 2 * hemRep : hemRep, fairIsle ? tile.st : 1);
 	const bodyTarget = toMult(stsOf(chestCm), bodyMult);
 	const upperTarget = stsOf(upperArmCm);
 	let u = toMult(stsOf(0.04 * chestCm), 2); // underarm cast-on
@@ -359,7 +361,7 @@ export function writePattern(d: Design): Pattern {
 		colour.push({
 			note: true,
 			tip: `Knit a plain sweater first if you can. Colourwork pulls the fabric tighter than plain knitting, so swatch in the chart pattern and go up a needle size if your stitches come out smaller.`,
-			text: `Fair Isle: in every stockinette section (yoke, body, sleeves) work the chart, a ${TILE_ST}-st, ${TILE_ROWS}-${R} repeat, reading rows from top to bottom (the sweater is knit top down). Start once the neck shaping is done. Work new yoke increases into the chart as they appear. On the body the repeat fits exactly; on the sleeves centre it on the top of the arm and let it break at the underarm. Keep floats loose, and catch any float longer than 5 sts.`
+			text: `Fair Isle: in every stockinette section (yoke, body, sleeves) work the chart, a ${tile.st}-st, ${tile.rows}-${R} repeat, reading rows from top to bottom (the sweater is knit top down). Start once the neck shaping is done. Work new yoke increases into the chart as they appear. On the body the repeat fits exactly; on the sleeves centre it on the top of the arm and let it break at the underarm. Keep floats loose, and catch any float longer than 5 sts.`
 		});
 	if (colour.length)
 		sections.push({ id: 'colour', title: stripes ? 'Stripes' : 'Colourwork', intro: `This applies to the whole garment. Read it now and come back to it when you reach the plain knitting after the neck.`, steps: colour });
@@ -689,7 +691,7 @@ export function writePattern(d: Design): Pattern {
 		measurements,
 		abbreviations,
 		sections,
-		chart: fairIsle ? Array.from({ length: TILE_ROWS }, (_, j) => Array.from({ length: TILE_ST }, (_, i) => chart('Fair isle', i, j))) : null,
+		chart: fairIsle ? Array.from({ length: tile.rows }, (_, j) => Array.from({ length: tile.st }, (_, i) => chart('Fair isle', i, j, tile))) : null,
 		counts: {
 			castOn,
 			back0: B0,

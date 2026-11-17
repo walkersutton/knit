@@ -4,6 +4,7 @@
 	import { encodeGif } from './gif';
 	import type { Design } from './garment';
 	import { colors } from './options';
+	import { encodeDesign } from './progress';
 	import { designDetail, designName, randomDesign, seeded } from './random';
 
 	// The same three sweaters every time the page loads, so the first look is a good one; rolling is random.
@@ -12,10 +13,10 @@
 	const DEPTH = 5;
 	/** The cards' flat background, which the pictures are drawn over so they blend in. */
 	const STAGE = '#f6edd5';
-	// A GIF's delay is a whole number of hundredths of a second, so 30 ms (about 33 fps) is the step up from 50 ms.
-	// 40 frames at that rate keep the turn at about 1.2 s.
-	const SIZE = { width: 240, height: 276, frames: 40, background: STAGE };
-	const FRAME_MS = 30;
+	// A GIF's delay is a whole number of hundredths of a second, and browsers slow anything under 20 ms down,
+	// so 20 ms (50 fps) is the fastest it can go. 60 frames at that rate keep the turn at about 1.2 s.
+	const SIZE = { width: 360, height: 414, frames: 60, background: STAGE };
+	const FRAME_MS = 20;
 	const SPIN_MS = (SIZE.frames + 1) * FRAME_MS;
 	/** The GIF fades out over the still rather than being swapped for it. */
 	const FADE_MS = 140;
@@ -159,9 +160,9 @@
 		{#each slots as slot, n (n)}
 			{@const d = slot.design}
 			<li class:kept={kept[n]}>
-				<button type="button" class="stage" onclick={() => play(n)} aria-label="{designName(d)}. Spin it.">
+				<a class="stage" href="/design#d={encodeDesign(d)}" onpointerenter={() => play(n)} aria-label="{designName(d)}. Open it in the designer.">
 					{#key slot.id}
-						<span class="swap">
+						<span class="swap" style="--d: {[0, 60, 110][n]}ms">
 							{#if slot.still}
 								<!-- The still never leaves: the GIF plays on top of it, so nothing is ever swapped in at the end. -->
 								<img src={slot.still} alt="" />
@@ -173,14 +174,16 @@
 							{/if}
 						</span>
 					{/key}
-				</button>
-				<p class="name">{designName(d)}</p>
+					<span class="cue" aria-hidden="true">Design this →</span>
+				</a>
+				<p class="name"><a href="/design#d={encodeDesign(d)}">{designName(d)}</a></p>
 				<p class="detail">{designDetail(d)}</p>
 				<p class="yarns">
 					<i style="background:{d.color}" title={swatch(d.color)}></i>
 					{#if d.pattern !== 'Solid'}<i style="background:{d.contrast}" title={swatch(d.contrast)}></i>{/if}
 					<span>{d.pattern === 'Solid' ? 'Solid' : d.pattern}</span>
 				</p>
+				<div class="actions">
 				<button type="button" class="keep" aria-pressed={kept[n]} onclick={() => toggle(n)}>
 					<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
 						<rect x="3" y="7" width="10" height="7" rx="2" fill="currentColor" />
@@ -188,6 +191,8 @@
 					</svg>
 					{kept[n] ? 'Keeping' : 'Keep'}
 				</button>
+				<a class="open" href="/design#d={encodeDesign(d)}">Design this <span aria-hidden="true">→</span></a>
+				</div>
 			</li>
 		{/each}
 	</ul>
@@ -279,7 +284,7 @@
 		inset: 0;
 		display: grid;
 		place-items: center;
-		animation: appear 160ms ease-out;
+		animation: appear 220ms cubic-bezier(0.23, 1, 0.32, 1) var(--d, 0ms) backwards;
 	}
 	.swap img {
 		position: absolute;
@@ -302,6 +307,7 @@
 	@keyframes appear {
 		from {
 			opacity: 0;
+			transform: scale(0.97);
 		}
 	}
 	@keyframes bob {
@@ -314,14 +320,22 @@
 		.ball {
 			animation: none;
 		}
+		.cue,
+		.open span {
+			transition: opacity 160ms;
+			transform: translate(-50%, 0);
+		}
+		.open span {
+			transform: none;
+		}
 	}
 	/* Same size as the pictures are drawn at, so every one is framed exactly alike. */
 	.camera {
 		position: absolute;
 		left: -10000px;
 		top: 0;
-		width: 300px;
-		height: 345px;
+		width: 360px;
+		height: 414px;
 		pointer-events: none;
 	}
 	.name {
@@ -331,6 +345,18 @@
 		font-weight: 600;
 		line-height: 1.2;
 		text-wrap: balance;
+	}
+	.name a {
+		color: inherit;
+		text-decoration: none;
+	}
+	.name a:hover {
+		text-decoration: underline wavy #e8bd53;
+		text-underline-offset: 4px;
+	}
+	.name a:focus-visible {
+		outline: 3px solid var(--focus);
+		outline-offset: 3px;
 	}
 	.detail {
 		margin: 0 8px 8px;
@@ -353,6 +379,73 @@
 	}
 	.yarns span {
 		margin-left: 4px;
+	}
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: center;
+		gap: 6px 10px;
+	}
+	.open {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		height: 36px;
+		padding: 0 6px;
+		color: #c8543e;
+		font-size: 13px;
+		font-weight: 700;
+		text-decoration: none;
+	}
+	.open span {
+		transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+	}
+	.open:focus-visible {
+		outline: 3px solid var(--focus);
+		outline-offset: 2px;
+		border-radius: 6px;
+	}
+	.cue {
+		position: absolute;
+		left: 50%;
+		bottom: 10px;
+		padding: 6px 14px;
+		border-radius: 999px;
+		background: #c8543e;
+		color: #fff8e6;
+		font-size: 13px;
+		font-weight: 700;
+		white-space: nowrap;
+		opacity: 0;
+		transform: translate(-50%, 6px);
+		transition:
+			opacity 160ms cubic-bezier(0.23, 1, 0.32, 1),
+			transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+		pointer-events: none;
+	}
+	.stage:focus-visible .cue {
+		opacity: 1;
+		transform: translate(-50%, 0);
+	}
+	@media (hover: hover) and (pointer: fine) {
+		.stage:hover .cue {
+			opacity: 1;
+			transform: translate(-50%, 0);
+		}
+		li:not(.kept):hover {
+			box-shadow:
+				0 0 0 2px #e8bd53,
+				0 2px 0 #e8bd53;
+		}
+		.open:hover span {
+			transform: translateX(3px);
+		}
+	}
+	@media (pointer: coarse) {
+		.open {
+			height: 44px;
+		}
 	}
 	.keep {
 		display: inline-flex;

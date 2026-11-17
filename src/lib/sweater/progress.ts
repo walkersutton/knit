@@ -116,6 +116,20 @@ function validDesign(value: unknown, like: Design): value is Design {
 	return Object.keys(v).length === keys.length && keys.every((key) => key in v) && validCustom(v.custom) && fields.every((f) => f.options.some((o) => o.value === v[f.key]));
 }
 
+/** A design as text for a link, so a sweater can be opened in the designer exactly as it was. */
+export const encodeDesign = (d: Design) => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(d)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+/** The design a link carries, or undefined unless it is a whole design the designer still offers. */
+export function decodeDesign(text: string, like: Design): Design | undefined {
+	try {
+		const bytes = Uint8Array.from(atob(text.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+		const design = { ...like, ...JSON.parse(new TextDecoder().decode(bytes)) };
+		return validDesign(design, like) ? design : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
 export function load(like: Design): Saved {
 	const empty: Saved = { needles: [], progress: {} };
 	try {

@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { buildGarment, PIECE, shapeKey, type Design, type Garment } from './garment';
 import type { Knitted } from './progress';
-import { makeKnitMaps, type KnitMaps } from './yarn';
+import { makeKnitMaps, tileFor, type KnitMaps } from './yarn';
+import { stitchGauge } from './needles';
 import { RIBS } from './options';
 
 export type ViewerHandle = {
@@ -124,7 +125,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 	const inFlight = new Map<string, Promise<void>>();
 	const MAX_READY = 3;
 	let disposed = false;
-	const colorsOf = (d: Design) => [d.color, d.contrast, d.pattern].join('|');
+	const colorsOf = (d: Design) => [d.color, d.contrast, d.pattern, tileFor(d.pattern, stitchGauge(d) || 18).fine].join('|');
 	const disposeMaps = (list: KnitMaps[]) => list.forEach((m) => (m.map.dispose(), m.normalMap.dispose()));
 	const disposeShape = (s: Shape) => s.children.forEach((c) => (c as THREE.Mesh).geometry?.dispose());
 	const idle = () =>
@@ -167,7 +168,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 
 	/** One stitch texture pair per fabric: stockinette, then each rib. */
 	function* mapJob(d: Design): Generator<void, KnitMaps[]> {
-		const base = { color: d.color, contrast: d.contrast, pattern: d.pattern, shade: 0.3, bump: 3.4 };
+		const base = { color: d.color, contrast: d.contrast, pattern: d.pattern, tile: tileFor(d.pattern, stitchGauge(d) || 18), shade: 0.3, bump: 3.4 };
 		const made: KnitMaps[] = [];
 		for (const part of [{ kind: 'stockinette' as const }, ...RIBS.map((rib) => ({ kind: 'rib' as const, rib }))]) {
 			const m = makeKnitMaps({ ...base, ...part });
@@ -549,18 +550,19 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 			out.width = width;
 			out.height = height;
 			const ctx = out.getContext('2d', { willReadFrequently: true })!;
+			ctx.imageSmoothingQuality = 'high';
 			const frames: ImageData[] = [];
 			camera.position.set(panX, panY, baseDist / zoom);
 			for (let k = 0; k <= count; k++) {
-				// Fast at first, easing to a stop facing front, the way `turn` does.
+				// Eases to a stop facing front, the way `turn` does, but gently enough that no frame jumps far.
 				const t = k / count;
-				pivot.rotation.set(pitch, yaw + Math.PI * 2 * (1 - (1 - t) ** 3), 0);
+				pivot.rotation.set(pitch, yaw + Math.PI * 2 * (1 - (1 - t) ** 2), 0);
 				renderer.render(scene, camera);
 				ctx.fillStyle = background;
 				ctx.fillRect(0, 0, width, height);
 				ctx.drawImage(canvas, 0, 0, width, height);
 				frames.push(ctx.getImageData(0, 0, width, height));
-				if (k % 4 === 3) await new Promise((resolve) => setTimeout(resolve));
+				if (k % 8 === 7) await new Promise((resolve) => setTimeout(resolve));
 			}
 			pivot.rotation.set(pitch, yaw, 0);
 			return frames;
