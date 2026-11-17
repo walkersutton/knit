@@ -14,7 +14,7 @@
 	import Seo from '$lib/Seo.svelte';
 
 	const title = 'Sweater designer — Knit It';
-	const description = 'Design a sweater, cardigan or tee in 3D and get a free written top-down raglan knitting pattern for your yarn, gauge and size.';
+	const description = 'Design a sweater, cardigan or tee in 3D and get a free written top-down raglan or set-in knitting pattern for your yarn, gauge and size.';
 
 	let design = $state<Design>({
 		wearer: 'Adult',

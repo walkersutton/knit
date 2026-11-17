@@ -18,7 +18,7 @@
   </a>
 </p>
 
-Knit It is a free sweater designer that runs entirely in the browser. Pick a garment, size, fit, neckline, sleeves, edge finishes and yarn, watch a 3D model update with every choice, and get a written top-down raglan pattern with the stitch counts worked out for that exact design. There is no account, no server and nothing to install.
+Knit It is a free sweater designer that runs entirely in the browser. Pick a garment, size, fit, neckline, sleeves, edge finishes and yarn, watch a 3D model update with every choice, and get a written top-down raglan or set-in pattern with the stitch counts worked out for that exact design. There is no account, no server and nothing to install.
 
 ## Features
 

@@ -12,7 +12,7 @@
 
 	const title = 'How Knit It works — custom knitting patterns and FAQ';
 	const description =
-		'How Knit It turns your choices of garment, size, fit and yarn weight into a 3D preview and a written top-down raglan knitting pattern, plus answers to common questions.';
+		'How Knit It turns your choices of garment, size, fit and yarn weight into a 3D preview and a written top-down raglan or set-in knitting pattern, plus answers to common questions.';
 	const jsonLd = [
 		{
 			'@context': 'https://schema.org',

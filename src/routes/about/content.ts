@@ -24,11 +24,11 @@ export const faq = [
 	},
 	{
 		q: 'Which designs come with a written pattern?',
-		a: 'Sweaters, T-shirts and cardigans with raglan sleeves come with a full written pattern, worked top-down. Slipovers and set-in sleeve constructions can be previewed in 3D, and their written patterns are coming soon.'
+		a: 'Sweaters, T-shirts and cardigans come with a full written pattern, worked top-down and seamless, with either raglan or set-in sleeves. Slipovers can be previewed in 3D, and their written patterns are coming soon.'
 	},
 	{
 		q: 'What does the pattern include?',
-		a: 'Materials (yarn weight, yardage and skeins per colour, needle sizes, notions), the gauge to match, finished measurements in centimetres and inches, step-by-step instructions for the yoke, body, sleeves, neckband and finishing with the stitch count after each shaping step, a chart for Fair Isle designs, and a list of abbreviations.'
+		a: 'Materials (yarn weight, yardage and skeins per colour, needle sizes, notions), the gauge to match, finished measurements in centimetres and inches, step-by-step instructions for the yoke (or the back and fronts, for set-in sleeves), body, sleeves, neckband and finishing with the stitch count after each shaping step, a chart for Fair Isle designs, and a list of abbreviations.'
 	},
 	{
 		q: 'Which yarn weights and gauges are supported?',
@@ -48,7 +48,7 @@ export const faq = [
 	},
 	{
 		q: 'How hard are the patterns?',
-		a: 'Each design is rated Beginner or Intermediate. A plain raglan with ribbed edges is rated Beginner. V-necks, I-cord edges, puff sleeves, side slits, folded hems and Fair Isle colourwork make a design Intermediate.'
+		a: 'Each design is rated Beginner or Intermediate. A plain raglan with ribbed edges is rated Beginner. Set-in sleeves, V-necks, I-cord edges, puff sleeves, side slits, folded hems and Fair Isle colourwork make a design Intermediate.'
 	},
 	{
 		q: 'I am new to knitting. Can I follow the pattern?',

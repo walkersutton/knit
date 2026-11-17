@@ -24,7 +24,7 @@ describe('tasksOf', () => {
 	it('counts every round of the yoke once', () => {
 		for (const d of [...singleVariations(), ...randomDesigns(200, 3)]) {
 			const p = writePattern(d);
-			if (!p.ok) continue;
+			if (!p.ok || p.construction !== 'Raglan') continue;
 			const yoke = p.sections.find((s) => s.id === 'yoke')!;
 			const tallies = yoke.steps.flatMap((s) => (s.tally ? [s.tally] : []));
 			// Short rows are not numbered; everything after them is.

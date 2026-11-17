@@ -114,7 +114,8 @@ export function measure(d: Design) {
 	const dropB = (iCordNeck ? 1.8 : 1.2) * k; // back neck drop
 
 	// ── Neckband / collar ───────────────────────────────────────────────
-	const standH = d.neckline === 'Turtleneck' ? 10 * k : d.neckline === 'Mock neck' ? 4.5 * k : 0; // stand-up collar height
+	// Stand-up collar height as knitted. A turtleneck is knitted twice as tall as it is worn and folded down.
+	const standH = d.neckline === 'Turtleneck' ? 18 * k : d.neckline === 'Mock neck' ? 4.5 * k : 0;
 	const bandDepth = d.neckDepth === 'Narrow' ? 0.6 : d.neckDepth === 'Wide' ? 1.7 : 1;
 	const collarH = iCordNeck ? 0 : standH || (d.neckline === 'Boat' ? 1.6 : d.neckline === 'V-neck' ? 2 : 2.5) * bandDepth * k;
 
@@ -627,7 +628,98 @@ export function buildGarment(d: Design): Garment {
 				wraps(TAU * N)
 			), PIECE.neck, 1)
 		);
-	else {
+	else if (d.neckline === 'Turtleneck') {
+		// Folded in half over itself: an inner layer hugs the neck, turns over in a soft roll, and the outer
+		// layer falls back down past the pick-up to rest on the shoulders. One side of the fabric shows on
+		// both layers (the neck sees it inside, the world sees it outside), so the sheet is one strip.
+		const h = m.collarH;
+		const ROWS = 48;
+		const IN = 0.4; // share of the rows in the inner layer
+		const OUT = 0.6; // where the outer layer starts; the roll is in between
+		const ring = new THREE.Vector3();
+		const n = new THREE.Vector3();
+		const p0 = new THREE.Vector3();
+		const p1 = new THREE.Vector3();
+		const p2 = new THREE.Vector3();
+		const p3 = new THREE.Vector3();
+		const foot = new THREE.Vector3();
+		/** Point at fraction s along the strip (pick-up edge to cast-off edge) for column i. */
+		const collar = (i: number, s: number, out: THREE.Vector3) => {
+			const a = (i / COLS) * TAU;
+			const drop = L - top[i];
+			// Softly uneven, as a folded rib never sits perfectly round.
+			const slouch = wob(Math.sin(a) * 1.3, 0.7, Math.cos(a) * 1.3);
+			const roll = (0.95 + 0.15 * slouch) * k; // radius of the fold: two layers of rib and a little air
+			const yTop = L + h * 0.42 - drop * 0.35 + 0.35 * slouch * k;
+			// The neck it hugs: a little narrower than the opening it was picked up from.
+			ring.set(-Math.sin(a) * N * 0.88, yTop - roll, -Math.cos(a) * Nd * 0.88);
+			n.set(-Math.sin(a) / N, 0, -Math.cos(a) / Nd).normalize();
+			if (s <= IN) {
+				const t = s / IN;
+				bodyPoint(a, top[i], p0);
+				const e = smooth(0, 0.6, t); // leaves the edge and straightens up against the neck
+				out.set(lerp(p0.x, ring.x, e), lerp(top[i], ring.y, t), lerp(p0.z, ring.z, e));
+				return;
+			}
+			if (s < OUT) {
+				const th = (Math.PI * (s - IN)) / (OUT - IN);
+				out.copy(ring).addScaledVector(n, roll * (1 - Math.cos(th)));
+				out.y += roll * Math.sin(th);
+				return;
+			}
+			// Outer layer: from the roll down to its edge, lying a little below the pick-up on the shoulders.
+			const t = (s - OUT) / (1 - OUT);
+			p0.copy(ring).addScaledVector(n, 2 * roll);
+			const reach = Math.hypot(p0.x, p0.z) + 1.3 * k;
+			let lo = top[i] - 4 * k;
+			let hi = top[i];
+			for (let q = 0; q < 16; q++) {
+				const mid = (lo + hi) / 2;
+				bodyPoint(a, mid, foot);
+				if (Math.hypot(foot.x, foot.z) > reach) lo = mid;
+				else hi = mid;
+			}
+			bodyPoint(a, Math.max(lo, top[i] - 2.2 * k), foot);
+			foot.addScaledVector(n, 0.45 * k);
+			foot.y += 0.25 * k;
+			const fall = p0.y - foot.y;
+			p1.copy(p0).addScaledVector(n, 0.35 * k);
+			p1.y -= fall * 0.45;
+			p2.copy(foot);
+			p2.y += fall * 0.35;
+			p3.copy(foot);
+			// Cubic Bézier, plus soft ripples where the outer layer is stretched over the wider shoulders.
+			const u = 1 - t;
+			out.set(0, 0, 0)
+				.addScaledVector(p0, u * u * u)
+				.addScaledVector(p1, 3 * u * u * t)
+				.addScaledVector(p2, 3 * u * t * t)
+				.addScaledVector(p3, t * t * t)
+				.addScaledVector(n, 0.3 * k * t * t * Math.sin(a * 7 + 2 * Math.sin(a * 2)));
+		};
+		const outward = new THREE.Vector3();
+		rib(d.neckRib).push(
+			knitAt(sheet(
+				COLS,
+				ROWS,
+				(i, j, out) => collar(i, j / ROWS, out),
+				(i, j) => [(i / COLS) * wraps(TAU * N, drawn(d.neckRib)), vOf((j / ROWS) * h)],
+				// The visible face points at the neck on the inner layer and away from it on the outer.
+				(i, j, out) => {
+					collar(i, j / ROWS, out);
+					const a = (i / COLS) * TAU;
+					outward.set(-Math.sin(a), 0, -Math.cos(a));
+					out.addScaledVector(outward, j / ROWS < (IN + OUT) / 2 ? 5 : -5);
+				},
+				true,
+				// Shade the inside of the neck and the underside of the edge where it meets the shoulders.
+				(_i, j) => {
+					const s = j / ROWS;
+					return s < IN ? 0.72 + 0.2 * smooth(0.5 * IN, IN, s) : s > OUT ? 1 - 0.14 * smooth(0.85, 1, s) : 0.95;
+				}
+			), PIECE.neck, (j) => j / ROWS, COLS)
+		);
+	} else {
 		const tall = m.standH;
 		const h = m.collarH;
 		const base = new THREE.Vector3();
@@ -670,9 +762,8 @@ export function buildGarment(d: Design): Garment {
 					bodyPoint(a, top[i], base);
 					inward.set(-base.x, 0, -base.z).normalize();
 					if (tall) {
-						const r = d.neckline === 'Turtleneck' ? 0.98 : 0.9;
-						target.set(-Math.sin(a) * N * r, L + h, -Math.cos(a) * Nd * r);
-						out.lerpVectors(base, target, t).addScaledVector(inward, -Math.sin(Math.PI * t) * (d.neckline === 'Turtleneck' ? 1.3 : 0.5) * k);
+						target.set(-Math.sin(a) * N * 0.9, L + h, -Math.cos(a) * Nd * 0.9);
+						out.lerpVectors(base, target, t).addScaledVector(inward, -Math.sin(Math.PI * t) * 0.5 * k);
 					} else {
 						out.copy(base).addScaledVector(inward, t * h * 0.6 - Math.sin(Math.PI * t) * 0.25 * k);
 						out.y += t * h * 0.8;

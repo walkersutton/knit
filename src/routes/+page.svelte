@@ -7,7 +7,7 @@
 
 	const title = 'Knit It — Custom sweater pattern generator with 3D preview';
 	const description =
-		'Design a sweater, cardigan or tee in 3D, then get a free written top-down raglan knitting pattern sized to your yarn weight, gauge and measurements.';
+		'Design a sweater, cardigan or tee in 3D, then get a free written top-down raglan or set-in knitting pattern sized to your yarn weight, gauge and measurements.';
 	const jsonLd = {
 		'@context': 'https://schema.org',
 		'@type': 'WebApplication',
@@ -22,7 +22,7 @@
 		offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
 		featureList: [
 			'Live 3D sweater preview',
-			'Written top-down raglan knitting patterns with stitch counts',
+			'Written top-down raglan and set-in knitting patterns with stitch counts',
 			'Sweaters, T-shirts, cardigans and slipovers',
 			'Adult, junior, kid and baby sizes from XS to XL, or a custom fit from your own measurements',
 			'Fingering, DK, worsted and bulky yarn weights',
@@ -74,7 +74,7 @@
 	];
 	const steps = [
 		{ n: 1, tone: 'clay', h: 'Design it', p: 'Pick the garment, fit, neckline and yarn. A 3D model follows every choice.' },
-		{ n: 2, tone: 'mustard', h: 'Get the pattern', p: 'A written top-down raglan with stitch counts, yardage and needle sizes worked out for you.' },
+		{ n: 2, tone: 'mustard', h: 'Get the pattern', p: 'A written top-down raglan or set-in with stitch counts, yardage and needle sizes worked out for you.' },
 		{ n: 3, tone: 'sage', h: 'Knit along', p: 'Tick off steps as you go. The model grows to match your place.' }
 	];
 </script>
