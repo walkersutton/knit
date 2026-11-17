@@ -1,42 +1,19 @@
 <script lang="ts">
+	import HowItWorks from './HowItWorks.svelte';
 	import Logo from '$lib/Logo.svelte';
-	import type { Design } from './garment';
-	import { NEEDLES, mainSizes, needleLabel } from './needles';
-	import { yarnWeights } from './options';
-	import type { estimate } from './pattern';
 
 	type Step = { id: string; label: string; disabled?: boolean; reason?: string };
 	let {
-		design = $bindable(),
-		est,
 		steps,
 		tab,
-		onTab,
-		source
+		onTab
 	}: {
-		design: Design;
-		/** The estimate for the design as it will be knitted. */
-		est: ReturnType<typeof estimate>;
 		steps: Step[];
 		tab: string;
 		onTab: (id: string) => void;
-		source: string;
 	} = $props();
 
 	let index = $derived(Math.max(0, steps.findIndex((s) => s.id === tab)));
-	let sizes = $derived(NEEDLES.filter((n) => mainSizes(design.gauge).includes(n.mm)));
-
-	/** 0 leaves the needle to the sizes the knitter owns, or the standard one for the yarn. */
-	function setNeedle(e: Event) {
-		design.needle = Number((e.currentTarget as HTMLSelectElement).value);
-		design.ribNeedle = 0;
-	}
-	/** A new yarn weight has its own needle range, so the needle starts again from the standard. */
-	function setWeight(e: Event) {
-		design.gauge = Number((e.currentTarget as HTMLSelectElement).value);
-		design.needle = 0;
-		design.ribNeedle = 0;
-	}
 </script>
 
 <header class="top">
@@ -62,31 +39,7 @@
 	</div>
 
 	<div class="right">
-		<div class="gauge" role="group" aria-label="Needle and gauge">
-			<label class="pill edit">
-				<span class="k">Needle</span><span class="v">{needleLabel(est.needles.main)}</span>
-				<svg width="8" height="5" viewBox="0 0 8 5" aria-hidden="true"><path d="M1 1l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
-				<select aria-label="Main needle" value={design.needle} onchange={setNeedle}>
-					<option value={0}>Automatic</option>
-					{#each sizes as n (n.mm)}
-						<option value={n.mm}>{needleLabel(n.mm)}</option>
-					{/each}
-				</select>
-			</label>
-			<label class="pill edit">
-				<span class="k">Gauge</span><span class="v">{est.gauge} sts / 4 in</span>
-				<svg width="8" height="5" viewBox="0 0 8 5" aria-hidden="true"><path d="M1 1l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
-				<select aria-label="Yarn weight, which sets the gauge" value={design.gauge} onchange={setWeight}>
-					{#each yarnWeights as w (w.gauge)}
-						<option value={w.gauge}>{w.label} · {w.gauge} sts / 4 in</option>
-					{/each}
-				</select>
-			</label>
-		</div>
-		<nav>
-			<a href="/about" aria-label="How it works" title="How it works">?</a>
-			<a href={source} target="_blank" rel="noopener" aria-label="Source" title="Source">↗</a>
-		</nav>
+		<HowItWorks />
 	</div>
 </header>
 
@@ -207,87 +160,13 @@
 			color: var(--ink);
 		}
 	}
-	/* ── Right: what the sweater needs, with the needle and gauge there to change ── */
+	/* ── Right: links ── */
 	.right {
 		display: flex;
 		align-items: center;
 		justify-content: flex-end;
 		gap: 6px;
 		min-width: 0;
-	}
-	.gauge {
-		display: flex;
-		gap: 6px;
-		min-width: 0;
-	}
-	.pill {
-		position: relative;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		height: 32px;
-		padding: 0 11px;
-		border: 1.5px solid var(--line-strong);
-		border-radius: 999px;
-		background: var(--surface);
-		color: var(--ink);
-		white-space: nowrap;
-		transition: background-color 120ms ease-out, border-color 120ms ease-out;
-	}
-	.k {
-		color: var(--muted);
-		font-size: 11px;
-		font-weight: 500;
-	}
-	.v {
-		font-size: 12px;
-		font-weight: 600;
-		font-variant-numeric: tabular-nums;
-	}
-	.pill svg {
-		flex: none;
-		color: var(--muted);
-	}
-	/* The real control is a native select laid over the pill, so it keeps the platform's menu and keyboard use. */
-	select {
-		position: absolute;
-		inset: 0;
-		width: 100%;
-		height: 100%;
-		opacity: 0;
-		cursor: pointer;
-		font: inherit;
-	}
-	.pill.edit:focus-within {
-		outline: 2px solid var(--focus);
-		outline-offset: 1px;
-	}
-	@media (hover: hover) and (pointer: fine) {
-		.pill.edit:hover {
-			border-color: var(--accent);
-			background: #fffdf6;
-		}
-	}
-	nav {
-		display: flex;
-		gap: 2px;
-	}
-	nav a {
-		display: grid;
-		place-items: center;
-		width: 28px;
-		height: 28px;
-		border-radius: 50%;
-		color: var(--muted);
-		font-size: 13px;
-		font-weight: 600;
-		text-decoration: none;
-		transition: background-color 120ms ease-out;
-	}
-	@media (hover: hover) and (pointer: fine) {
-		nav a:hover {
-			background: rgb(38 51 95 / 0.08);
-		}
 	}
 	@media (prefers-reduced-motion: no-preference) {
 		.fill {
@@ -304,18 +183,10 @@
 			transition: none;
 		}
 	}
-	/* The stepper stays dead centre because both sides share the leftover space equally; the labels go first when that gets tight. */
-	@media (max-width: 1500px) {
-		.k {
-			display: none;
-		}
-	}
+	/* The stepper stays dead centre because both sides share the leftover space equally. */
 	@media (max-width: 1000px) {
 		.steps {
 			width: 360px;
-		}
-		nav {
-			display: none;
 		}
 	}
 	/* On a phone the numbers live under the model, and only the current step keeps its name. */

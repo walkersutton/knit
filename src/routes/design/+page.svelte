@@ -4,7 +4,7 @@
 	import Stage from '$lib/sweater/Stage.svelte';
 	import TopBar from '$lib/sweater/TopBar.svelte';
 	import type { Design } from '$lib/sweater/garment';
-	import { mainSizes, needleLabel, pickNeedles } from '$lib/sweater/needles';
+	import { NEEDLES, mainSizes, needleLabel, pickNeedles } from '$lib/sweater/needles';
 		import Needles from '$lib/sweater/Needles.svelte';
 	import Measurements from '$lib/sweater/Measurements.svelte';
 	import { labelOf, sections, summary, visible } from '$lib/sweater/options';
@@ -12,7 +12,6 @@
 	import PatternView from '$lib/sweater/PatternView.svelte';
 	import { knittedOf, load, progressAt, save, signature, tasksOf, type Mode, type Progress } from '$lib/sweater/progress';
 	import Seo from '$lib/Seo.svelte';
-	import { SITE } from '$lib/site';
 
 	const title = 'Sweater designer — Knit It';
 	const description = 'Design a sweater, cardigan or tee in 3D and get a free written top-down raglan knitting pattern for your yarn, gauge and size.';
@@ -64,6 +63,12 @@
 		panel?.scrollTo({ top: 0 });
 	}
 
+	/** 0 leaves the needle to the sizes the knitter owns, or the standard one for the yarn. */
+	function setNeedle(e: Event) {
+		design.needle = Number((e.currentTarget as HTMLSelectElement).value);
+		design.ribNeedle = 0;
+	}
+
 	let est = $derived(estimate(knit));
 	let pattern = $derived(writePattern(knit));
 	let steps = $derived([...tabs, { id: 'pattern', label: 'Pattern', disabled: !pattern.ok, reason: pattern.ok ? undefined : pattern.reason }]);
@@ -105,7 +110,7 @@
 <Seo {title} {description} path="/design" />
 
 <div class="app">
-	<TopBar bind:design {est} {steps} {tab} onTab={go} source={SITE.source} />
+	<TopBar {steps} {tab} onTab={go} />
 	<div class="layout" class:reading>
 		<aside bind:this={panel}>
 			{#if reading}
@@ -140,6 +145,15 @@
 					{#if section.id === 'yarn'}
 						<section>
 							<h2>Needles</h2>
+							<div class="field">
+								<div class="label"><span>Main needle</span><em>{needleLabel(est.needles.main)}</em></div>
+								<select aria-label="Main needle" value={design.needle} onchange={setNeedle}>
+									<option value={0}>Automatic</option>
+									{#each NEEDLES.filter((n) => mainSizes(design.gauge).includes(n.mm)) as n (n.mm)}
+										<option value={n.mm}>{needleLabel(n.mm)}</option>
+									{/each}
+								</select>
+							</div>
 							<div class="field">
 								<div class="label"><span>Sizes you have</span></div>
 								<Needles design={knit} bind:owned />
@@ -376,6 +390,22 @@
 	}
 	.field + .field {
 		margin-top: 12px;
+	}
+	.field select {
+		width: 100%;
+		height: 38px;
+		padding: 0 10px;
+		border: 1.5px solid var(--line-strong);
+		border-radius: var(--radius);
+		background: var(--surface);
+		color: var(--ink);
+		font: inherit;
+		font-size: 14px;
+		cursor: pointer;
+	}
+	.field select:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 1px;
 	}
 	.label {
 		display: flex;
