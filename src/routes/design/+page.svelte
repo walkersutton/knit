@@ -11,6 +11,8 @@
 	import { labelOf, sections, summary, visible } from '$lib/sweater/options';
 	import { estimate, writePattern } from '$lib/sweater/pattern';
 	import PatternView from '$lib/sweater/PatternView.svelte';
+	import { readMotifHash } from '$lib/sweater/library';
+	import { CUSTOM_PATTERN } from '$lib/sweater/motifs';
 	import { decodeDesign, knittedOf, load, progressAt, save, signature, tasksOf, type Mode, type Progress } from '$lib/sweater/progress';
 	import Seo from '$lib/Seo.svelte';
 
@@ -100,6 +102,16 @@
 		const linked = location.hash.startsWith('#d=') ? decodeDesign(location.hash.slice(3), design) : undefined;
 		if (linked) {
 			design = linked;
+			history.replaceState(null, '', location.pathname);
+		}
+		// A chart sent from the pattern designer goes on the saved sweater, in the colours chosen there.
+		const chartLink = readMotifHash(location.hash);
+		if (chartLink) {
+			design.pattern = CUSTOM_PATTERN;
+			design.motif = chartLink.motif;
+			if (chartLink.color) design.color = chartLink.color;
+			if (chartLink.contrast) design.contrast = chartLink.contrast;
+			tab = 'yarn';
 			history.replaceState(null, '', location.pathname);
 		}
 		if (saved.mode) mode = saved.mode;
