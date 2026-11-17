@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import Logo from '$lib/Logo.svelte';
 	import { SITE } from '$lib/site';
 
 	let status = $derived(page.status);
@@ -25,7 +26,7 @@
 </svelte:head>
 
 <div class="page">
-	<a class="mark" href="/">Knit It</a>
+	<a class="mark" href="/" aria-label="Knit It home"><Logo size={24} /></a>
 	<main>
 		<svg class="swatch" viewBox="0 0 {COLS * W + 18} {y(ROWS - 1) + 10}" role="img" aria-label="A knitted swatch with one dropped stitch running down it">
 			<defs>
@@ -53,7 +54,7 @@
 		{:else}
 			<p class="lede">The page couldn’t load. Give it a moment and try again.</p>
 		{/if}
-		<p class="actions"><a class="cta" href="/">Pick it back up</a><a class="link" href="/about">How Knit It works</a></p>
+		<p class="actions"><a class="cta" href="/design">Pick it back up</a><a class="link" href="/about">How Knit It works</a></p>
 	</main>
 </div>
 
@@ -63,7 +64,6 @@
 		flex-direction: column;
 		min-height: 100dvh;
 		padding: 0 16px;
-		background: var(--surface);
 		font-size: 15px;
 		line-height: 1.6;
 	}
@@ -147,6 +147,7 @@
 		font-variant-numeric: tabular-nums;
 	}
 	h1 {
+		font-family: var(--display);
 		margin: 0 0 12px;
 		font-size: 28px;
 		font-weight: 650;

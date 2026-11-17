@@ -411,7 +411,7 @@
 		height: 30px;
 		padding: 0 12px;
 		border: 0;
-		border-radius: 6px;
+		border-radius: var(--radius, 6px);
 		background: none;
 		color: var(--muted, #6b6b74);
 		font: inherit;
@@ -463,7 +463,7 @@
 		height: 30px;
 		padding: 0 10px;
 		border: 1px solid var(--line, #dcdce0);
-		border-radius: 6px;
+		border-radius: var(--radius, 6px);
 		background: var(--surface, #fff);
 		color: var(--ink, #18181b);
 		font: inherit;
@@ -623,7 +623,7 @@
 		padding: 0 14px;
 		border-color: var(--ink, #18181b);
 		background: var(--ink, #18181b);
-		color: #fff;
+		color: var(--on-ink, #fff);
 	}
 	.plus:disabled {
 		border-color: var(--line, #dcdce0);
@@ -721,7 +721,7 @@
 		margin: 16px 0;
 		padding: 12px;
 		border: 1px solid var(--line, #dcdce0);
-		border-radius: 6px;
+		border-radius: var(--radius, 6px);
 		background: var(--wash, #f4f4f5);
 	}
 	@media (hover: hover) and (pointer: fine) {
@@ -730,7 +730,7 @@
 			background: var(--wash, #f4f4f5);
 		}
 		.plus:hover:not(:disabled) {
-			background: #3f3f46;
+			background: var(--ink-hover, #3f3f46);
 		}
 		.modes button:hover {
 			color: var(--ink, #18181b);

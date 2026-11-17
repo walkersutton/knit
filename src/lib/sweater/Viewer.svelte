@@ -34,6 +34,8 @@
 		position: absolute;
 		inset: 0;
 		overflow: hidden;
-		background: radial-gradient(110% 85% at 50% 40%, #f6f7f8 0%, #e6e9ec 60%, #d6dade 100%);
+		background:
+			var(--knit, none),
+			radial-gradient(110% 85% at 50% 40%, var(--stage-a, #f6f7f8) 0%, var(--stage-b, #e6e9ec) 60%, var(--stage-c, #d6dade) 100%);
 	}
 </style>

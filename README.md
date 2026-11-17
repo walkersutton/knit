@@ -96,7 +96,8 @@ src/
 │   ├── Seo.svelte           Meta tags and structured data
 │   └── site.ts              Site-wide constants
 ├── routes/
-│   ├── +page.svelte         The designer
+│   ├── +page.svelte         The landing page
+│   ├── design/              The sweater designer
 │   └── about/               How it works and FAQ
 └── service-worker.ts        Offline support
 ```

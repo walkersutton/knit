@@ -42,7 +42,7 @@
 		padding: 3px 8px;
 		border: 1px solid var(--line);
 		border-radius: 999px;
-		background: #ffffffcc;
+		background: color-mix(in srgb, var(--surface, #fff) 80%, transparent);
 		color: var(--ink);
 		font-weight: 500;
 	}
@@ -56,8 +56,8 @@
 		height: 32px;
 		padding: 0 12px;
 		border: 1px solid var(--line);
-		border-radius: 6px;
-		background: #fff;
+		border-radius: var(--radius, 6px);
+		background: var(--surface, #fff);
 		color: var(--ink);
 		font: inherit;
 		font-weight: 500;

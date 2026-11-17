@@ -258,6 +258,10 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 	let view = '';
 	let zoom = 1;
 	let baseDist = 1;
+	let tanHalf = 1;
+	// Camera slide (world units) so zoom can home in on the cursor instead of the centre.
+	let panX = 0;
+	let panY = 0;
 	let drawn = false;
 
 	function fit() {
@@ -266,8 +270,10 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 		renderer.setSize(w, h, false);
 		camera.aspect = w / h;
 		const tan = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
+		tanHalf = tan;
 		baseDist = Math.max((45 * frameScale) / tan, (52 * frameScale) / (tan * camera.aspect));
-		camera.position.set(0, 0, baseDist / zoom);
+		clampPan();
+		camera.position.set(panX, panY, baseDist / zoom);
 		camera.updateProjectionMatrix();
 		invalidate();
 	}
@@ -279,7 +285,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 		yaw += (yawT - yaw) * f;
 		pitch += (pitchT - pitch) * f;
 		pivot.rotation.set(pitch, yaw, 0);
-		camera.position.z = baseDist / zoom;
+		camera.position.set(panX, panY, baseDist / zoom);
 		// The fabric grows (or unravels) to the knitter's new place.
 		let growing = 0;
 		for (let i = 0; i < knitNow.length; i++) {
@@ -311,13 +317,36 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 	let vx = 0;
 	let pinch = 0;
 	const pointers = new Map<number, { x: number; y: number }>();
-	const setZoom = (z: number) => {
+	// Never slide past the edge of the un-zoomed frame; at zoom 1 there is no slide.
+	function clampPan() {
+		const k = 1 - 1 / zoom;
+		const mx = baseDist * tanHalf * camera.aspect * k;
+		const my = baseDist * tanHalf * k;
+		panX = Math.min(mx, Math.max(-mx, panX));
+		panY = Math.min(my, Math.max(-my, panY));
+	}
+	// Zoom toward a screen point (client coords), keeping the surface under it in place.
+	const setZoom = (z: number, cx?: number, cy?: number) => {
+		const before = baseDist / zoom;
 		zoom = Math.min(ZOOM_MAX, Math.max(1, z));
+		if (cx !== undefined && cy !== undefined) {
+			const r = canvas.getBoundingClientRect();
+			const nx = ((cx - r.left) / (r.width || 1)) * 2 - 1;
+			const ny = 1 - ((cy - r.top) / (r.height || 1)) * 2;
+			const dd = before - baseDist / zoom;
+			panX += nx * tanHalf * camera.aspect * dd;
+			panY += ny * tanHalf * dd;
+		}
+		clampPan();
 		invalidate();
 	};
 	const spread = () => {
 		const [a, b] = [...pointers.values()];
 		return Math.hypot(a.x - b.x, a.y - b.y) || 1;
+	};
+	const midpoint = () => {
+		const [a, b] = [...pointers.values()];
+		return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 	};
 	const grab = (x: number, y: number) => {
 		dragging = true;
@@ -344,7 +373,8 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 		p.y = e.clientY;
 		if (pointers.size >= 2) {
 			const d = spread();
-			setZoom((zoom * d) / pinch);
+			const m = midpoint();
+			setZoom((zoom * d) / pinch, m.x, m.y);
 			pinch = d;
 			return;
 		}
@@ -376,7 +406,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 	const wheel = (e: WheelEvent) => {
 		if (!e.ctrlKey) return;
 		e.preventDefault();
-		setZoom(zoom * Math.exp(-e.deltaY * 0.01));
+		setZoom(zoom * Math.exp(-e.deltaY * 0.01), e.clientX, e.clientY);
 	};
 	let gestureZoom = 1;
 	const gestureStart = (e: Event) => {
@@ -385,7 +415,8 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 	};
 	const gestureChange = (e: Event) => {
 		e.preventDefault();
-		if (!pointers.size) setZoom(gestureZoom * (e as Event & { scale: number }).scale);
+		const g = e as Event & { scale: number; clientX: number; clientY: number };
+		if (!pointers.size) setZoom(gestureZoom * g.scale, g.clientX, g.clientY);
 	};
 	// Two fingers on the canvas are always a pinch, never a page scroll or page zoom.
 	const touch = (e: TouchEvent) => {

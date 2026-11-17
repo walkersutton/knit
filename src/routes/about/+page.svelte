@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Logo from '$lib/Logo.svelte';
 	import Seo from '$lib/Seo.svelte';
 	import { SITE } from '$lib/site';
 	import { colors, sections, yarnWeights } from '$lib/sweater/options';
@@ -91,7 +92,7 @@
 <Seo {title} {description} path="/about" {jsonLd} />
 
 <div class="page">
-	<header class="top"><a href="/">Knit It</a><a class="cta" href="/">Open the designer</a></header>
+	<header class="top"><a href="/" aria-label="Knit It home"><Logo size={24} /></a><a class="cta" href="/design">Open the designer</a></header>
 	<main>
 		<h1>How Knit It works</h1>
 		<p class="lede">
@@ -127,7 +128,7 @@
 			<p>{a}</p>
 		{/each}
 
-		<p class="end"><a class="cta" href="/">Design a sweater</a></p>
+		<p class="end"><a class="cta" href="/design">Design a sweater</a></p>
 	</main>
 	<footer>Knit It is open source. <a href={SITE.source} target="_blank" rel="noopener">View the code on GitHub</a>.</footer>
 </div>
@@ -135,7 +136,6 @@
 <style>
 	.page {
 		min-height: 100dvh;
-		background: var(--surface);
 		font-size: 15px;
 		line-height: 1.6;
 	}
@@ -159,6 +159,7 @@
 		padding: 32px 16px 64px;
 	}
 	h1 {
+		font-family: var(--display);
 		margin: 0 0 12px;
 		font-size: 28px;
 		font-weight: 650;
@@ -171,12 +172,14 @@
 		color: var(--muted);
 	}
 	h2 {
+		font-family: var(--display);
 		margin: 40px 0 12px;
 		font-size: 19px;
 		font-weight: 600;
 		line-height: 1.3;
 	}
 	h3 {
+		font-family: var(--display);
 		margin: 24px 0 4px;
 		font-size: 15px;
 		font-weight: 600;

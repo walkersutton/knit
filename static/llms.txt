@@ -15,5 +15,5 @@
 
 ## Pages
 
-- [Sweater designer](https://knit.walkersutton.com/): the interactive 3D designer and pattern generator
+- [Sweater designer](https://knit.walkersutton.com/design): the interactive 3D designer and pattern generator
 - [How it works and FAQ](https://knit.walkersutton.com/about): the design steps, yarn weight table and answers to common questions

@@ -55,40 +55,58 @@
 		justify-content: center;
 		min-height: 40px;
 		padding: 2px 0;
-		border: 1px solid var(--line);
-		border-radius: 6px;
+		position: relative;
+		border: 1px solid var(--line-strong, var(--line));
+		border-radius: 4px;
 		background: var(--surface);
+		box-shadow: 0 2px 0 var(--line);
 		color: var(--ink);
 		font: inherit;
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 		cursor: pointer;
-		transition: background-color 120ms ease-out, border-color 120ms ease-out, transform 120ms ease-out;
+		transition: background-color 120ms ease-out, border-color 120ms ease-out, transform 120ms ease-out, box-shadow 120ms ease-out;
+	}
+	.size::after {
+		content: '';
+		position: absolute;
+		inset: 3px;
+		border: 1px dashed var(--line-strong, var(--line));
+		border-radius: 2px;
+		pointer-events: none;
+		transition: border-color 120ms ease-out;
 	}
 	small {
 		font-size: 11px;
 		color: var(--muted);
 	}
 	.size:active {
-		transform: scale(0.97);
+		transform: translateY(2px);
+		box-shadow: 0 0 0 transparent;
 	}
 	.size:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 2px;
 	}
 	.size[aria-pressed='true'] {
-		border-color: var(--ink);
-		background: var(--ink);
-		color: #fff;
-		font-weight: 500;
+		border-color: #b88a1c;
+		background: #e8bd53;
+		font-weight: 600;
+		box-shadow: 0 2px 0 rgb(184 138 28 / 0.55);
+	}
+	.size[aria-pressed='true']::after {
+		border-color: rgb(38 51 95 / 0.5);
 	}
 	.size[aria-pressed='true'] small {
-		color: rgba(255, 255, 255, 0.7);
+		color: rgb(38 51 95 / 0.75);
 	}
 	@media (hover: hover) and (pointer: fine) {
 		.size:not([aria-pressed='true']):hover {
 			background: var(--wash);
-			border-color: #b4b4bb;
+			border-color: var(--ink);
+		}
+		.size:not([aria-pressed='true']):hover::after {
+			border-color: var(--ink);
 		}
 	}
 	@media (pointer: coarse) {

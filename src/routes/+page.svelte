@@ -1,16 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import Choice from '$lib/sweater/Choice.svelte';
-	import Stage from '$lib/sweater/Stage.svelte';
-	import { measure, type Design } from '$lib/sweater/garment';
-	import { needleLabel, pickNeedles } from '$lib/sweater/needles';
-	import Needles from '$lib/sweater/Needles.svelte';
-	import { labelOf, sections, summary, visible } from '$lib/sweater/options';
-	import { estimate, writePattern } from '$lib/sweater/pattern';
-	import PatternView from '$lib/sweater/PatternView.svelte';
-	import { knittedOf, load, progressAt, save, signature, tasksOf, type Mode, type Progress } from '$lib/sweater/progress';
 	import Seo from '$lib/Seo.svelte';
+	import Logo from '$lib/Logo.svelte';
 	import { SITE } from '$lib/site';
+	import { yarn } from '$lib/yarn.svelte';
 
 	const title = 'Knit It — Custom sweater pattern generator with 3D preview';
 	const description =
@@ -19,7 +11,7 @@
 		'@context': 'https://schema.org',
 		'@type': 'WebApplication',
 		name: SITE.name,
-		url: SITE.url + '/',
+		url: SITE.url + '/design',
 		description,
 		image: SITE.image,
 		applicationCategory: 'DesignApplication',
@@ -43,590 +35,432 @@
 		]
 	};
 
-	let design = $state<Design>({
-		wearer: 'Adult',
-		garment: 'Sweater',
-		construction: 'Raglan',
-		size: 'M',
-		fit: 'Relaxed',
-		bodyLength: 'Regular',
-		sleeveLength: 'Full',
-		neckline: 'Crew',
-		sleeveShape: 'Straight',
-		hemFinish: 'Ribbed',
-		bodyRib: '1×1',
-		bodyRibLength: 'Regular',
-		slits: 'None',
-		neckRib: '1×1',
-		neckDepth: 'Regular',
-		cuffFinish: 'Ribbed',
-		sleeveRib: '1×1',
-		cuffLength: 'Regular',
-		pattern: 'Solid',
-		color: '#465e9d',
-		contrast: '#faf3dc',
-		gauge: 18,
-		needle: 0,
-		ribNeedle: 0
-	});
-	/** Needle sizes (mm) the knitter owns. */
-	let owned = $state<number[]>([]);
-	/** The design as it will be knitted: on the knitter's own needles where they suit the yarn. */
-	let knit = $derived<Design>({ ...design, ...pickNeedles(design.gauge, owned) });
+	// The same swatch as the 404 page, knitted in row by row. The needle cursor knits the stitches it passes in the
+	// colour of the yarn on it.
+	const COLS = 11;
+	const ROWS = 8;
+	const W = 18;
+	const H = 11.5;
+	const x = (c: number) => 18 + c * W;
+	const y = (r: number) => 22 + r * H;
+	const VW = COLS * W + 18;
+	const VH = y(ROWS - 1) + 10;
+	const STITCH = 'M0 0C-7 -4 -10.5 -12 -9.5 -18.5C-9 -21.5 -5.5 -21.5 -4 -19C-1.5 -14.5 0 -8 0 0Z';
+	const BASE = '#faf3dc';
+	const REACH = 22;
 
-	const tabs = [...sections.map(({ id, label }) => ({ id, label })), { id: 'summary', label: 'Summary' }, { id: 'pattern', label: 'Pattern' }];
-	let tab = $state('design');
-	let tabIndex = $derived(tabs.findIndex((t) => t.id === tab));
-	let section = $derived(sections.find((s) => s.id === tab));
-	let panel = $state<HTMLElement>();
-	function go(id: string) {
-		tab = id;
-		panel?.scrollTo({ top: 0 });
+	let fills = $state<string[]>(Array(COLS * ROWS).fill(BASE));
+
+	function knit(e: PointerEvent) {
+		// A mouse knits whenever it is over the swatch; a finger only while it is down.
+		if (e.pointerType !== 'mouse' && e.buttons === 0) return;
+		const r = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
+		const px = ((e.clientX - r.left) / r.width) * VW;
+		const py = ((e.clientY - r.top) / r.height) * VH;
+		for (let rr = 0; rr < ROWS; rr++)
+			for (let c = 0; c < COLS; c++) {
+				if (Math.hypot(x(c) - px, y(rr) - 5 - py) < REACH) fills[rr * COLS + c] = yarn.color;
+			}
+	}
+	function unravel() {
+		fills = Array(COLS * ROWS).fill(BASE);
 	}
 
-	let size = $derived(measure(knit));
-	const both = (cm: number) => `${Math.round(cm)} cm · ${Math.round(cm / 1.27) / 2} in`;
-
-	let est = $derived(estimate(knit));
-	let pattern = $derived(writePattern(knit));
-
-	// ── Reading and tracking the pattern ──
-	let reading = $derived(tab === 'pattern');
-	let mode = $state<Mode>('beginner');
-	/** The knitter's place in each pattern they have started, by design signature. */
-	let progress = $state<Record<string, Progress>>({});
-	let sig = $derived(signature(knit));
-	let place = $derived(progress[sig] ?? {});
-	/** The step scrolled to in the pattern. The 3D model shows the garment as it is once that step is knitted. */
-	let viewing = $state<string>();
-	let knitted = $derived(reading && pattern.ok && viewing ? knittedOf(pattern.sections, progressAt(tasksOf(pattern.sections), viewing, place)) : null);
-	function setStep(key: string, value: number) {
-		const p = (progress[sig] ??= {});
-		if (value > 0) p[key] = value;
-		else delete p[key];
-	}
-
-	// The design, the view and the knitter's place are kept in this browser between visits.
-	let restored = $state(false);
-	onMount(() => {
-		const saved = load(design);
-		if (saved.design) design = saved.design;
-		if (saved.mode) mode = saved.mode;
-		owned = saved.needles;
-		progress = saved.progress;
-		// Someone who has started knitting comes back to knit: open where they left off.
-		if (Object.keys(saved.progress[sig] ?? {}).length && pattern.ok) tab = 'pattern';
-		restored = true;
-	});
-	$effect(() => {
-		const state = { design: $state.snapshot(design), mode, needles: $state.snapshot(owned), progress: $state.snapshot(progress) };
-		if (restored) save(state, sig);
-	});
+	const perks = [
+		{ label: 'Free', tone: 'mustard' },
+		{ label: 'No account', tone: 'sage' },
+		{ label: 'Runs in your browser', tone: 'sky' }
+	];
+	const steps = [
+		{ n: 1, tone: 'clay', h: 'Design it', p: 'Pick the garment, fit, neckline and yarn. A 3D model follows every choice.' },
+		{ n: 2, tone: 'mustard', h: 'Get the pattern', p: 'A written top-down raglan with stitch counts, yardage and needle sizes worked out for you.' },
+		{ n: 3, tone: 'sage', h: 'Knit along', p: 'Tick off steps as you go. The model grows to match your place.' }
+	];
 </script>
 
 <Seo {title} {description} path="/" {jsonLd} />
 
-<div class="app">
-	<header class="top">
-		<h1>Sweater designer</h1>
-		<span>{summary(design)}</span>
-		<a href="/about">How it works</a>
-		<a class="source" href={SITE.source} target="_blank" rel="noopener">Source</a>
+<div class="page">
+	<header>
+		<a class="home" href="/" aria-label="Knit It home"><Logo size={32} word={false} /></a>
+		<nav><a href="/about">How it works</a><a href={SITE.source} target="_blank" rel="noopener">Source</a></nav>
 	</header>
-	<div class="layout" class:reading>
-		<aside bind:this={panel}>
-			<div class="tabs" role="tablist" aria-label="Pattern steps">
-				{#each tabs as t, i (t.id)}
-					<button type="button" role="tab" id="tab-{t.id}" aria-selected={tab === t.id} aria-controls="panel" onclick={() => go(t.id)}>
-						<span class="num">{i + 1}</span>{t.label}
-					</button>
+
+	<main>
+		<h1>
+			<button type="button" class="patch" onclick={unravel} aria-label="Knit It. Unravel the swatch below.">
+				<span>Knit <em>It</em></span>
+			</button>
+		</h1>
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+		<svg
+			class="swatch"
+			viewBox="0 0 {VW} {VH}"
+			role="img"
+			aria-label="A swatch of knitted stockinette. Move over it to knit it in colour."
+			onpointermove={knit}
+			onpointerdown={knit}
+		>
+			<defs>
+				<g id="stitch-v"><path d={STITCH} /><path d={STITCH} transform="scale(-1 1)" /></g>
+			</defs>
+			<rect width="100%" height="100%" rx="10" class="ground" />
+			{#each { length: ROWS }, r}
+				{#each { length: COLS }, c}
+					<g class="st" style="--i: {ROWS - 1 - r}; --j: {c}; fill: {fills[r * COLS + c]}">
+						<use href="#stitch-v" transform="translate({x(c)} {y(r)}) scale(.85 .52)" />
+					</g>
 				{/each}
-			</div>
-			<div id="panel" role="tabpanel" aria-labelledby="tab-{tab}">
-				{#if tab === 'pattern'}
-					<div class="sheet">
-						<PatternView {pattern} main={design.color} contrast={design.contrast} bind:mode progress={place} interactive onstep={setStep} onview={(key) => (viewing = key)} onreset={() => delete progress[sig]} />
-					</div>
-				{:else if section}
-					{#each section.groups as group (group.id)}
-						{@const fields = visible(group, design)}
-						{#if fields.length}
-							<section>
-								<h2>{group.label}</h2>
-								{#each fields as field (field.key)}
-									<div class="field">
-										<div class="label"><span>{field.label}</span>{#if field.kind === 'color'}<em>{labelOf(field, design)}</em>{/if}</div>
-										<Choice {field} bind:design />
-									</div>
-								{/each}
-							</section>
-						{/if}
-					{/each}
-					{#if section.id === 'yarn'}
-						<section>
-							<h2>Needles</h2>
-							<div class="field">
-								<div class="label"><span>Sizes you have</span></div>
-								<Needles design={knit} bind:owned />
-							</div>
-						</section>
-					{/if}
-				{:else}
-					<section>
-						<h2>Finished size</h2>
-						<dl class="spec">
-							<div><dt>Chest</dt><dd>{both(size.chest)}</dd></div>
-							<div><dt>Body length</dt><dd>{both(size.L)}</dd></div>
-						</dl>
-					</section>
-					{#each sections as s (s.id)}
-						<section>
-							<div class="head">
-								<h2>{s.label}</h2>
-								<button type="button" class="edit" onclick={() => go(s.id)}>Edit</button>
-							</div>
-							{#each s.groups as group (group.id)}
-								{@const fields = visible(group, design)}
-								{#if fields.length}
-									{#if s.groups.length > 1}<h3>{group.label}</h3>{/if}
-									<dl class="spec">
-										{#each fields as field (field.key)}
-											<div>
-												<dt>{field.label}</dt>
-												<dd>
-													{#if field.kind === 'color'}<i class="chip" style:--c={String(design[field.key])}></i>{/if}{labelOf(field, design)}
-												</dd>
-											</div>
-										{/each}
-									</dl>
-								{/if}
-							{/each}
-						</section>
-					{/each}
-					<section>
-						<div class="head">
-							<h2>Needles</h2>
-							<button type="button" class="edit" onclick={() => go('yarn')}>Edit</button>
-						</div>
-						<dl class="spec">
-							<div><dt>Main needle</dt><dd>{needleLabel(est.needles.main)}</dd></div>
-							<div><dt>Ribbing needle</dt><dd>{needleLabel(est.needles.rib)}</dd></div>
-							<div><dt>Gauge</dt><dd>{est.gauge} sts / 4 in</dd></div>
-						</dl>
-					</section>
-				{/if}
-			</div>
-			<div class="steps">
-				{#if tabIndex > 0}
-					<button type="button" class="step" onclick={() => go(tabs[tabIndex - 1].id)}>Back</button>
-				{/if}
-				{#if tabIndex < tabs.length - 1}
-					<button type="button" class="step next" onclick={() => go(tabs[tabIndex + 1].id)}>Next: {tabs[tabIndex + 1].label}</button>
-				{/if}
-			</div>
-		</aside>
-		<main>
-			<div class="stage"><Stage design={knit} {knitted} /></div>
-			<div class="pattern">
-				<dl>
-					<div><dt>Yarn</dt><dd>{est.yards} yd · {est.skeins} {est.skeins === 1 ? 'skein' : 'skeins'}</dd></div>
-					<div><dt>Needles</dt><dd>{needleLabel(est.needles.main)}</dd></div>
-					<div><dt>Gauge</dt><dd>{est.gauge} sts / 4 in</dd></div>
-					<div><dt>Skill</dt><dd>{est.level}</dd></div>
-				</dl>
-				{#if tab !== 'pattern' && pattern.ok}
-					<button type="button" class="step view" onclick={() => go('pattern')}>View pattern</button>
-				{/if}
-				<button type="button" class="save" onclick={() => window.print()} disabled={!pattern.ok} title={pattern.ok ? 'Print, or choose “Save as PDF” in the print dialog' : pattern.reason}>
-					Print pattern
-				</button>
-			</div>
-		</main>
-	</div>
+			{/each}
+		</svg>
+		<p class="hint">
+			<span class="coarse">Drag across the swatch to knit it</span>
+		</p>
+
+		<ul class="perks">
+			{#each perks as p (p.label)}<li class={p.tone}>{p.label}</li>{/each}
+		</ul>
+		<h2 class="tagline">Design a sweater, then <em>knit it</em></h2>
+		<p class="lede">Shape it in 3D, pick your yarn, and get a written pattern with every stitch count worked out.</p>
+		<p class="actions"><a class="cta" href="/design">Start designing</a><a class="link" href="/about">How Knit It works</a></p>
+	</main>
+
+	<section class="steps" aria-label="How it works">
+		<ol>
+			{#each steps as s (s.n)}
+				<li class={s.tone}>
+					<span class="num">{s.n}</span>
+					<h2>{s.h}</h2>
+					<p>{s.p}</p>
+				</li>
+			{/each}
+		</ol>
+	</section>
+
+	<footer>Knit It is open source. <a href={SITE.source} target="_blank" rel="noopener">View the code on GitHub</a>.</footer>
 </div>
-<div class="print-only"><PatternView {pattern} main={design.color} contrast={design.contrast} {mode} /></div>
 
 <style>
-	.app {
+	.page {
+		--ink: #26335f;
+		--muted: #5d6385;
+		--line: #e6dcc0;
 		display: flex;
 		flex-direction: column;
-		height: 100dvh;
+		min-height: 100dvh;
+		color: var(--ink);
+		font-size: 15px;
+		line-height: 1.6;
 	}
-	.top {
+	header,
+	.steps {
+		max-width: 912px;
+		width: 100%;
+		margin: 0 auto;
+		padding: 0 16px;
+	}
+	header {
 		display: flex;
 		align-items: center;
-		gap: 16px;
-		flex: none;
+		justify-content: space-between;
+		height: 60px;
+	}
+	.home {
+		display: flex;
+		align-items: center;
 		height: 44px;
-		padding: 0 16px;
-		border-bottom: 1px solid var(--line);
-		background: var(--surface);
+		color: var(--ink);
+		text-decoration: none;
 	}
-	.top h1 {
-		margin: 0 auto 0 0;
-		font: inherit;
-		font-weight: 600;
-		white-space: nowrap;
+	nav {
+		display: flex;
+		gap: 16px;
+		font-size: 14px;
 	}
-	.top span {
-		min-width: 0;
-		overflow: hidden;
-		color: var(--muted);
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-	.top a {
+	nav a {
+		display: flex;
+		align-items: center;
+		height: 44px;
 		color: var(--ink);
 		font-weight: 500;
 		text-decoration: none;
-		white-space: nowrap;
-	}
-	.top .source {
-		color: var(--muted);
-		font-weight: 400;
-	}
-	.top a:focus-visible {
-		outline: 2px solid var(--focus);
-		outline-offset: 2px;
-		border-radius: 2px;
-	}
-	@media (hover: hover) and (pointer: fine) {
-		.top a:hover {
-			text-decoration: underline;
-		}
-	}
-	.layout {
-		display: grid;
-		grid-template-columns: 400px minmax(0, 1fr);
-		flex: 1;
-		min-height: 0;
-	}
-	aside {
-		overflow-y: auto;
-		padding: 0 16px 24px;
-		border-right: 1px solid var(--line);
-		background: var(--surface);
-	}
-	/* ── Reading the pattern: the text takes the wide column, the model steps aside ── */
-	.layout.reading {
-		grid-template-columns: minmax(0, 1fr) clamp(260px, 30%, 420px);
-	}
-	.reading aside {
-		--column: 720px;
-		--gutter: max(16px, (100% - var(--column)) / 2);
-		--sticky-top: 50px;
-		padding-inline: var(--gutter);
-	}
-	.reading .tabs {
-		margin-inline: calc(-1 * var(--gutter));
-		padding-inline: max(12px, var(--gutter) - 4px);
-	}
-	.reading .pattern dl {
-		display: none;
-	}
-	.reading .pattern {
-		justify-content: flex-end;
-	}
-	.tabs {
-		position: sticky;
-		top: 0;
-		z-index: 2;
-		display: grid;
-		grid-template-columns: repeat(5, 1fr);
-		gap: 2px;
-		margin: 0 -16px;
-		padding: 12px 12px 0;
-		border-bottom: 1px solid var(--line);
-		background: var(--surface);
-	}
-	.tabs button {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 5px;
-		height: 38px;
-		padding: 0 4px;
-		border: 0;
-		border-bottom: 2px solid transparent;
-		margin-bottom: -1px;
-		background: none;
-		color: var(--muted);
-		font: inherit;
-		font-weight: 500;
-		white-space: nowrap;
-		cursor: pointer;
-		transition: color 120ms ease-out, border-color 120ms ease-out;
-	}
-	.tabs button[aria-selected='true'] {
-		border-bottom-color: var(--ink);
-		color: var(--ink);
-	}
-	.tabs button:focus-visible,
-	.step:focus-visible,
-	.edit:focus-visible {
-		outline: 2px solid var(--focus);
-		outline-offset: -2px;
-	}
-	@media (hover: hover) and (pointer: fine) {
-		.tabs button:hover {
-			color: var(--ink);
-		}
-		.step:hover,
-		.edit:hover {
-			background: var(--wash);
-		}
-		.step.next:hover {
-			background: #3f3f46;
-		}
-	}
-	.num {
-		display: inline-grid;
-		place-items: center;
-		width: 18px;
-		height: 18px;
-		border-radius: 50%;
-		background: var(--wash);
-		font-size: 11px;
-		font-variant-numeric: tabular-nums;
-	}
-	[aria-selected='true'] .num {
-		background: var(--ink);
-		color: #fff;
-	}
-	section {
-		padding: 14px 0 16px;
-		border-bottom: 1px solid var(--line);
-	}
-	section:last-child {
-		border-bottom: 0;
-	}
-	.head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 8px;
-	}
-	.head h2 {
-		margin: 0;
-	}
-	.edit {
-		height: 28px;
-		padding: 0 10px;
-		border: 1px solid var(--line);
-		border-radius: 6px;
-		background: var(--surface);
-		color: var(--ink);
-		font: inherit;
-		font-size: 12px;
-		cursor: pointer;
-	}
-	.spec {
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: 0;
-	}
-	h3 {
-		margin: 10px 0 0;
-		font-size: 11px;
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		color: var(--muted);
-	}
-	.spec div {
-		display: flex;
-		justify-content: space-between;
-		gap: 12px;
-		padding: 5px 0;
-	}
-	.spec dt {
-		font-size: 13px;
-	}
-	.spec dd {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		text-align: right;
-	}
-	.chip {
-		width: 12px;
-		height: 12px;
-		border: 1px solid rgba(0, 0, 0, 0.18);
-		border-radius: 50%;
-		background: var(--c);
-	}
-	.steps {
-		display: flex;
-		gap: 8px;
-		padding-top: 16px;
-		border-top: 1px solid var(--line);
-	}
-	.step {
-		flex: 1;
-		height: 36px;
-		padding: 0 14px;
-		border: 1px solid var(--line);
-		border-radius: 6px;
-		background: var(--surface);
-		color: var(--ink);
-		font: inherit;
-		font-weight: 500;
-		cursor: pointer;
-		transition: background-color 120ms ease-out, transform 120ms ease-out;
-	}
-	.step.next {
-		border-color: var(--ink);
-		background: var(--ink);
-		color: #fff;
-	}
-	.step:active,
-	.edit:active {
-		transform: scale(0.97);
-	}
-	h2 {
-		margin: 0 0 10px;
-		font-size: 13px;
-		font-weight: 600;
-	}
-	.field + .field {
-		margin-top: 12px;
-	}
-	.label {
-		display: flex;
-		justify-content: space-between;
-		margin-bottom: 5px;
-		font-size: 12px;
-		color: var(--muted);
-	}
-	em {
-		font-style: normal;
-		color: var(--ink);
 	}
 	main {
 		display: flex;
 		flex-direction: column;
-		min-width: 0;
-		min-height: 0;
+		align-items: center;
+		max-width: 520px;
+		margin: 0 auto;
+		padding: 24px 16px 64px;
+		text-align: center;
 	}
-	.stage {
-		flex: 1;
-		min-height: 0;
+	.swatch {
+		width: min(360px, 100%);
+		height: auto;
+		margin-bottom: 4px;
+		filter: drop-shadow(0 6px 0 #2f3f73) drop-shadow(0 10px 16px rgb(38 51 95 / 0.25));
+		touch-action: pan-y;
 	}
-	.pattern {
+	.ground {
+		fill: #465e9d;
+	}
+	.st {
+		transform-box: fill-box;
+		transform-origin: center;
+		opacity: 0;
+		transform: translateY(5px) scale(0.7);
+		animation: cast 260ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+		animation-delay: calc(150ms + var(--i) * 70ms + var(--j) * 12ms);
+		transition: fill 220ms ease-out;
+	}
+	@keyframes cast {
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.st {
+			animation: none;
+			opacity: 1;
+			transform: none;
+			transition: none;
+		}
+	}
+	.hint {
 		display: flex;
 		align-items: center;
+		justify-content: center;
 		gap: 12px;
-		flex: none;
-		padding: 10px 16px;
-		border-top: 1px solid var(--line);
-		background: var(--surface);
-	}
-	dl {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 4px 28px;
-		flex: 1;
-		margin: 0;
-	}
-	dt {
-		font-size: 12px;
+		min-height: 44px;
+		margin: 12px 0 8px;
 		color: var(--muted);
+		font-size: 13px;
 	}
-	dd {
-		margin: 0;
-		font-weight: 500;
-		font-variant-numeric: tabular-nums;
-	}
-	.step.view {
-		flex: none;
-		white-space: nowrap;
-	}
-	.save {
-		height: 36px;
-		padding: 0 16px;
-		border: 1px solid var(--ink);
-		border-radius: 6px;
-		background: var(--ink);
-		color: #fff;
-		font: inherit;
-		font-weight: 500;
-		white-space: nowrap;
-		cursor: pointer;
-		transition: transform 120ms ease-out;
-	}
-	.save:active:not(:disabled) {
-		transform: scale(0.97);
-	}
-	.save:disabled {
-		border-color: var(--line);
-		background: var(--wash);
-		color: var(--muted);
-		cursor: not-allowed;
-	}
-	.print-only {
+	.coarse {
 		display: none;
 	}
-	@media print {
-		:global(body) {
-			background: #fff;
-		}
-		.app {
-			display: none;
-		}
-		.print-only {
-			display: block;
-			max-width: 170mm;
-			margin: 0 auto;
+	@media (pointer: coarse) {
+		.coarse {
+			display: inline;
 		}
 	}
-	.save:focus-visible {
+	.perks {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 8px;
+		margin: 0 0 20px;
+		padding: 0;
+		list-style: none;
+	}
+	.perks li {
+		padding: 2px 12px;
+		border-radius: 999px;
+		font-size: 13px;
+		font-weight: 600;
+	}
+	.mustard {
+		--tint: #f6e2a4;
+		--solid: #e8bd53;
+	}
+	.sage {
+		--tint: #d7e4d3;
+		--solid: #78917a;
+	}
+	.sky {
+		--tint: #d3e3f2;
+		--solid: #9dbfe0;
+	}
+	.clay {
+		--tint: #f4d5c3;
+		--solid: #d99172;
+	}
+	.perks li {
+		background: var(--tint);
+	}
+	main h1 {
+		margin: 0 0 32px;
+		font: inherit;
+	}
+	.patch {
+		display: block;
+		margin: 0;
+		padding: 12px;
+		border: 0;
+		color: inherit;
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+		transition:
+			transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+			box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1);
+		border-radius: 14px;
+		background: #c8543e;
+		box-shadow:
+			0 3px 0 #8f3a2a,
+			0 8px 14px rgb(143 58 42 / 0.25);
+		font-family: var(--display);
+		font-size: clamp(52px, 15vw, 84px);
+		font-weight: 700;
+		line-height: 1;
+		letter-spacing: -0.02em;
+		transform: rotate(-2deg);
+		animation: iron 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
+	}
+	@media (hover: hover) {
+		.patch:hover {
+			transform: rotate(-3deg) translateY(-2px);
+			box-shadow:
+				0 5px 0 #8f3a2a,
+				0 12px 18px rgb(143 58 42 / 0.3);
+		}
+	}
+	.patch:active {
+		transform: rotate(-2deg) translateY(2px) scale(0.97);
+		box-shadow:
+			0 1px 0 #8f3a2a,
+			0 3px 6px rgb(143 58 42 / 0.2);
+	}
+	.patch:focus-visible {
+		outline: 3px solid var(--focus);
+		outline-offset: 4px;
+	}
+	.patch span {
+		display: block;
+		padding: 10px 26px 16px;
+		border: 3px dashed #faf3dc;
+		border-radius: 8px;
+		color: #fff8e6;
+	}
+	.patch em {
+		color: #f6e2a4;
+		font-style: normal;
+	}
+	@keyframes iron {
+		from {
+			opacity: 0;
+			transform: rotate(-2deg) scale(1.1);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.patch {
+			animation: none;
+		}
+	}
+	.tagline {
+		margin: 0 0 14px;
+		font-family: var(--display);
+		font-size: clamp(24px, 6vw, 30px);
+		font-weight: 700;
+		line-height: 1.2;
+		letter-spacing: -0.015em;
+		text-wrap: balance;
+	}
+	.tagline em {
+		color: #c8543e;
+		font-style: normal;
+		text-decoration: underline wavy #e8bd53;
+		text-decoration-thickness: 4px;
+		text-underline-offset: 8px;
+		text-decoration-skip-ink: none;
+	}
+	.lede {
+		margin: 0;
+		color: var(--muted);
+		font-size: 18px;
+		text-wrap: pretty;
+	}
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: center;
+		gap: 20px;
+		margin: 32px 0 0;
+	}
+	.cta {
+		display: inline-flex;
+		align-items: center;
+		height: 52px;
+		padding: 0 28px;
+		border-radius: 14px;
+		background: #c8543e;
+		box-shadow: 0 4px 0 #8f3a2a;
+		color: #fff8e6;
+		font-family: var(--display);
+		font-size: 19px;
+		font-weight: 600;
+		text-decoration: none;
+		transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+	}
+	.cta:active {
+		transform: translateY(3px);
+		box-shadow: 0 1px 0 #8f3a2a;
+	}
+	.link {
+		color: var(--ink);
+		font-size: 14px;
+		font-weight: 500;
+	}
+	.steps {
+		padding-bottom: 56px;
+	}
+	ol {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+		gap: 16px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.steps li {
+		padding: 20px;
+		border-radius: 18px;
+		background: var(--tint);
+	}
+	.num {
+		display: inline-grid;
+		place-items: center;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: var(--solid);
+		color: #26335f;
+		font-family: var(--display);
+		font-size: 16px;
+		font-weight: 700;
+	}
+	h2 {
+		margin: 12px 0 4px;
+		font-family: var(--display);
+		font-size: 22px;
+		font-weight: 600;
+		line-height: 1.2;
+	}
+	.steps li p {
+		margin: 0;
+		color: #3f4770;
+		text-wrap: pretty;
+	}
+	footer {
+		margin-top: auto;
+		padding: 28px 16px;
+		background: #465e9d;
+		color: #faf3dc;
+		font-size: 13px;
+		text-align: center;
+	}
+	footer a {
+		color: #faf3dc;
+	}
+	a:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 2px;
+		border-radius: 4px;
 	}
-	@media (max-width: 760px) {
-		.app {
-			height: auto;
-			min-height: 100dvh;
-		}
-		.layout {
-			display: flex;
-			flex-direction: column-reverse;
-		}
-		main {
-			position: sticky;
-			top: 0;
-			z-index: 1;
-			border-bottom: 1px solid var(--line);
-		}
-		.stage {
-			flex: none;
-			height: 40dvh;
-		}
-		.pattern {
-			padding: 8px 12px;
-		}
-		dl {
-			gap: 2px 16px;
-		}
-		.step.view {
-			display: none;
-		}
-		aside {
-			overflow: visible;
-			border-right: 0;
-		}
-		.tabs {
-			position: static;
-		}
-		/* On a phone the pattern gets the whole screen. */
-		.reading main {
-			position: static;
-		}
-		.reading .stage {
-			display: none;
-		}
-		.reading aside {
-			--sticky-top: 0px;
+	@media (hover: hover) and (pointer: fine) {
+		.cta:hover {
+			background: #d0604a;
 		}
 	}
 </style>
