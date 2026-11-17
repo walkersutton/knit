@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { writePattern, patternText, type Pattern } from './pattern';
+import { isColourwork, writePattern, patternText, type Pattern } from './pattern';
 import { baseDesign, customVariations, needleVariations, randomDesigns, singleVariations } from './testDesigns';
 
 const RIB_REP: Record<string, number> = { '1×1': 2, '2×2': 4, '2×1': 3, Twisted: 2, Stockinette: 1 };
@@ -67,7 +67,7 @@ describe('raglan pattern', () => {
 		// Ribbed edges land on a whole number of rib repeats.
 		if (d.hemFinish === 'Ribbed' && d.garment !== 'Cardigan') expect(c.bodySts % RIB_REP[d.bodyRib]).toBe(0);
 		if (d.cuffFinish === 'Ribbed') expect(c.cuffSts % RIB_REP[d.sleeveRib]).toBe(0);
-		if (d.pattern === 'Fair isle' && d.garment !== 'Cardigan') expect(c.bodySts % 12).toBe(0);
+		if (isColourwork(d.pattern) && d.garment !== 'Cardigan') expect(c.bodySts % 12).toBe(0);
 		// Proportions stay garment-like.
 		// Short sleeves can run straight; longer ones taper.
 		if (d.sleeveLength === 'Short') expect(c.cuffSts).toBeLessThanOrEqual(c.upperSts);
@@ -152,7 +152,7 @@ describe('set-in pattern', () => {
 		// Ribbed edges land on a whole number of rib repeats.
 		if (d.hemFinish === 'Ribbed' && !cardigan) expect(c.bodySts % RIB_REP[d.bodyRib]).toBe(0);
 		if (d.cuffFinish === 'Ribbed') expect(c.cuffSts % RIB_REP[d.sleeveRib]).toBe(0);
-		if (d.pattern === 'Fair isle' && !cardigan) expect(c.bodySts % 12).toBe(0);
+		if (isColourwork(d.pattern) && !cardigan) expect(c.bodySts % 12).toBe(0);
 		if (d.sleeveLength === 'Short') expect(c.cuffSts).toBeLessThanOrEqual(c.upperSts);
 		else expect(c.cuffSts).toBeLessThan(c.upperSts);
 		expect(c.cuffSts).toBeGreaterThan(c.upperSts * 0.35);

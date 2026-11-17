@@ -1,5 +1,5 @@
 import { measure, type Design } from './garment';
-import { chart, tileFor } from './yarn';
+import { tileFor } from './motifs';
 import {
 	BASE_ABBREVIATIONS,
 	B,
@@ -9,6 +9,7 @@ import {
 	bandsSection,
 	bodySection,
 	cap,
+	chartOf,
 	colourSection,
 	edgeSteps,
 	ellipse,
@@ -16,6 +17,7 @@ import {
 	evenly,
 	finishingSection,
 	fitTo,
+	isColourwork,
 	gaugeText,
 	lcm,
 	len,
@@ -34,7 +36,7 @@ import {
 } from './patternKit';
 import { writeSetIn } from './setin';
 
-export { estimate, len, patternText } from './patternKit';
+export { estimate, isColourwork, len, patternText } from './patternKit';
 export type { Counts, Pattern, PatternSection, SetInCounts, Step, Tally } from './patternKit';
 
 /**
@@ -56,7 +58,7 @@ function writeRaglan(d: Design, m: Measures): Pattern {
 	const { k, stPerCm, rowPerCm } = m;
 	const cardigan = d.garment === 'Cardigan';
 	const vNeck = d.neckline === 'V-neck';
-	const fairIsle = d.pattern === 'Fair isle';
+	const fairIsle = isColourwork(d.pattern);
 	const slits = !cardigan && m.slitH > 0;
 	const tile = tileFor(d.pattern, m.gauge);
 	const { rowsOf, stsOf } = scale(m);
@@ -391,7 +393,7 @@ function writeRaglan(d: Design, m: Measures): Pattern {
 		measurements,
 		abbreviations,
 		sections,
-		chart: fairIsle ? Array.from({ length: tile.rows }, (_, j) => Array.from({ length: tile.st }, (_, i) => chart('Fair isle', i, j, tile))) : null,
+		...chartOf(d, m.gauge),
 		counts: {
 			castOn,
 			back0: B0,

@@ -1,4 +1,5 @@
 import type { Design } from './garment';
+import { PATTERNS } from './motifs';
 import { LIMITS } from './fit';
 import { mainSizes, pickNeedles } from './needles';
 import { yarnWeights } from './options';
@@ -8,7 +9,7 @@ export const baseDesign: Design = {
 	wearer: 'Adult', garment: 'Sweater', construction: 'Raglan', size: 'M', custom: null, fit: 'Relaxed', bodyLength: 'Regular',
 	sleeveLength: 'Full', neckline: 'Crew', sleeveShape: 'Straight', hemFinish: 'Ribbed', bodyRib: '1×1',
 	bodyRibLength: 'Regular', slits: 'None', neckRib: '1×1', neckDepth: 'Regular', cuffFinish: 'Ribbed',
-	sleeveRib: '1×1', cuffLength: 'Regular', pattern: 'Solid', color: '#465e9d', contrast: '#faf3dc', gauge: 18,
+	sleeveRib: '1×1', cuffLength: 'Regular', pattern: 'Solid', motif: '', color: '#465e9d', contrast: '#faf3dc', gauge: 18,
 	needle: 0, ribNeedle: 0
 };
 
@@ -35,7 +36,7 @@ export const choices: Partial<Record<keyof Design, (string | number)[]>> = {
 	cuffFinish: FINISHES,
 	sleeveRib: RIBS,
 	cuffLength: LENGTHS,
-	pattern: ['Solid', 'Stripes', 'Fair isle'],
+	pattern: PATTERNS.filter((p) => p !== 'Custom'),
 	gauge: [28, 22, 18, 13]
 };
 

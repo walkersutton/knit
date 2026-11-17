@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { ARM_SHARE, CUSTOM, sizeStep, wearerScale, type Custom } from './fit';
 import { stitchGauge } from './needles';
-import { TILE_ROWS, TILE_ST, tileFor } from './yarn';
+import { TILE_ROWS, TILE_ST, tileFor } from './motifs';
 
 export type Design = {
 	wearer: string;
@@ -28,6 +28,8 @@ export type Design = {
 	sleeveRib: string;
 	cuffLength: string;
 	pattern: string;
+	/** The knitter's own chart (TILE_ST × TILE_ROWS cells of 0/1, rows top to bottom), used while `pattern` is Custom. */
+	motif: string;
 	color: string;
 	contrast: string;
 	/** Yarn weight, as its standard gauge (stitches per 4 in). */
@@ -63,7 +65,7 @@ export type Garment = {
 
 /** Everything that changes the mesh (colour and pattern only change the textures). */
 export const shapeKey = (d: Design) => {
-	const { color: _c, contrast: _x, pattern: _p, ribNeedle: _r, ...shape } = d;
+	const { color: _c, contrast: _x, pattern: _p, motif: _m, ribNeedle: _r, ...shape } = d;
 	// A finer colourwork chart repeats half as often, which changes the UVs but nothing else.
 	return JSON.stringify({ ...shape, fine: tileFor(d.pattern, stitchGauge(d) || 18).fine });
 };

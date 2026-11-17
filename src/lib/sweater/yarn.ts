@@ -1,52 +1,10 @@
 import * as THREE from 'three';
 
-/** One texture tile is a small stitch chart: TILE_ST stitches wide, TILE_ROWS rows tall. */
-export const TILE_ST = 12;
-export const TILE_ROWS = 16;
+import { chart, FINE_GAUGE, FINE_TILE, STANDARD_TILE, TILE_ROWS, TILE_ST, tileFor, type Tile } from './motifs';
+
+export { chart, FINE_GAUGE, FINE_TILE, STANDARD_TILE, TILE_ROWS, TILE_ST, tileFor, type Tile };
 
 const mod = (n: number, m: number) => ((n % m) + m) % m;
-
-/** A colourwork chart's size. Both sizes cover about the same area of fabric at their own gauge. */
-export type Tile = { st: number; rows: number; fine: boolean };
-export const STANDARD_TILE: Tile = { st: TILE_ST, rows: TILE_ROWS, fine: false };
-/** Twice the stitches and rows, so a motif can have rounded curves. 24 still divides by every rib repeat. */
-export const FINE_TILE: Tile = { st: 2 * TILE_ST, rows: 2 * TILE_ROWS, fine: true };
-/** From this gauge (stitches per 4 in) up, Fair Isle gets the detailed chart: DK is 22, fingering 28. */
-export const FINE_GAUGE = 25;
-
-/** The chart size for a pattern at a stitch gauge. Only Fair Isle has detail to gain from a finer yarn. */
-export const tileFor = (pattern: string, gauge: number): Tile =>
-	pattern === 'Fair isle' && gauge >= FINE_GAUGE ? FINE_TILE : STANDARD_TILE;
-
-const BIG_HEART = [
-	'.###...###.',
-	'#####.#####',
-	'###########',
-	'###########',
-	'.#########.',
-	'..#######..',
-	'...#####...',
-	'....###....',
-	'.....#.....'
-];
-const SMALL_HEART = ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...'];
-
-/** The fine chart: bands of hearts between peerie borders, the second band offset by half a repeat. */
-const FINE_CHART: boolean[][] = (() => {
-	const g = Array.from({ length: FINE_TILE.rows }, () => new Array<boolean>(FINE_TILE.st).fill(false));
-	const stamp = (art: string[], col: number, row: number) =>
-		art.forEach((line, dj) => [...line].forEach((c, di) => c === '#' && (g[mod(row + dj, FINE_TILE.rows)][mod(col + di, FINE_TILE.st)] = true)));
-	for (const [base, shift] of [[0, 0], [16, 12]]) {
-		for (let i = 0; i < FINE_TILE.st; i++) {
-			g[base][i] = i % 2 === 0;
-			g[base + 1][i] = true;
-			g[base + 2][i] = i % 2 === 0;
-		}
-		stamp(BIG_HEART, 1 + shift, base + 4);
-		stamp(SMALL_HEART, 15 + shift, base + 5);
-	}
-	return g;
-})();
 
 const TILE_ST_STD = TILE_ST;
 const TILE_ROWS_STD = TILE_ROWS;
@@ -67,20 +25,6 @@ const hex = (h: string): RGB => {
 };
 const css = (c: RGB, m = 1) => `rgb(${c.map((v) => Math.round(Math.min(255, v * m))).join(',')})`;
 const gray = (v: number) => css([255, 255, 255], v);
-
-/** true = this stitch is worked in the contrast colour */
-export function chart(pattern: string, i: number, j: number, tile: Tile = STANDARD_TILE): boolean {
-	if (pattern === 'Stripes') return j < 5;
-	if (pattern !== 'Fair isle') return false;
-	if (tile.fine) return FINE_CHART[j][i];
-	if (j === 0 || j === 10) return true;
-	if (j >= 2 && j <= 8) {
-		const d = Math.abs(i - 6) + Math.abs(j - 5);
-		const d2 = Math.abs(mod(i + 6, 12) - 6) + Math.abs(j - 5);
-		return (d <= 3 && d !== 0) || d2 === 0;
-	}
-	return j === 13 && i % 4 === 2;
-}
 
 function leg(ctx: CanvasRenderingContext2D, x0: number, y0: number, side: number) {
 	const tx = x0 + SW * (side < 0 ? 0.15 : 0.85);
@@ -115,6 +59,8 @@ export type KnitOptions = {
 	pattern: string;
 	/** Chart size; the texture's tile is this many stitches by rows. */
 	tile?: Tile;
+	/** The knitter's own chart, when the pattern is Custom. */
+	motif?: string;
 	/** 0..1 — how strongly the stitch relief darkens the albedo */
 	shade: number;
 	/** normal-map strength */
@@ -165,7 +111,7 @@ export function makeKnitMaps(o: KnitOptions): KnitMaps {
 				const y0 = j * RH;
 				const isPurl = purlAt(ii);
 				if (pass === 0) {
-					const base = !rib && chart(o.pattern, ii, jj, tile) ? alt : main;
+					const base = !rib && chart(o.pattern, ii, jj, o.motif, tile) ? alt : main;
 					const jitter = 0.965 + 0.07 * (((ii * 7919 + jj * 104729) % 97) / 97);
 					cc.strokeStyle = css(base, jitter * (isPurl ? 0.95 : 1));
 					cc.lineWidth = SW * LEVELS[0][0];

@@ -22,7 +22,7 @@ describe('tileFor', () => {
 });
 
 describe('fine chart', () => {
-	const rows = Array.from({ length: FINE_TILE.rows }, (_, j) => Array.from({ length: FINE_TILE.st }, (_, i) => chart('Fair isle', i, j, FINE_TILE)));
+	const rows = Array.from({ length: FINE_TILE.rows }, (_, j) => Array.from({ length: FINE_TILE.st }, (_, i) => chart('Fair isle', i, j, undefined, FINE_TILE)));
 
 	it('has both colours and a rounded heart (a notch at the top, a point at the bottom)', () => {
 		const on = rows.flat().filter(Boolean).length;
@@ -33,7 +33,7 @@ describe('fine chart', () => {
 	});
 
 	it('keeps the standard chart unchanged', () => {
-		expect(chart('Fair isle', 6, 5)).toBe(chart('Fair isle', 6, 5, STANDARD_TILE));
+		expect(chart('Fair isle', 6, 5)).toBe(chart('Fair isle', 6, 5, undefined, STANDARD_TILE));
 		expect(chart('Fair isle', 0, 0)).toBe(true);
 	});
 });

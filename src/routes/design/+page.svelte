@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import PatternChoice from '$lib/sweater/PatternChoice.svelte';
 	import Choice from '$lib/sweater/Choice.svelte';
 	import Stage from '$lib/sweater/Stage.svelte';
 	import TopBar from '$lib/sweater/TopBar.svelte';
@@ -37,6 +38,7 @@
 		sleeveRib: '1×1',
 		cuffLength: 'Regular',
 		pattern: 'Solid',
+		motif: '',
 		color: '#465e9d',
 		contrast: '#faf3dc',
 		gauge: 18,
@@ -139,7 +141,11 @@
 								{#each fields as field (field.key)}
 									<div class="field">
 										<div class="label"><span>{field.label}</span>{#if field.kind === 'color'}<em>{labelOf(field, design)}</em>{/if}</div>
-										<Choice {field} bind:design />
+										{#if field.key === 'pattern'}
+											<PatternChoice bind:design />
+										{:else}
+											<Choice {field} bind:design />
+										{/if}
 										{#if field.key === 'size' && design.size === 'Custom' && design.custom}
 											<Measurements bind:design />
 										{/if}

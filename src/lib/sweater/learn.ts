@@ -35,7 +35,7 @@ export const techniques: Technique[] = [
 	{ id: 'stretchy-bind-off', label: 'A stretchy bind-off', url: 'https://nimble-needles.com/stitches/how-to-knit-jenys-surprisingly-stretchy-bind-off/', source: NIMBLE, match: /stretchy bind-off/ },
 	{ id: 'i-cord', label: 'I-cord bind-off', url: 'https://www.purlsoho.com/create/i-cord-bind-off/', source: PURL, match: /I-cord bind-off/ },
 	{ id: 'jogless', label: 'Jogless stripes', url: 'https://nimble-needles.com/tutorials/knitting-jogless-stripes-in-the-round/', source: NIMBLE, match: /jogless/ },
-	{ id: 'fair-isle', label: 'Knitting with two colours', url: 'https://blog.tincanknits.com/2015/05/26/how-to-knit-fair-isle/', source: TCK, match: /^Fair Isle/ },
+	{ id: 'fair-isle', label: 'Knitting with two colours', url: 'https://blog.tincanknits.com/2015/05/26/how-to-knit-fair-isle/', source: TCK, match: /^(Fair Isle|Colourwork)/ },
 	{ id: 'buttonhole', label: 'Buttonholes', url: 'https://www.purlsoho.com/create/horizontal-one-row-buttonhole/', source: PURL, match: /buttonholes/ },
 	{ id: 'ends', label: 'Weaving in ends', url: 'https://www.purlsoho.com/create/weaving-in-your-ends/', source: PURL, match: /Weave in/ },
 	{ id: 'blocking', label: 'Blocking', url: 'https://blog.tincanknits.com/2013/06/14/blocking-basics/', source: TCK, match: /Wet block/ }

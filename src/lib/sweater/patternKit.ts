@@ -1,6 +1,6 @@
 import { measure, type Design } from './garment';
 import { needleLabel, needlesOf, weightOf } from './needles';
-import { chart, tileFor, TILE_ROWS } from './yarn';
+import { contrastShare, longestFloat, tileFor, tileOf, TILE_ROWS } from './motifs';
 
 /**
  * What the raglan and set-in pattern writers share: the shape of a pattern, small knitting helpers,
@@ -92,8 +92,10 @@ type Done = {
 	measurements: [string, string][];
 	abbreviations: [string, string][];
 	sections: PatternSection[];
-	/** Fair Isle chart, rows top to bottom in knitting order; true = contrast colour. */
+	/** Colourwork chart, rows top to bottom in knitting order; true = contrast colour. */
 	chart: boolean[][] | null;
+	/** Name of the charted pattern, e.g. "Fair Isle". */
+	chartName: string;
 };
 export type Pattern = { ok: false; reason: string } | (Done & { construction: 'Raglan'; counts: Counts }) | (Done & { construction: 'Set-in'; counts: SetInCounts });
 
@@ -141,11 +143,20 @@ export function evenly(from: number, to: number) {
 	return `decrease ${sts(-d)} evenly (k2tog about every ${Math.max(2, Math.floor(from / -d))} sts)`;
 }
 
+/** Patterns worked as stranded colourwork from a chart (everything except plain and stripes). */
+export const isColourwork = (pattern: string) => pattern !== 'Solid' && pattern !== 'Stripes';
+
+/** The chart a colourwork design is knit from, and what the pattern calls it. */
+export function chartOf(d: Design, gauge: number) {
+	if (!isColourwork(d.pattern)) return { chart: null, chartName: '' };
+	return { chart: tileOf(d.pattern, d.motif, tileFor(d.pattern, gauge)), chartName: d.pattern === 'Fair isle' ? 'Fair Isle' : d.pattern };
+}
+
 // ── Materials (also used by the bottom bar) ─────────────────────────────
 export function estimate(d: Design) {
 	const yarn = weightOf(d.gauge);
 	const m = measure(d);
-	const fairIsle = d.pattern === 'Fair isle';
+	const fairIsle = isColourwork(d.pattern);
 	// Fabric area (cm²): body, sleeves below the underarm, sleeve tops in the yoke, collar.
 	const sleeveBody = m.sleeveBody + m.cuffLen;
 	const area =
@@ -157,12 +168,7 @@ export function estimate(d: Design) {
 	const yards = Math.round(area * 0.125 * (m.gauge / 18) * (fairIsle ? 1.2 : 1));
 	let share = 0;
 	if (d.pattern === 'Stripes') share = 5 / TILE_ROWS;
-	if (fairIsle) {
-		const tile = tileFor(d.pattern, m.gauge);
-		let on = 0;
-		for (let j = 0; j < tile.rows; j++) for (let i = 0; i < tile.st; i++) on += +chart('Fair isle', i, j, tile);
-		share = on / (tile.rows * tile.st);
-	}
+	if (fairIsle) share = contrastShare(d.pattern, d.motif, tileFor(d.pattern, m.gauge));
 	const contrastYards = share ? Math.max(20, Math.round(yards * share * 1.1)) : 0;
 	const mainYards = yards - Math.round(yards * share);
 	const skeins = (y: number) => Math.ceil(y / yarn.yardage);
@@ -223,10 +229,10 @@ export function scale(m: Measures) {
 	};
 }
 
-/** Stripes and Fair Isle: how the colour is carried through every stockinette section. */
+/** Stripes and charted colourwork: how the colour is carried through every stockinette section. */
 export function colourSection(d: Design, m: Measures, how: { flat: boolean; start: string; yoke: string; grow: string }): PatternSection | null {
 	const stripes = d.pattern === 'Stripes';
-	const fairIsle = d.pattern === 'Fair isle';
+	const fairIsle = isColourwork(d.pattern);
 	if (!stripes && !fairIsle) return null;
 	const tile = tileFor(d.pattern, m.gauge);
 	const R = how.flat ? 'row' : 'round';
@@ -236,11 +242,13 @@ export function colourSection(d: Design, m: Measures, how: { flat: boolean; star
 			note: true,
 			text: `Stripes: in every stockinette section (${how.yoke}, body, sleeves) work a 16-${R} repeat of 11 ${R}s main colour, then 5 ${R}s contrast colour. Carry the unused colour up the inside at the start of the ${R}${how.flat ? '' : ' and use a jogless join'}. Start the stripes once ${how.start}.`
 		});
+	const chartName = d.pattern === 'Fair isle' ? 'Fair Isle' : `Colourwork (${d.pattern === 'Custom' ? 'your own chart' : d.pattern.toLowerCase()})`;
+	const floatMax = fairIsle ? longestFloat(d.pattern, d.motif, tile) : 0;
 	if (fairIsle)
 		steps.push({
 			note: true,
 			tip: `Knit a plain sweater first if you can. Colourwork pulls the fabric tighter than plain knitting, so swatch in the chart pattern and go up a needle size if your stitches come out smaller.`,
-			text: `Fair Isle: in every stockinette section (${how.yoke}, body, sleeves) work the chart, a ${tile.st}-st, ${tile.rows}-${R} repeat, reading rows from top to bottom (the sweater is knit top down). Start once ${how.start}. Work ${how.grow} into the chart as they appear. On the body the repeat fits exactly; on the sleeves centre it on the top of the arm and let it break at the underarm. Keep floats loose, and catch any float longer than 5 sts.`
+			text: `${chartName}: in every stockinette section (${how.yoke}, body, sleeves) work the chart, a ${tile.st}-st, ${tile.rows}-${R} repeat, reading rows from top to bottom (the sweater is knit top down). Start once ${how.start}. Work ${how.grow} into the chart as they appear. On the body the repeat fits exactly; on the sleeves centre it on the top of the arm and let it break at the underarm. Keep floats loose, and catch any float longer than 5 sts.${floatMax > 5 ? ` This chart carries the yarn up to ${floatMax} sts, so catch those floats as you go.` : ''}`
 		});
 	return { id: 'colour', title: stripes ? 'Stripes' : 'Colourwork', intro: `This applies to the whole garment. Read it now and come back to it when you reach the plain knitting after the neck.`, steps };
 }

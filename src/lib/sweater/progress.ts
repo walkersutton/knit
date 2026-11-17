@@ -93,7 +93,7 @@ export function progressAt(tasks: Task[], key: string, p: Progress = {}): Progre
 export const signature = (d: Design) =>
 	Object.entries(d)
 		// Custom measurements only count while they are in use; switching back to a size leaves them out.
-		.filter(([key, value]) => key !== 'color' && key !== 'contrast' && key !== 'ribNeedle' && (key !== 'needle' || value) && (key !== 'custom' || d.size === 'Custom'))
+		.filter(([key, value]) => key !== 'color' && key !== 'contrast' && key !== 'ribNeedle' && (key !== 'motif' || d.pattern === 'Custom') && (key !== 'needle' || value) && (key !== 'custom' || d.size === 'Custom'))
 		.sort(([a], [b]) => a.localeCompare(b))
 		.map(([key, value]) => `${key}=${key === 'custom' ? JSON.stringify(value) : value}`)
 		.join('|');
