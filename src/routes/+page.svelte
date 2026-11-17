@@ -23,7 +23,7 @@
 			'Live 3D sweater preview',
 			'Written top-down raglan knitting patterns with stitch counts',
 			'Sweaters, T-shirts, cardigans and slipovers',
-			'Adult, junior, kid and baby sizes from XS to XL',
+			'Adult, junior, kid and baby sizes from XS to XL, or a custom fit from your own measurements',
 			'Fingering, DK, worsted and bulky yarn weights',
 			'Yarn yardage, skein and needle size estimates',
 			'Patterns written for the needle sizes you already own',

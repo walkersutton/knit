@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { ARM_SHARE, CUSTOM, sizeStep, wearerScale, type Custom } from './fit';
 import { stitchGauge } from './needles';
 import { TILE_ROWS, TILE_ST } from './yarn';
 
@@ -7,7 +8,10 @@ export type Design = {
 	wearer: string;
 	garment: string;
 	construction: string;
+	/** XS to XL, or 'Custom' to use `custom`. */
 	size: string;
+	/** The knitter's own measurements, used while `size` is 'Custom' and kept when they switch back. */
+	custom: Custom | null;
 	fit: string;
 	bodyLength: string;
 	sleeveLength: string;
@@ -75,8 +79,10 @@ const ribDepth = (len: string) => (len === 'Short' ? 3 : len === 'Long' ? 10 : 6
  */
 export function measure(d: Design) {
 	// ── Wearer and size ─────────────────────────────────────────────────
-	const k = d.wearer === 'Junior' ? 0.8 : d.wearer === 'Kid' ? 0.62 : d.wearer === 'Baby' ? 0.46 : 1;
-	const sizeAdj = { XS: -3, S: -1.5, M: 0, L: 1.5, XL: 3 }[d.size] ?? 0;
+	// Custom measurements stand in for both: the proportions scale with the chest instead of the wearer.
+	const c = d.size === CUSTOM ? d.custom : null;
+	const k = c ? Math.min(1.5, Math.max(0.4, c.chest / 96)) : wearerScale(d.wearer);
+	const sizeAdj = c ? 0 : sizeStep(d.size);
 	const fitAdj = d.fit === 'Fitted' ? -3 : d.fit === 'Oversized' ? 5 : 0;
 	const hasSleeves = d.garment !== 'Slipover';
 	const raglan = d.construction === 'Raglan' && hasSleeves;
@@ -87,9 +93,10 @@ export function measure(d: Design) {
 	const rowPerCm = stPerCm * 1.35; // assumed stockinette row:stitch ratio
 
 	// ── Body ────────────────────────────────────────────────────────────
-	const W = (25 + sizeAdj + fitAdj) * k; // half chest width
+	// Half chest width. For a custom fit it is the body plus ease: relaxed adds 4 cm round the chest (less on a small body).
+	const W = c ? c.chest / 4 + (fitAdj + 1) * Math.min(1, k) : (25 + sizeAdj + fitAdj) * k;
 	const D = W * 0.38; // half chest depth
-	const L = (d.bodyLength === 'Cropped' ? 44 : d.bodyLength === 'Long' ? 66 : 56) * k; // hem to back neck
+	const L = c ? c.length : (d.bodyLength === 'Cropped' ? 44 : d.bodyLength === 'Long' ? 66 : 56) * k; // hem to back neck
 	// Underarm height. A raglan yoke sits deeper so its increases keep the usual every-other-round rhythm.
 	const ya = L - (20 + (raglan ? 3 : 0) + fitAdj * 0.4) * k;
 	const ys = L - (raglan ? 6 : 3.5) * k; // shoulder-point height
@@ -119,8 +126,13 @@ export function measure(d: Design) {
 	// Wrist and balloon cuff keep the same proportion to the upper arm as the original sleeve shape.
 	const armScale = R / ((9 + fitAdj * 0.4 + sizeAdj * 0.25) * k);
 	const wrist = (5.5 + fitAdj * 0.15) * k * armScale; // wrist radius
+	const cuffRibbed = d.cuffFinish === 'Ribbed';
+	const cuffLen = (cuffRibbed ? ribDepth(d.cuffLength) * (d.sleeveLength === 'Short' ? 0.45 : 1) : d.cuffFinish === 'Folded hem' ? 2.5 : 0) * k;
 	// Shoulder to cuff. A raglan's deeper underarm needs a longer short sleeve to reach below it.
-	const sleeveLen = (d.sleeveLength === 'Short' ? (raglan ? 16 : 13) : d.sleeveLength === '3/4' ? 34 : 50) * k;
+	// A custom arm is measured underarm to wrist: the sleeve length covers its share, and the cuff is part of that.
+	const sleeveLen = c
+		? Math.max(2 * k, c.arm * (ARM_SHARE[d.sleeveLength] ?? 1) - cuffLen) + (8 + (raglan ? 3 : 0)) * k
+		: (d.sleeveLength === 'Short' ? (raglan ? 16 : 13) : d.sleeveLength === '3/4' ? 34 : 50) * k;
 	/** Underarm to the start of the cuff: what a knitter measures. */
 	const sleeveBody = Math.max(2 * k, sleeveLen - (8 + (raglan ? 3 : 0)) * k);
 	// The model's sleeve tube starts this far inside the shoulder; arm lengths below count from there.
@@ -138,8 +150,6 @@ export function measure(d: Design) {
 	/** Width factor at fraction t of the tube length: balloon swells below the elbow, puff just below the shoulder. */
 	const sleeveShape = (t: number) =>
 		d.sleeveShape === 'Balloon' ? 1 + 0.36 * Math.sin(Math.PI * Math.pow(t, 1.7)) : d.sleeveShape === 'Puff' ? 1 + 0.42 * Math.exp(-Math.pow((t - 0.27) / 0.16, 2)) : 1;
-	const cuffRibbed = d.cuffFinish === 'Ribbed';
-	const cuffLen = (cuffRibbed ? ribDepth(d.cuffLength) * (d.sleeveLength === 'Short' ? 0.45 : 1) : d.cuffFinish === 'Folded hem' ? 2.5 : 0) * k;
 
 	return {
 		k, sizeAdj, fitAdj, hasSleeves, raglan,
@@ -147,7 +157,7 @@ export function measure(d: Design) {
 		W, D, L, ya, ys, S, hemH, slitH, chest,
 		N, Nd, dropF, dropB,
 		standH, collarH,
-		upperArm, R, wrist, sleeveLen, sleeveBody, sleeveInside, tubeLen, armR, sleeveShape, sleeveR, cuffR, cuffLen
+		upperArm, R, wrist, sleeveLen, sleeveBody, sleeveInside, tubeLen, armR, sleeveShape, sleeveR, cuffR, cuffLen, cuffRibbed
 	};
 }
 
@@ -677,9 +687,8 @@ export function buildGarment(d: Design): Garment {
 
 	// ── Sleeves ─────────────────────────────────────────────────────────
 	if (hasSleeves) {
-		const { R, cuffLen, cuffR: endR } = m;
-		const cuffRibbed = d.cuffFinish === 'Ribbed';
-		const split = cuffLen ? rings.findIndex((r) => r.l >= len - 1e-6) : STEPS;
+		const { R, cuffLen, cuffRibbed, cuffR: endR } = m;
+			const split = cuffLen ? rings.findIndex((r) => r.l >= len - 1e-6) : STEPS;
 		const SC = 56;
 		const gather = d.sleeveShape === 'Balloon' ? 0.075 : cuffRibbed && d.sleeveRib !== 'Stockinette' ? 0.04 : 0.015;
 		// Soft drape: a few shallow folds inside the elbow, and fabric bunching where it is gathered into the cuff.

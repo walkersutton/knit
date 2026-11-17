@@ -1,3 +1,4 @@
+import { validCustom } from './fit';
 import type { Design } from './garment';
 import { cleanNeedles } from './needles';
 import { sections } from './options';
@@ -91,9 +92,10 @@ export function progressAt(tasks: Task[], key: string, p: Progress = {}): Progre
  */
 export const signature = (d: Design) =>
 	Object.entries(d)
-		.filter(([key, value]) => key !== 'color' && key !== 'contrast' && key !== 'ribNeedle' && (key !== 'needle' || value))
+		// Custom measurements only count while they are in use; switching back to a size leaves them out.
+		.filter(([key, value]) => key !== 'color' && key !== 'contrast' && key !== 'ribNeedle' && (key !== 'needle' || value) && (key !== 'custom' || d.size === 'Custom'))
 		.sort(([a], [b]) => a.localeCompare(b))
-		.map(([key, value]) => `${key}=${value}`)
+		.map(([key, value]) => `${key}=${key === 'custom' ? JSON.stringify(value) : value}`)
 		.join('|');
 
 // ── Saved on this device ────────────────────────────────────────────────
@@ -111,7 +113,7 @@ function validDesign(value: unknown, like: Design): value is Design {
 	const v = value as Record<string, unknown>;
 	const keys = Object.keys(like);
 	const fields = sections.flatMap((s) => s.groups).flatMap((g) => g.fields);
-	return Object.keys(v).length === keys.length && keys.every((key) => key in v) && fields.every((f) => f.options.some((o) => o.value === v[f.key]));
+	return Object.keys(v).length === keys.length && keys.every((key) => key in v) && validCustom(v.custom) && fields.every((f) => f.options.some((o) => o.value === v[f.key]));
 }
 
 export function load(like: Design): Saved {

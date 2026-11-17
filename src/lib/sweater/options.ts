@@ -1,3 +1,4 @@
+import { CUSTOM, standardBody } from './fit';
 import type { Design } from './garment';
 
 export type Option = { label: string; value: string | number };
@@ -13,6 +14,7 @@ export type Section = { id: string; label: string; groups: Group[] };
 
 const opts = (...labels: string[]): Option[] => labels.map((label) => ({ label, value: label }));
 const sleeved = (d: Design) => d.garment !== 'Slipover';
+const standard = (d: Design) => d.size !== CUSTOM;
 
 export const RIBS = ['1×1', '2×2', '2×1', 'Twisted', 'Stockinette'];
 const finishes = opts('Ribbed', 'Folded hem', 'Rolled edge', 'I-cord');
@@ -55,16 +57,16 @@ export const sections: Section[] = [
 				fields: [
 					{ key: 'garment', label: 'Type', kind: 'choice', options: opts('Sweater', 'T-shirt', 'Slipover', 'Cardigan') },
 					{ key: 'construction', label: 'Construction', kind: 'choice', options: opts('Raglan', 'Set-in'), show: sleeved },
-					{ key: 'wearer', label: 'Made for', kind: 'choice', options: opts('Adult', 'Junior', 'Kid', 'Baby') }
+					{ key: 'wearer', label: 'Made for', kind: 'choice', options: opts('Adult', 'Junior', 'Kid', 'Baby'), show: standard }
 				]
 			},
 			{
 				id: 'fit',
 				label: 'Size & fit',
 				fields: [
-					{ key: 'size', label: 'Size', kind: 'choice', options: opts('XS', 'S', 'M', 'L', 'XL') },
+					{ key: 'size', label: 'Size', kind: 'choice', options: opts('XS', 'S', 'M', 'L', 'XL', CUSTOM) },
 					{ key: 'fit', label: 'Fit', kind: 'choice', options: opts('Fitted', 'Relaxed', 'Oversized') },
-					{ key: 'bodyLength', label: 'Body length', kind: 'choice', options: opts('Cropped', 'Regular', 'Long') }
+					{ key: 'bodyLength', label: 'Body length', kind: 'choice', options: opts('Cropped', 'Regular', 'Long'), show: standard }
 				]
 			},
 			{
@@ -151,10 +153,12 @@ export const visible = (group: Group, d: Design) => (group.show && !group.show(d
 
 export function choose(d: Design, key: keyof Design, value: string | number) {
 	(d as Record<string, unknown>)[key] = value;
+	// Custom starts from the standard size they were looking at, so the numbers are never blank.
+	if (key === 'size' && value === CUSTOM && !d.custom) d.custom = standardBody(d.wearer, d.size === CUSTOM ? 'M' : d.size);
 	if (key === 'garment' && value === 'T-shirt') d.sleeveLength = 'Short';
 	if (key === 'garment' && value !== 'T-shirt' && d.sleeveLength === 'Short') d.sleeveLength = 'Full';
 }
 
 export const labelOf = (field: Field, d: Design) => field.options.find((o) => o.value === d[field.key])?.label ?? String(d[field.key]);
 
-export const summary = (d: Design) => `${d.wearer} ${d.size} · ${d.construction === 'Raglan' && d.garment !== 'Slipover' ? `Raglan ${d.garment.toLowerCase()}` : d.garment}`;
+export const summary = (d: Design) => `${d.size === CUSTOM && d.custom ? `Custom ${d.custom.chest} cm chest` : `${d.wearer} ${d.size}`} · ${d.construction === 'Raglan' && d.garment !== 'Slipover' ? `Raglan ${d.garment.toLowerCase()}` : d.garment}`;

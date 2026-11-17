@@ -678,10 +678,11 @@ export function writePattern(d: Design): Pattern {
 	if (vNeck) abbreviations.push(['s2kp', 'slip 2 together knitwise, k1, pass the 2 slipped sts over (2 sts decreased, centred)']);
 	if (cardigan && buttonMm <= 15) abbreviations.push(['yo', 'yarn over']);
 
-	const wearer = d.wearer === 'Adult' ? '' : `${d.wearer} `;
+	const custom = d.size === 'Custom';
+	const wearer = custom || d.wearer === 'Adult' ? '' : `${d.wearer} `;
 	return {
 		ok: true,
-		title: `${wearer}${d.neckline} raglan ${d.garment.toLowerCase()}, size ${d.size}`,
+		title: `${wearer}${d.neckline} raglan ${d.garment.toLowerCase()}, ${custom ? 'custom fit' : `size ${d.size}`}`,
 		level: est.level,
 		materials,
 		gauge: `${est.gauge} sts and ${rowGauge} ${cardigan ? 'rows' : 'rounds'} = 10 cm (4 in) in stockinette on the main needle, after blocking. Knit a swatch and change needle size if needed: the stitch counts depend on matching the stitch gauge.`,

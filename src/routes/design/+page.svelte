@@ -6,6 +6,7 @@
 	import type { Design } from '$lib/sweater/garment';
 	import { mainSizes, needleLabel, pickNeedles } from '$lib/sweater/needles';
 		import Needles from '$lib/sweater/Needles.svelte';
+	import Measurements from '$lib/sweater/Measurements.svelte';
 	import { labelOf, sections, summary, visible } from '$lib/sweater/options';
 	import { estimate, writePattern } from '$lib/sweater/pattern';
 	import PatternView from '$lib/sweater/PatternView.svelte';
@@ -21,6 +22,7 @@
 		garment: 'Sweater',
 		construction: 'Raglan',
 		size: 'M',
+		custom: null,
 		fit: 'Relaxed',
 		bodyLength: 'Regular',
 		sleeveLength: 'Full',
@@ -127,6 +129,9 @@
 									<div class="field">
 										<div class="label"><span>{field.label}</span>{#if field.kind === 'color'}<em>{labelOf(field, design)}</em>{/if}</div>
 										<Choice {field} bind:design />
+										{#if field.key === 'size' && design.size === 'Custom' && design.custom}
+											<Measurements bind:design />
+										{/if}
 									</div>
 								{/each}
 							</section>

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { writePattern, patternText } from './pattern';
-import { baseDesign, needleVariations, randomDesigns, singleVariations } from './testDesigns';
+import { baseDesign, customVariations, needleVariations, randomDesigns, singleVariations } from './testDesigns';
 
 const RIB_REP: Record<string, number> = { '1×1': 2, '2×2': 4, '2×1': 3, Twisted: 2, Stockinette: 1 };
-const designs = [...singleVariations(), ...needleVariations(), ...randomDesigns(600, 7)];
+const designs = [...singleVariations(), ...needleVariations(), ...customVariations(), ...randomDesigns(600, 7)];
 
 describe('writePattern', () => {
 	it('only writes raglan patterns with sleeves for now', () => {
