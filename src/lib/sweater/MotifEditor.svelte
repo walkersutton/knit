@@ -1,12 +1,17 @@
 <script lang="ts">
 	import { flipH, flipV, invert, isOn, lineCells, mirror, paint, shift } from './chartEdit';
-	import { blankMotif, TILE_ROWS, TILE_ST } from './motifs';
+	import { blankMotif, resizeMotif, tileOfMotif, FINE_TILE, STANDARD_TILE } from './motifs';
 
 	/**
 	 * The paintable chart. It only edits `motif`; nothing else on the page re-renders while you paint,
 	 * which keeps a drag in step with the pointer.
 	 */
 	let { motif = $bindable(), color, contrast }: { motif: string; color: string; contrast: string } = $props();
+
+	// A chart is standard or fine (twice the stitches and rows); the grid follows its size.
+	let tile = $derived(tileOfMotif(motif));
+	let TILE_ST = $derived(tile.st);
+	let TILE_ROWS = $derived(tile.rows);
 
 	// ── Undo: one entry per stroke or tool, newest last ──
 	let past = $state<string[]>([]);
@@ -33,6 +38,11 @@
 	}
 	export const canUndo = () => past.length > 0;
 	export const canRedo = () => future.length > 0;
+	/** Redraws the chart on the standard or fine grid. Undo restores the old size. */
+	export function resize(fine: boolean) {
+		commit(resizeMotif(motif, fine ? FINE_TILE : STANDARD_TILE));
+		cursor = [0, 0];
+	}
 	export function apply(tool: 'left' | 'right' | 'up' | 'down' | 'mirror' | 'flipH' | 'flipV' | 'invert' | 'clear') {
 		const ops = {
 			left: () => shift(motif, -1, 0),
@@ -43,7 +53,7 @@
 			flipH: () => flipH(motif),
 			flipV: () => flipV(motif),
 			invert: () => invert(motif),
-			clear: () => blankMotif()
+			clear: () => blankMotif(tile)
 		};
 		commit(ops[tool]());
 	}

@@ -42,3 +42,18 @@ describe('chart text', () => {
 		expect(parseChartText([row, '.'.repeat(11), ...Array(14).fill(row)].join('\n'))).toMatchObject({ ok: false, error: 'Row 2 has 11 stitches. Every row needs 12.' });
 	});
 });
+
+describe('fine chart text', () => {
+	it('round-trips a 24 × 32 chart', async () => {
+		const { chartToText, parseChartText } = await import('./chartText');
+		const { starterMotif, FINE_TILE } = await import('./motifs');
+		const m = starterMotif(FINE_TILE);
+		const text = chartToText('Fine hearts', m, '#465e9d', '#faf3dc');
+		expect(text.split('\n').filter((l) => /^[#.]{24}$/.test(l))).toHaveLength(32);
+		const r = parseChartText(text);
+		expect(r.ok && r.chart.motif).toBe(m);
+		expect(parseChartText(m)).toMatchObject({ ok: true });
+		const bad = parseChartText(text.split('\n').slice(0, -1).join('\n'));
+		expect(bad.ok).toBe(false);
+	});
+});

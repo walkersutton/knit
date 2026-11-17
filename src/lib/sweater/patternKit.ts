@@ -151,7 +151,7 @@ export const isColourwork = (pattern: string) => pattern !== 'Solid' && pattern 
 /** The chart a colourwork design is knit from, and what the pattern calls it. */
 export function chartOf(d: Design, gauge: number) {
 	if (!isColourwork(d.pattern)) return { chart: null, chartName: '' };
-	return { chart: tileOf(d.pattern, d.motif, tileFor(d.pattern, gauge)), chartName: d.pattern === 'Fair isle' ? 'Fair Isle' : d.pattern };
+	return { chart: tileOf(d.pattern, d.motif, tileFor(d.pattern, gauge, d.motif)), chartName: d.pattern === 'Fair isle' ? 'Fair Isle' : d.pattern };
 }
 
 // ── Materials (also used by the bottom bar) ─────────────────────────────
@@ -170,7 +170,7 @@ export function estimate(d: Design) {
 	const yards = Math.round(area * 0.125 * (m.gauge / 18) * (fairIsle ? 1.2 : 1));
 	let share = 0;
 	if (d.pattern === 'Stripes') share = 5 / TILE_ROWS;
-	if (fairIsle) share = contrastShare(d.pattern, d.motif, tileFor(d.pattern, m.gauge));
+	if (fairIsle) share = contrastShare(d.pattern, d.motif, tileFor(d.pattern, m.gauge, d.motif));
 	const contrastYards = share ? Math.max(20, Math.round(yards * share * 1.1)) : 0;
 	const mainYards = yards - Math.round(yards * share);
 	const skeins = (y: number) => Math.ceil(y / yarn.yardage);
@@ -236,7 +236,7 @@ export function colourSection(d: Design, m: Measures, how: { flat: boolean; star
 	const stripes = d.pattern === 'Stripes';
 	const fairIsle = isColourwork(d.pattern);
 	if (!stripes && !fairIsle) return null;
-	const tile = tileFor(d.pattern, m.gauge);
+	const tile = tileFor(d.pattern, m.gauge, d.motif);
 	const R = how.flat ? 'row' : 'round';
 	const steps: Step[] = [];
 	if (stripes)

@@ -101,7 +101,7 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 	const cardigan = d.garment === 'Cardigan';
 	const vNeck = d.neckline === 'V-neck';
 	const fairIsle = isColourwork(d.pattern);
-	const tile = tileFor(d.pattern, m.gauge);
+	const tile = tileFor(d.pattern, m.gauge, d.motif);
 	const slits = !cardigan && m.slitH > 0;
 	const R = cardigan ? 'row' : 'round';
 	const slip = !m.hasSleeves; // a slipover: no sleeves, a rolled edge round each armhole instead

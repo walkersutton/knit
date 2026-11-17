@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { TILE_ROWS, TILE_ST } from './motifs';
+	import { tileOfMotif } from './motifs';
 
 	/**
 	 * A custom chart drawn as fabric: `across` × `down` repeats of the tile, or a single tile for a
@@ -8,6 +8,9 @@
 	let { motif, color, contrast, across = 1, down = 1, label }: { motif: string; color: string; contrast: string; across?: number; down?: number; label?: string } = $props();
 
 	const uid = $props.id();
+	let tile = $derived(tileOfMotif(motif));
+	let TILE_ST = $derived(tile.st);
+	let TILE_ROWS = $derived(tile.rows);
 	let on = $derived([...motif].flatMap((c, k) => (c === '1' ? [[k % TILE_ST, Math.floor(k / TILE_ST)]] : [])));
 </script>
 

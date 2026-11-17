@@ -125,7 +125,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 	const inFlight = new Map<string, Promise<void>>();
 	const MAX_READY = 3;
 	let disposed = false;
-	const colorsOf = (d: Design) => [d.color, d.contrast, d.pattern, tileFor(d.pattern, stitchGauge(d) || 18).fine, d.pattern === 'Custom' ? d.motif : ''].join('|');
+	const colorsOf = (d: Design) => [d.color, d.contrast, d.pattern, tileFor(d.pattern, stitchGauge(d) || 18, d.motif).fine, d.pattern === 'Custom' ? d.motif : ''].join('|');
 	const disposeMaps = (list: KnitMaps[]) => list.forEach((m) => (m.map.dispose(), m.normalMap.dispose()));
 	const disposeShape = (s: Shape) => s.children.forEach((c) => (c as THREE.Mesh).geometry?.dispose());
 	const idle = () =>
@@ -168,7 +168,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 
 	/** One stitch texture pair per fabric: stockinette, then each rib. */
 	function* mapJob(d: Design): Generator<void, KnitMaps[]> {
-		const base = { color: d.color, contrast: d.contrast, pattern: d.pattern, motif: d.motif, tile: tileFor(d.pattern, stitchGauge(d) || 18), shade: 0.3, bump: 3.4 };
+		const base = { color: d.color, contrast: d.contrast, pattern: d.pattern, motif: d.motif, tile: tileFor(d.pattern, stitchGauge(d) || 18, d.motif), shade: 0.3, bump: 3.4 };
 		const made: KnitMaps[] = [];
 		for (const part of [{ kind: 'stockinette' as const }, ...RIBS.map((rib) => ({ kind: 'rib' as const, rib }))]) {
 			const m = makeKnitMaps({ ...base, ...part });

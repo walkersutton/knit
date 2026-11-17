@@ -3,7 +3,8 @@
 	import type { Design } from './garment';
 	import { editLink, loadLibrary, type SavedPattern } from './library';
 	import { choose } from './options';
-	import { chart, CUSTOM_PATTERN, PATTERNS, TILE_ROWS, TILE_ST } from './motifs';
+	import { chart, chartFit, CUSTOM_PATTERN, FINE_GAUGE, FINE_TILE, PATTERNS, resizeMotif, STANDARD_TILE, TILE_ROWS, TILE_ST } from './motifs';
+	import { stitchGauge } from './needles';
 	import MotifSwatch from './MotifSwatch.svelte';
 
 	let { design = $bindable() }: { design: Design } = $props();
@@ -14,6 +15,10 @@
 			for (let j = 0; j < TILE_ROWS; j++) for (let i = 0; i < TILE_ST; i++) if (chart(pattern, i, j, motif)) out.push([i, j]);
 		return out;
 	};
+
+	/** A chart drawn for finer or coarser yarn than the one chosen on the Yarn step. */
+	let fit = $derived(design.pattern === CUSTOM_PATTERN ? chartFit(design.motif, stitchGauge(design)) : undefined);
+	let gauge = $derived(stitchGauge(design));
 
 	/** The knitter's own charts, from the pattern designer. */
 	let saved = $state<SavedPattern[]>([]);
@@ -42,6 +47,23 @@
 						<span class="name">{p.name}</span>
 					</button>
 				{/each}
+			</div>
+		{/if}
+		{#if fit}
+			<div class="nudge" role="note">
+				{#if fit === 'too-fine'}
+					<p>
+						This is a fine chart (24 × 32) but your yarn knits at {gauge} stitches per 4 in. Fine charts suit {FINE_GAUGE} or more, so the stitches will be tiny and the floats short. Try fingering weight or a thinner needle, or
+						<button type="button" onclick={() => (design.motif = resizeMotif(design.motif, STANDARD_TILE))}>use the standard size</button>.
+					</p>
+				{:else}
+					<p>
+						Your yarn knits at {gauge} stitches per 4 in, fine enough for a detailed chart, but this one is standard (12 × 16) and will look chunky.
+						<button type="button" onclick={() => (design.motif = resizeMotif(design.motif, FINE_TILE))}>Redraw it as fine</button>
+						to refine it in the pattern designer.
+					</p>
+				{/if}
+				<p class="sub">This only changes the chart on this sweater, not the one saved in your patterns.</p>
 			</div>
 		{/if}
 		<a class="edit" href={editLink(design.motif)}>Open the pattern designer <span aria-hidden="true">→</span></a>
@@ -140,6 +162,36 @@
 		color: var(--accent-deep, var(--ink));
 		font-weight: 600;
 		text-decoration: none;
+	}
+	.nudge {
+		display: grid;
+		gap: 4px;
+		padding: 8px 10px;
+		border: 1px solid #b88a1c;
+		border-radius: 4px;
+		background: #fbf0cf;
+		color: var(--ink);
+		font-size: 12px;
+	}
+	.nudge p {
+		margin: 0;
+	}
+	.nudge .sub {
+		color: var(--muted);
+	}
+	.nudge button {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--accent-deep, var(--ink));
+		font: inherit;
+		font-weight: 600;
+		text-decoration: underline;
+		cursor: pointer;
+	}
+	.nudge button:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
 	}
 	.hint {
 		margin: 0;

@@ -20,9 +20,24 @@ export const FINE_TILE: Tile = { st: 2 * TILE_ST, rows: 2 * TILE_ROWS, fine: tru
 /** From this gauge (stitches per 4 in) up, Fair Isle gets the detailed chart: DK is 22, fingering 28. */
 export const FINE_GAUGE = 25;
 
-/** The chart size for a pattern at a stitch gauge. Only Fair Isle has detail to gain from a finer yarn. */
-export const tileFor = (pattern: string, gauge: number): Tile =>
-	pattern === 'Fair isle' && gauge >= FINE_GAUGE ? FINE_TILE : STANDARD_TILE;
+/**
+ * The chart size for a pattern at a stitch gauge. Fair Isle has detail to gain from a finer yarn.
+ * A custom chart is whatever size its knitter drew it (see `tileOfMotif`), at any gauge.
+ */
+export const tileFor = (pattern: string, gauge: number, custom?: string): Tile =>
+	pattern === CUSTOM_PATTERN ? tileOfMotif(custom) : pattern === 'Fair isle' && gauge >= FINE_GAUGE ? FINE_TILE : STANDARD_TILE;
+
+/**
+ * Whether a custom chart suits the yarn: a fine chart wants a gauge of FINE_GAUGE or more, a standard
+ * one is wasted on it. Undefined when they match, or when there is no valid chart yet.
+ */
+export function chartFit(motif: string | undefined, gauge: number): 'too-fine' | 'too-coarse' | undefined {
+	if (!validMotif(motif)) return undefined;
+	const fine = tileOfMotif(motif).fine;
+	if (fine && gauge < FINE_GAUGE) return 'too-fine';
+	if (!fine && gauge >= FINE_GAUGE) return 'too-coarse';
+	return undefined;
+}
 
 const BIG_HEART = [
 	'.###...###.',
@@ -72,17 +87,47 @@ const MOTIFS: Record<string, Motif> = {
 /** Patterns a knitter can pick, in the order the designer shows them. */
 export const PATTERNS = ['Solid', 'Stripes', 'Fair isle', ...Object.keys(MOTIFS), CUSTOM_PATTERN];
 
-/** One cell of a custom chart per stitch, rows top to bottom: a string of '0' and '1'. */
+/**
+ * One cell of a custom chart per stitch, rows top to bottom: a string of '0' and '1'. Its length
+ * says which size it is: a standard chart (12 × 16) or a fine one (24 × 32) for thinner yarn.
+ */
 export const CUSTOM_LENGTH = TILE_ST * TILE_ROWS;
-export const blankMotif = () => '0'.repeat(CUSTOM_LENGTH);
-export const validMotif = (s: unknown): s is string => typeof s === 'string' && s.length === CUSTOM_LENGTH && /^[01]+$/.test(s);
+export const FINE_LENGTH = FINE_TILE.st * FINE_TILE.rows;
+export const validMotif = (s: unknown): s is string => typeof s === 'string' && (s.length === CUSTOM_LENGTH || s.length === FINE_LENGTH) && /^[01]+$/.test(s);
+/** The size of a custom chart; anything that is not a valid fine chart counts as a standard one. */
+export const tileOfMotif = (s?: string): Tile => (validMotif(s) && s.length === FINE_LENGTH ? FINE_TILE : STANDARD_TILE);
+export const blankMotif = (tile: Tile = STANDARD_TILE) => '0'.repeat(tile.st * tile.rows);
 
 /** A small starter for the custom pattern: a plain diamond, so the grid is never blank. */
-export const starterMotif = () => motifToString((i, j) => MOTIFS.Diamonds.rows[mod(j, 8)]?.[mod(i, 6)] === '#');
+export const starterMotif = (tile: Tile = STANDARD_TILE) => motifToString(tile, (i, j) => MOTIFS.Diamonds.rows[mod(j, 8)]?.[mod(i, 6)] === '#');
 
-function motifToString(on: (i: number, j: number) => boolean) {
+function motifToString(tile: Tile, on: (i: number, j: number) => boolean) {
+	// A fine chart draws the same picture with every stitch twice as big on the grid.
+	const k = tile.fine ? 2 : 1;
 	let s = '';
-	for (let j = 0; j < TILE_ROWS; j++) for (let i = 0; i < TILE_ST; i++) s += on(i, j) ? '1' : '0';
+	for (let j = 0; j < tile.rows; j++) for (let i = 0; i < tile.st; i++) s += on(Math.floor(i / k), Math.floor(j / k)) ? '1' : '0';
+	return s;
+}
+
+/**
+ * The same chart on the other size's grid. Going finer turns each stitch into a 2 × 2 block, so the
+ * picture is unchanged and can then be refined; going coarser keeps a stitch if at least two of its
+ * four cells were painted, so detail is lost.
+ */
+export function resizeMotif(motif: string, to: Tile): string {
+	const from = tileOfMotif(motif);
+	if (from.fine === to.fine) return motif;
+	let s = '';
+	if (to.fine) {
+		for (let j = 0; j < to.rows; j++) for (let i = 0; i < to.st; i++) s += motif[Math.floor(j / 2) * from.st + Math.floor(i / 2)];
+	} else {
+		for (let j = 0; j < to.rows; j++)
+			for (let i = 0; i < to.st; i++) {
+				let n = 0;
+				for (const [di, dj] of [[0, 0], [1, 0], [0, 1], [1, 1]]) n += +(motif[(2 * j + dj) * from.st + 2 * i + di] === '1');
+				s += n >= 2 ? '1' : '0';
+			}
+	}
 	return s;
 }
 
@@ -98,20 +143,23 @@ function fairIsle(i: number, j: number) {
 }
 
 /** true = this stitch is worked in the contrast colour. `custom` is the knitter's own chart; `tile` picks the fine Fair Isle chart. */
-export function chart(pattern: string, i: number, j: number, custom?: string, tile: Tile = STANDARD_TILE): boolean {
+export function chart(pattern: string, i: number, j: number, custom?: string, tile: Tile = tileFor(pattern, 0, custom)): boolean {
 	if (pattern === 'Stripes') return j < 5;
 	if (pattern === 'Fair isle') return tile.fine ? FINE_CHART[mod(j, tile.rows)][mod(i, tile.st)] : fairIsle(i, j);
-	if (pattern === CUSTOM_PATTERN) return validMotif(custom) && custom[mod(j, TILE_ROWS) * TILE_ST + mod(i, TILE_ST)] === '1';
+	if (pattern === CUSTOM_PATTERN) {
+		const t = tileOfMotif(custom); // the chart's own size, whatever `tile` says
+		return validMotif(custom) && custom[mod(j, t.rows) * t.st + mod(i, t.st)] === '1';
+	}
 	const m = MOTIFS[pattern];
 	return m ? m.rows[mod(j, m.h)]?.[mod(i, m.w)] === '#' : false;
 }
 
 /** Whole tile as rows of booleans, top to bottom. */
-export const tileOf = (pattern: string, custom?: string, tile: Tile = STANDARD_TILE) =>
+export const tileOf = (pattern: string, custom?: string, tile: Tile = tileFor(pattern, 0, custom)) =>
 	Array.from({ length: tile.rows }, (_, j) => Array.from({ length: tile.st }, (_, i) => chart(pattern, i, j, custom, tile)));
 
 /** Share of stitches in the contrast colour. */
-export function contrastShare(pattern: string, custom?: string, tile: Tile = STANDARD_TILE) {
+export function contrastShare(pattern: string, custom?: string, tile: Tile = tileFor(pattern, 0, custom)) {
 	let on = 0;
 	for (const row of tileOf(pattern, custom, tile)) for (const c of row) on += +c;
 	return on / (tile.st * tile.rows);
@@ -121,7 +169,7 @@ export function contrastShare(pattern: string, custom?: string, tile: Tile = STA
  * The longest strand carried behind the work, in stitches: the longest run of one colour in a round
  * that also uses the other. Floats past about 5 stitches snag, so the pattern says to catch them.
  */
-export function longestFloat(pattern: string, custom?: string, tile: Tile = STANDARD_TILE) {
+export function longestFloat(pattern: string, custom?: string, tile: Tile = tileFor(pattern, 0, custom)) {
 	let best = 0;
 	for (const row of tileOf(pattern, custom, tile)) {
 		const n0 = row.length;

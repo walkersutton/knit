@@ -7,14 +7,14 @@
  *   # = pattern colour, . = main colour
  *   ............
  *   ..##....##..
- *   …16 rows of 12 stitches, top row first
+ *   …16 rows of 12 stitches, top row first (a fine chart is 32 rows of 24)
  *
  * Reading it back is forgiving, because people retype charts by hand and chat apps mangle spacing:
  * any of `# X x 1 ■ █ ●` is a pattern stitch, any of `. - _ 0 □ ○ ·` is a main-colour stitch, spaces
  * inside a row are ignored, and every line that is not a chart row or a header line is skipped.
  * A colour can be given by name or by hex, and only the palette's colours are accepted.
  */
-import { TILE_ROWS, TILE_ST, validMotif } from './motifs';
+import { tileOfMotif, validMotif, FINE_TILE, STANDARD_TILE } from './motifs';
 import { colors } from './options';
 
 const ON = '#Xx1■█●';
@@ -37,7 +37,8 @@ function paletteColor(text: string): string | undefined {
 
 export function chartToText(name: string, motif: string, color: string, contrast: string) {
 	const rows: string[] = [];
-	for (let j = 0; j < TILE_ROWS; j++) rows.push([...motif.slice(j * TILE_ST, (j + 1) * TILE_ST)].map((c) => (c === '1' ? '#' : '.')).join(''));
+	const { st, rows: n } = tileOfMotif(motif);
+	for (let j = 0; j < n; j++) rows.push([...motif.slice(j * st, (j + 1) * st)].map((c) => (c === '1' ? '#' : '.')).join(''));
 	return [
 		`Knit It pattern: ${name}`,
 		`Main colour: ${colorName(color)} (${color})`,
@@ -53,7 +54,7 @@ export type ParsedChart = { motif: string; name?: string; color?: string; contra
 export function parseChartText(text: string): { ok: true; chart: ParsedChart } | { ok: false; error: string } {
 	const trimmed = text.trim();
 	if (!trimmed) return { ok: false, error: 'Paste a chart first.' };
-	// The compact form: the 192 noughts and ones on their own.
+	// The compact form: the 192 (or 576) noughts and ones on their own.
 	const bare = trimmed.replace(/\s+/g, '');
 	if (validMotif(bare)) return { ok: true, chart: { motif: bare } };
 
@@ -67,13 +68,15 @@ export function parseChartText(text: string): { ok: true; chart: ParsedChart } |
 		if (main) chart.color = paletteColor(main[1]);
 		else if (contrast) chart.contrast = paletteColor(contrast[1]);
 		else if (header) chart.name = header[1].trim().slice(0, 40) || undefined;
-		else if (/^[-_]+$/.test(line) && line.length !== TILE_ST) continue; // a divider, not a row
+		else if (/^[-_]+$/.test(line) && line.length !== STANDARD_TILE.st && line.length !== FINE_TILE.st) continue; // a divider, not a row
 		else if (line && ROW.test(line)) rows.push([...line.replace(/\s+/g, '')].map((c) => (ON.includes(c) ? '1' : '0')).join(''));
 	}
-	if (!rows.length) return { ok: false, error: `No chart found. Each row should be ${TILE_ST} stitches of # and . characters.` };
-	const wrong = rows.findIndex((r) => r.length !== TILE_ST);
-	if (wrong >= 0) return { ok: false, error: `Row ${wrong + 1} has ${rows[wrong].length} stitches. Every row needs ${TILE_ST}.` };
-	if (rows.length !== TILE_ROWS) return { ok: false, error: `Found ${rows.length} rows. A chart needs ${TILE_ROWS} rows.` };
+	if (!rows.length) return { ok: false, error: `No chart found. Each row should be ${STANDARD_TILE.st} stitches (or ${FINE_TILE.st} for a fine chart) of # and . characters.` };
+	// The first row says which size this chart is; every other row has to agree.
+	const size = rows[0].length === FINE_TILE.st ? FINE_TILE : STANDARD_TILE;
+	const wrong = rows.findIndex((r) => r.length !== size.st);
+	if (wrong >= 0) return { ok: false, error: `Row ${wrong + 1} has ${rows[wrong].length} stitches. Every row needs ${size.st}.` };
+	if (rows.length !== size.rows) return { ok: false, error: `Found ${rows.length} rows. A chart needs ${size.rows} rows.` };
 	if (!chart.color) delete chart.color;
 	if (!chart.contrast) delete chart.contrast;
 	return { ok: true, chart: { ...chart, motif: rows.join('') } };

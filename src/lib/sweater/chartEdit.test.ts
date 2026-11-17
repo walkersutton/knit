@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { flipH, flipV, invert, isOn, lineCells, mirror, paint, shift } from './chartEdit';
 import { designLink, editLink, freshName, parseLibrary, readMotifHash } from './library';
-import { blankMotif, starterMotif, TILE_ROWS, TILE_ST, validMotif } from './motifs';
+import { blankMotif, FINE_TILE, starterMotif, TILE_ROWS, TILE_ST, validMotif } from './motifs';
 
 const one = (i: number, j: number) => paint(blankMotif(), [[i, j]], true);
 
@@ -68,5 +68,24 @@ describe('pattern library', () => {
 		expect(readMotifHash('#motif=0101')).toBeUndefined();
 		expect(readMotifHash(`#motif=${m}&color=red`)).toEqual({ motif: m });
 		expect(readMotifHash('#d=abc')).toBeUndefined();
+	});
+});
+
+describe('fine charts', () => {
+	const fine = blankMotif(FINE_TILE);
+	it('edits on the 24 × 32 grid and keeps its size', () => {
+		const m = paint(fine, [[23, 31], [24, 0]], true);
+		expect(m).toHaveLength(FINE_TILE.st * FINE_TILE.rows);
+		expect(isOn(m, 23, 31)).toBe(true);
+		expect([...m].filter((c) => c === '1')).toHaveLength(1);
+		expect(isOn(shift(m, 1, 1), 0, 0)).toBe(true);
+		expect(isOn(flipH(m), 0, 31)).toBe(true);
+		expect(isOn(flipV(m), 23, 0)).toBe(true);
+		expect(isOn(mirror(paint(fine, [[0, 5]], true)), 23, 5)).toBe(true);
+		expect(invert(fine)).toBe('1'.repeat(FINE_TILE.st * FINE_TILE.rows));
+	});
+	it('travels in a link', () => {
+		const m = starterMotif(FINE_TILE);
+		expect(readMotifHash(designLink(m).replace('/design', ''))?.motif).toBe(m);
 	});
 });

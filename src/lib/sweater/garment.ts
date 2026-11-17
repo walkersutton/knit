@@ -67,7 +67,7 @@ export type Garment = {
 export const shapeKey = (d: Design) => {
 	const { color: _c, contrast: _x, pattern: _p, motif: _m, ribNeedle: _r, ...shape } = d;
 	// A finer colourwork chart repeats half as often, which changes the UVs but nothing else.
-	return JSON.stringify({ ...shape, fine: tileFor(d.pattern, stitchGauge(d) || 18).fine });
+	return JSON.stringify({ ...shape, fine: tileFor(d.pattern, stitchGauge(d) || 18, d.motif).fine });
 };
 
 /** Rib depth in cm (adult) for the 'Rib length' choice. */
@@ -283,7 +283,7 @@ export function buildGarment(d: Design): Garment {
 	const iCordNeck = d.neckline === 'I-cord';
 
 	// Whole chart repeats round every tube, so the texture meets at the seam. The UVs count standard tiles; a fine chart is two of them wide.
-	const unit = tileFor(d.pattern, gauge).fine ? 2 : 1;
+	const unit = tileFor(d.pattern, gauge, d.motif).fine ? 2 : 1;
 	const wraps = (circ: number, stretch = 1) => unit * Math.max(1, Math.round((circ * stPerCm * stretch) / (TILE_ST * unit)));
 	const vOf = (cm: number) => (cm * rowPerCm) / TILE_ROWS;
 

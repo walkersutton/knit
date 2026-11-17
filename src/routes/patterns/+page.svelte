@@ -2,11 +2,13 @@
 	import { onMount } from 'svelte';
 	import Logo from '$lib/Logo.svelte';
 	import Seo from '$lib/Seo.svelte';
+	import ChartIcon from '$lib/sweater/ChartIcon.svelte';
 	import MotifEditor from '$lib/sweater/MotifEditor.svelte';
+	import Pop from '$lib/sweater/Pop.svelte';
 	import MotifSwatch from '$lib/sweater/MotifSwatch.svelte';
 	import { chartToText, parseChartText } from '$lib/sweater/chartText';
 	import { designLink, freshName, loadLibrary, newId, parseLibrary, readMotifHash, saveLibrary, type Library } from '$lib/sweater/library';
-	import { blankMotif, contrastShare, longestFloat, TILE_ROWS, TILE_ST } from '$lib/sweater/motifs';
+	import { blankMotif, contrastShare, FINE_GAUGE, longestFloat, tileOfMotif } from '$lib/sweater/motifs';
 	import { colors } from '$lib/sweater/options';
 
 	const title = 'Pattern designer — Knit It';
@@ -18,7 +20,21 @@
 	let current = $derived(lib.patterns.find((p) => p.id === selected) ?? lib.patterns[0]);
 	let float = $derived(longestFloat('Custom', current.motif));
 	let share = $derived(Math.round(contrastShare('Custom', current.motif) * 100));
+	let tile = $derived(tileOfMotif(current.motif));
 	let editor = $state<MotifEditor>();
+
+	const MOVES = [
+		['left', '←', 'Move left'],
+		['right', '→', 'Move right'],
+		['up', '↑', 'Move up'],
+		['down', '↓', 'Move down']
+	] as const;
+	const TRANSFORMS = [
+		['mirror', 'Mirror', 'Copy the left half onto the right'],
+		['flipH', 'Flip ↔', 'Flip left to right'],
+		['flipV', 'Flip ↕', 'Flip upside down'],
+		['invert', 'Invert', 'Swap the two colours']
+	] as const;
 
 	function add(motif = blankMotif(), name = 'Untitled') {
 		const p = { id: newId(), name: freshName(name, lib.patterns.map((q) => q.name)), motif };
@@ -144,26 +160,34 @@
 		<main class="work">
 			<div class="head">
 				<input class="title" aria-label="Pattern name" maxlength="40" bind:value={current.name} />
-				<span class="size">{TILE_ST} sts × {TILE_ROWS} rows</span>
-			</div>
-			<div class="tools" role="toolbar" aria-label="Chart tools">
-				<div class="group">
-					<button type="button" onclick={() => editor?.undo()} disabled={!editor?.canUndo()} title="Undo (⌘Z)">Undo</button>
-					<button type="button" onclick={() => editor?.redo()} disabled={!editor?.canRedo()} title="Redo (⇧⌘Z)">Redo</button>
+				<div class="seg" role="radiogroup" aria-label="Chart size">
+					<button type="button" role="radio" aria-checked={!tile.fine} onclick={() => tile.fine && editor?.resize(false)} title="12 × 16, for worsted, DK and bulkier yarn">Standard</button>
+					<button type="button" role="radio" aria-checked={tile.fine} onclick={() => !tile.fine && editor?.resize(true)} title="24 × 32, for fingering weight and thinner needles">Fine</button>
 				</div>
-				<div class="group" aria-label="Move">
-					<button type="button" class="icon" onclick={() => editor?.apply('left')} aria-label="Move left" title="Move left">←</button>
-					<button type="button" class="icon" onclick={() => editor?.apply('right')} aria-label="Move right" title="Move right">→</button>
-					<button type="button" class="icon" onclick={() => editor?.apply('up')} aria-label="Move up" title="Move up">↑</button>
-					<button type="button" class="icon" onclick={() => editor?.apply('down')} aria-label="Move down" title="Move down">↓</button>
+				<div class="pair">
+					<button type="button" class="btn icon" onclick={() => editor?.undo()} disabled={!editor?.canUndo()} aria-label="Undo" title="Undo (⌘Z)"><ChartIcon name="undo" /></button>
+					<button type="button" class="btn icon" onclick={() => editor?.redo()} disabled={!editor?.canRedo()} aria-label="Redo" title="Redo (⇧⌘Z)"><ChartIcon name="redo" /></button>
 				</div>
-				<div class="group">
-					<button type="button" onclick={() => editor?.apply('mirror')} title="Copy the left half onto the right">Mirror</button>
-					<button type="button" onclick={() => editor?.apply('flipH')} title="Flip left to right">Flip ↔</button>
-					<button type="button" onclick={() => editor?.apply('flipV')} title="Flip upside down">Flip ↕</button>
-					<button type="button" onclick={() => editor?.apply('invert')} title="Swap the two colours">Invert</button>
-					<button type="button" onclick={() => editor?.apply('clear')}>Clear</button>
-				</div>
+				<Pop label="Transform" align="right">
+					{#snippet button()}Transform <span aria-hidden="true">▾</span>{/snippet}
+					{#snippet children()}
+						<div class="menu">
+							<span class="lab">Move</span>
+							<div class="moves">
+								{#each MOVES as [tool, glyph, name] (tool)}
+									<button type="button" class="btn icon" onclick={() => editor?.apply(tool)} aria-label={name} title={name}>{glyph}</button>
+								{/each}
+							</div>
+							<span class="lab">Transform</span>
+							<div class="tf">
+								{#each TRANSFORMS as [tool, name, hint] (tool)}
+									<button type="button" class="btn" onclick={() => editor?.apply(tool)} title={hint}>{name}</button>
+								{/each}
+							</div>
+							<button type="button" class="btn danger" onclick={() => editor?.apply('clear')}>Clear chart</button>
+						</div>
+					{/snippet}
+				</Pop>
 			</div>
 			<div class="board">
 				<div class="frame">
@@ -172,7 +196,19 @@
 					{/key}
 				</div>
 			</div>
-			<p class="hint">Click or drag to paint. Start on a painted stitch to erase. The chart repeats all round the sweater, so its edges join up.</p>
+			<div class="caption">
+				{tile.st} × {tile.rows} · {share}% pattern colour
+				<Pop label="How this works" up align="right">
+					{#snippet button()}?{/snippet}
+					{#snippet children()}
+						<ul class="tips">
+							<li>Drag to paint. Start on a painted stitch to erase.</li>
+							<li>The chart repeats round the sweater, so its edges join up.</li>
+							<li>Fine suits fingering weight, or any yarn at {FINE_GAUGE}+ stitches per 4 in. Going back to Standard merges each 2 × 2 block.</li>
+						</ul>
+					{/snippet}
+				</Pop>
+			</div>
 		</main>
 
 		<aside class="side">
@@ -181,7 +217,7 @@
 				<div class="fabric"><MotifSwatch motif={current.motif} color={lib.color} contrast={lib.contrast} across={4} down={2} label="{current.name}, repeated 4 times across and twice down" /></div>
 				<p class="meta">{share}% in the pattern colour</p>
 				{#if float > 5}
-					<p class="warn">Some rows carry the yarn behind for {float} stitches. Floats over 5 can snag, so the written pattern will tell you where to catch them.</p>
+					<p class="warn">Floats of {float} stitches can snag; the written pattern says where to catch them.</p>
 				{/if}
 			</section>
 			<section>
@@ -207,7 +243,6 @@
 			</section>
 			<section class="share">
 				<h2>Share as text</h2>
-				<p class="meta">The chart as # and . characters, to keep in a note or send to a friend.</p>
 				<div class="row">
 					<button type="button" onclick={copyText}>{copied ? 'Copied ✓' : 'Copy text'}</button>
 					<button type="button" onclick={saveText}>Save .txt</button>
@@ -394,21 +429,36 @@
 		background: var(--surface);
 		outline: none;
 	}
-	.size {
+	.seg {
+		display: flex;
 		flex: none;
-		color: var(--muted);
-		font-size: 12px;
+		padding: 2px;
+		border: 1px solid var(--line-strong);
+		border-radius: 9px;
+		background: var(--wash);
 	}
-	.tools {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
+	.seg button {
+		height: 28px;
+		padding: 0 12px;
+		border: 0;
+		border-radius: 7px;
+		background: none;
+		color: var(--ink);
+		font: inherit;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background-color 120ms ease-out;
 	}
-	.group {
+	.seg button[aria-checked='true'] {
+		background: #fffdf6;
+		box-shadow: 0 1px 2px rgb(38 51 95 / 0.2);
+	}
+	.pair {
 		display: flex;
+		flex: none;
 		gap: 4px;
 	}
-	.tools button,
+	.btn,
 	.row button {
 		min-width: 36px;
 		height: 34px;
@@ -423,18 +473,42 @@
 		cursor: pointer;
 		transition: background-color 100ms ease-out;
 	}
-	.tools .icon {
+	.btn.icon {
+		display: grid;
+		place-items: center;
 		padding: 0;
-		font-size: 15px;
+		font-size: 16px;
 	}
-	.tools button:disabled {
+	.btn:disabled {
 		box-shadow: none;
 		color: var(--line-strong);
 		cursor: default;
 	}
-	.tools button:active:not(:disabled),
+	.btn:active:not(:disabled),
 	.row button:not(.primary):active {
 		background: var(--wash);
+	}
+	.menu {
+		display: grid;
+		gap: 8px;
+		width: 220px;
+	}
+	.lab {
+		color: var(--muted);
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+	}
+	.moves {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 4px;
+	}
+	.tf {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 4px;
 	}
 	.board {
 		flex: 1;
@@ -451,10 +525,33 @@
 		background: #fffdf6;
 		box-shadow: 0 1px 2px rgb(38 51 95 / 0.12), 0 8px 24px rgb(38 51 95 / 0.08);
 	}
-	.hint {
+	.caption {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
 		margin: 0;
 		color: var(--muted);
-		text-align: center;
+		font-size: 12px;
+	}
+	.caption :global(.trigger) {
+		min-width: 22px;
+		height: 22px;
+		padding: 0;
+		justify-content: center;
+		border-radius: 50%;
+		font-size: 12px;
+	}
+	.tips {
+		display: grid;
+		gap: 6px;
+		width: 240px;
+		margin: 0;
+		padding: 0 0 0 16px;
+		list-style: disc;
+		color: var(--ink);
+		font-size: 12px;
+		line-height: 1.4;
 	}
 
 	/* ── Preview, colours and what to do with it ── */
@@ -512,9 +609,6 @@
 	}
 	.side section:last-child {
 		border-bottom: 0;
-	}
-	.share .meta {
-		margin: -4px 0 2px;
 	}
 	.share .warn {
 		margin: 0;
@@ -602,7 +696,8 @@
 		.item:not([aria-current='true']):hover,
 		.new:hover,
 		.back:hover,
-		.tools button:hover:not(:disabled),
+		.btn:hover:not(:disabled),
+		.seg button[aria-checked='false']:hover,
 		.pastebtn:hover,
 		.row button:not(.primary):hover {
 			background: var(--wash);
