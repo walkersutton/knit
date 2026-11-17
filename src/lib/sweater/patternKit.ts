@@ -96,6 +96,8 @@ type Done = {
 	chart: boolean[][] | null;
 	/** Name of the charted pattern, e.g. "Fair Isle". */
 	chartName: string;
+	/** A slipover: no sleeves, so armhole edgings in their place. */
+	sleeveless: boolean;
 };
 export type Pattern = { ok: false; reason: string } | (Done & { construction: 'Raglan'; counts: Counts }) | (Done & { construction: 'Set-in'; counts: SetInCounts });
 
@@ -240,7 +242,7 @@ export function colourSection(d: Design, m: Measures, how: { flat: boolean; star
 	if (stripes)
 		steps.push({
 			note: true,
-			text: `Stripes: in every stockinette section (${how.yoke}, body, sleeves) work a 16-${R} repeat of 11 ${R}s main colour, then 5 ${R}s contrast colour. Carry the unused colour up the inside at the start of the ${R}${how.flat ? '' : ' and use a jogless join'}. Start the stripes once ${how.start}.`
+			text: `Stripes: in every stockinette section (${how.yoke}, body${m.hasSleeves ? ', sleeves' : ''}) work a 16-${R} repeat of 11 ${R}s main colour, then 5 ${R}s contrast colour. Carry the unused colour up the inside at the start of the ${R}${how.flat ? '' : ' and use a jogless join'}. Start the stripes once ${how.start}.`
 		});
 	const chartName = d.pattern === 'Fair isle' ? 'Fair Isle' : `Colourwork (${d.pattern === 'Custom' ? 'your own chart' : d.pattern.toLowerCase()})`;
 	const floatMax = fairIsle ? longestFloat(d.pattern, d.motif, tile) : 0;
@@ -248,7 +250,7 @@ export function colourSection(d: Design, m: Measures, how: { flat: boolean; star
 		steps.push({
 			note: true,
 			tip: `Knit a plain sweater first if you can. Colourwork pulls the fabric tighter than plain knitting, so swatch in the chart pattern and go up a needle size if your stitches come out smaller.`,
-			text: `${chartName}: in every stockinette section (${how.yoke}, body, sleeves) work the chart, a ${tile.st}-st, ${tile.rows}-${R} repeat, reading rows from top to bottom (the sweater is knit top down). Start once ${how.start}. Work ${how.grow} into the chart as they appear. On the body the repeat fits exactly; on the sleeves centre it on the top of the arm and let it break at the underarm. Keep floats loose, and catch any float longer than 5 sts.${floatMax > 5 ? ` This chart carries the yarn up to ${floatMax} sts, so catch those floats as you go.` : ''}`
+			text: `${chartName}: in every stockinette section (${how.yoke}, body${m.hasSleeves ? ', sleeves' : ''}) work the chart, a ${tile.st}-st, ${tile.rows}-${R} repeat, reading rows from top to bottom (the sweater is knit top down). Start once ${how.start}. Work ${how.grow} into the chart as they appear. On the body the repeat fits exactly.${m.hasSleeves ? ' On the sleeves centre it on the top of the arm and let it break at the underarm.' : ''} Keep floats loose, and catch any float longer than 5 sts.${floatMax > 5 ? ` This chart carries the yarn up to ${floatMax} sts, so catch those floats as you go.` : ''}`
 		});
 	return { id: 'colour', title: stripes ? 'Stripes' : 'Colourwork', intro: `This applies to the whole garment. Read it now and come back to it when you reach the plain knitting after the neck.`, steps };
 }
@@ -416,7 +418,7 @@ export function materialsOf(d: Design, m: Measures, notions: string): [string, s
 			`${yarn.label} weight. Main colour: about ${est.mainYards} yd (${Math.round(est.mainYards * 0.9144)} m), ${est.mainSkeins} × ${yarn.yardage} yd skeins` +
 				(est.contrastYards ? `. Contrast colour: about ${est.contrastYards} yd (${Math.round(est.contrastYards * 0.9144)} m), ${est.contrastSkeins} skein${est.contrastSkeins > 1 ? 's' : ''}` : '')
 		],
-		['Main needle', `${needleLabel(est.needles.main)} circular, ${circ} long, plus DPNs or a long circular for magic loop (sleeves)`],
+		['Main needle', `${needleLabel(est.needles.main)} circular, ${circ} long${m.hasSleeves ? ', plus DPNs or a long circular for magic loop (sleeves)' : ''}`],
 		['Smaller needle', `${needleLabel(est.needles.rib)}, for ribbing and bands`],
 		['Notions', notions]
 	];

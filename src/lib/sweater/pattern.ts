@@ -46,7 +46,7 @@ export type { Counts, Pattern, PatternSection, SetInCounts, Step, Tally } from '
  */
 export function writePattern(d: Design): Pattern {
 	const m = measure(d);
-	if (!m.hasSleeves) return { ok: false, reason: 'Written patterns for slipovers are coming soon. Sweaters, T-shirts and cardigans are ready now.' };
+	// A slipover has no sleeves for a raglan to feed, so it is always worked with the set-in shoulders.
 	return m.raglan ? writeRaglan(d, m) : writeSetIn(d, m);
 }
 
@@ -386,6 +386,7 @@ function writeRaglan(d: Design, m: Measures): Pattern {
 	return {
 		ok: true,
 		construction: 'Raglan',
+		sleeveless: false,
 		title: `${wearer}${d.neckline} raglan ${d.garment.toLowerCase()}, ${custom ? 'custom fit' : `size ${d.size}`}`,
 		level: est.level,
 		materials: materialsOf(d, m, notions),

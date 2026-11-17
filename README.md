@@ -44,7 +44,7 @@ Knit It is a free sweater designer that runs entirely in the browser. Pick a gar
 | Edges | Ribbed (1×1, 2×2, 2×1, twisted), folded hem, rolled edge, I-cord |
 | Fabric | Solid, stripes or Fair Isle in 12 colours |
 
-Raglan sweaters, T-shirts and cardigans come with a full written pattern. Slipovers and set-in sleeves are 3D preview only for now.
+Every garment comes with a full written pattern: raglan or set-in for sleeved garments, and set-in shoulders with rolled armhole edges for slipovers.
 
 ## Getting started
 

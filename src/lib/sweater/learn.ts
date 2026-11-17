@@ -86,11 +86,11 @@ export type Link = { label: string; url: string; source: string };
 export type Primer = { title: string; body: string; links: Link[] };
 
 /** What a first-time sweater knitter should know before casting on. */
-export function primer(cardigan: boolean, setIn = false): Primer[] {
+export function primer(cardigan: boolean, setIn = false, sleeveless = false): Primer[] {
 	return [
 		{
 			title: 'How it comes together',
-			body: `You knit this in one piece from the neck down, so there is nothing to sew together at the end. ${setIn ? 'First the back, then the fronts, picked up along the shoulders (shoulders to underarms), then the body, then each sleeve, picked up around the armhole' : 'First the yoke (neck to underarms), then the body, then each sleeve'}, then the neckband${cardigan ? ' and front bands' : ''}. It is worth reading the whole pattern once before you start.`,
+			body: `You knit this in one piece from the neck down, so there is nothing to sew together at the end. ${sleeveless ? 'First the back, then the fronts, picked up along the shoulders (shoulders to underarms), then the body, then a rolled edge picked up around each armhole' : setIn ? 'First the back, then the fronts, picked up along the shoulders (shoulders to underarms), then the body, then each sleeve, picked up around the armhole' : 'First the yoke (neck to underarms), then the body, then each sleeve'}, then the neckband${cardigan ? ' and front bands' : ''}. It is worth reading the whole pattern once before you start.`,
 			links: [
 				cardigan
 					? { label: 'A similar cardigan, knit start to finish with photos', url: 'https://blog.tincanknits.com/2013/12/24/lets-knit-a-cardigan/', source: TCK }

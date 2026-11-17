@@ -6,15 +6,15 @@ const RIB_REP: Record<string, number> = { '1×1': 2, '2×2': 4, '2×1': 3, Twist
 const designs = [...singleVariations(), ...needleVariations(), ...customVariations(), ...randomDesigns(600, 7)];
 const raglanDesigns = designs.filter((d) => d.construction === 'Raglan' && d.garment !== 'Slipover');
 const setInDesigns = designs.filter((d) => d.construction === 'Set-in' && d.garment !== 'Slipover');
+const slipoverDesigns = designs.filter((d) => d.garment === 'Slipover');
 
 /** The first stitch count (**n**) in a step's count line. */
 const countOf = (count: string | undefined) => Number(/\*\*(\d+)\*\*/.exec(count ?? '')?.[1] ?? NaN);
 
 describe('writePattern', () => {
-	it('writes patterns for sweaters, T-shirts and cardigans, in either construction; slipovers are coming', () => {
+	it('writes patterns for sweaters, T-shirts, cardigans and slipovers, in either construction', () => {
 		for (const construction of ['Raglan', 'Set-in']) {
-			for (const garment of ['Sweater', 'T-shirt', 'Cardigan']) expect(writePattern({ ...baseDesign, construction, garment }).ok, `${construction} ${garment}`).toBe(true);
-			expect(writePattern({ ...baseDesign, construction, garment: 'Slipover' }).ok).toBe(false);
+			for (const garment of ['Sweater', 'T-shirt', 'Cardigan', 'Slipover']) expect(writePattern({ ...baseDesign, construction, garment }).ok, `${construction} ${garment}`).toBe(true);
 		}
 	});
 
@@ -194,5 +194,48 @@ describe('set-in pattern', () => {
 		};
 		expect(lastRow(0, backEnd)).toBe(c.backRows);
 		expect(lastRow(backEnd, join)).toBe(c.frontRows);
+	});
+});
+
+describe('slipover pattern', () => {
+	const slipover = (d = baseDesign) => {
+		const p = writePattern({ ...d, garment: 'Slipover' });
+		if (!p.ok || p.construction !== 'Set-in') throw new Error('expected a pattern');
+		return p;
+	};
+
+	it('is worked back, fronts, body, armhole edges, neck, with no sleeves', () => {
+		const p = slipover();
+		expect(p.sleeveless).toBe(true);
+		expect(p.sections.map((s) => s.id)).toEqual(['yoke', 'body', 'armholes', 'neck', 'finishing']);
+		expect(p.title).toContain('slipover');
+		const text = patternText(p);
+		expect(text).not.toMatch(/sleeve|cuff|raglan|set-in/i);
+		// Raglan or set-in makes no difference without sleeves.
+		expect(patternText(slipover({ ...baseDesign, construction: 'Set-in' }))).toBe(text);
+	});
+
+	it('picks the armhole edge up around the opening', () => {
+		const p = slipover();
+		const armholes = p.sections.find((s) => s.id === 'armholes')!;
+		expect(countOf(armholes.steps[0].count)).toBe(p.counts.upperSts);
+		expect(armholes.twice).toBeDefined();
+	});
+
+	it.each(slipoverDesigns.map((d, i) => [i, d] as const))('design %i adds up', (_i, d) => {
+		const p = writePattern(d);
+		if (!p.ok || p.construction !== 'Set-in') throw new Error('expected a pattern');
+		const c = p.counts;
+		expect(patternText(p)).not.toMatch(/NaN|undefined|Infinity|\*\*-|\*\*0\*\* st|sleeve|cuff/i);
+		for (const [key, v] of Object.entries(c)) {
+			expect(Number.isInteger(v), key).toBe(true);
+			expect(v, key).toBeGreaterThanOrEqual(0);
+		}
+		expect(c.castOn).toBe(2 * c.strap + c.backNeck);
+		expect(c.back).toBe(c.castOn + 2 * c.armholeIncs);
+		expect(c.bodySts).toBe(c.front + c.back + 2 * c.underarm);
+		expect(c.upperSts).toBeGreaterThan(c.underarm);
+		expect(c.frontRows).toBe(c.backRows - 1);
+		if (d.hemFinish === 'Ribbed') expect(c.bodySts % RIB_REP[d.bodyRib]).toBe(0);
 	});
 });

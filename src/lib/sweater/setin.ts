@@ -104,6 +104,7 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 	const tile = tileFor(d.pattern, m.gauge);
 	const slits = !cardigan && m.slitH > 0;
 	const R = cardigan ? 'row' : 'round';
+	const slip = !m.hasSleeves; // a slipover: no sleeves, a rolled edge round each armhole instead
 
 	// ── Stitch counts ──
 	const hemRib = ribOf(d.bodyRib);
@@ -121,7 +122,7 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 	const half = (back - bn) / 2;
 	const strap = Math.max(2, Math.min(Math.round(stsOf(m.S - m.N)), half));
 	const ai = half - strap; // increases at each armhole edge
-	const top = toMult(stsOf(m.upperArm), 2); // sleeve sts at the armhole
+	let top = toMult(stsOf(m.upperArm), 2); // sleeve sts at the armhole (a slipover: sts picked up around the armhole)
 	const castOn = back - 2 * ai;
 
 	// ── Row plan ──
@@ -131,6 +132,7 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 	const xBack = range(1, T).map((p) => Math.round((p * strap) / T));
 	const xFront = xBack.map((x) => Math.min(x, strap - 1));
 	const armTotal = 2 * Math.round(rowsOf(m.ys - m.ya) / 2); // rows at the armhole edge, shoulder to underarm
+	if (slip) top = u + 2 * Math.max(2, Math.round(0.75 * armTotal)); // 3 sts for every 4 rows up and down the armhole edge
 	const plain = Math.max(armTotal - 2 * T - 2, 2 * ai, 2); // rows across the full width after the shoulders (even)
 	const backRows = 4 * T + 2 + plain;
 	const frontRows = 4 * T + 1 + plain; // the front starts with a WS row, so it has an odd number
@@ -306,7 +308,7 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 	});
 
 	// ── Body ──
-	sections.push(bodySection(d, m, bodySts, `${cardigan ? 'The body is worked straight down' : 'The body is one plain tube'} to the hem. No shaping, no counting. The sleeves come later, picked up around the armholes.`));
+	sections.push(bodySection(d, m, bodySts, `${cardigan ? 'The body is worked straight down' : 'The body is one plain tube'} to the hem. No shaping, no counting. ${slip ? 'The armhole edges come later, picked up around the openings.' : 'The sleeves come later, picked up around the armholes.'}`));
 
 	// ── Sleeves ──
 	const sl: Step[] = [];
@@ -316,30 +318,43 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 	const capRows = rowsOf(m.sleeveLen - m.sleeveBody); // extra rows over the top of the sleeve
 	const P = Math.max(1, Math.min(Math.round(capRows / 2), e));
 	const hw = range(1, P).map((p) => Math.round((p * e) / P));
-	sl.push({
-		text: `With RS facing and the shorter needle (or DPNs / magic loop), start at the centre of the underarm cast-on: pick up and knit ${sts(u / 2)}, then ${sts(e)} up the armhole edge to the shoulder seam (about ${per} st${per > 1 ? 's' : ''} for every 4 rows), pm for the shoulder, ${sts(e)} down the rest of the armhole edge, and ${sts(u / 2)} along the rest of the cast-on. Pm for BOR. Join to work in the round.`,
-		count: sts(top),
-		tip: `A sleeve is too narrow to stretch around the long needle, so use magic loop, double-pointed needles or a short circular needle. ${TIPS.pickUp} Pick up one stitch in the middle of each edge stitch, so the armhole is neat. If the armhole gathers or gapes, pick up a few more or a few fewer: you can even this out on the next round.`
-	});
-	const capLabels: string[] = [];
-	for (let p = 1; p <= P; p++) {
-		capLabels.push(`Short row (RS): ${p > 1 ? 'MDS, ' : ''}knit to ${hw[p - 1]} sts past the shoulder marker, turn`);
-		capLabels.push(`Short row (WS): MDS, purl to ${hw[p - 1]} sts past the shoulder marker, turn`);
+	let sleeveEndSts = 0;
+	let cuffSts = 0;
+	if (slip) {
+		sl.push({
+			text: `With RS facing and the main needle (or a short circular / DPNs), start at the centre of the underarm cast-on: pick up and knit ${sts(u / 2)}, then ${sts(e)} up the armhole edge to the shoulder (about 3 sts for every 4 rows), ${sts(e)} down the rest of the armhole edge, and ${sts(u / 2)} along the rest of the cast-on. Pm for BOR. Join to work in the round.`,
+			count: sts(top),
+			tip: `An armhole is too small to stretch around the long needle, so use magic loop, double-pointed needles or a short circular needle. ${TIPS.pickUp} Pick up one stitch in the middle of each edge stitch, so the armhole is neat. If it gathers or gapes, pick up a few more or a few fewer: you can even this out on the next round.`
+		});
+		sl.push(...edgeSteps('Rolled edge', d.bodyRib, 0, top, false, k));
+		sl.push({ text: `Work the second armhole the same way.`, note: true });
+		sections.push({ id: 'armholes', title: 'Armhole edges', intro: `A slipover has no sleeves. Each armhole gets a little edge, picked up around the opening, that rolls to the outside by itself. You make two, the same way.`, steps: sl, twice: ['First armhole', 'Second armhole'] });
+	} else {
+		sl.push({
+			text: `With RS facing and the shorter needle (or DPNs / magic loop), start at the centre of the underarm cast-on: pick up and knit ${sts(u / 2)}, then ${sts(e)} up the armhole edge to the shoulder seam (about ${per} st${per > 1 ? 's' : ''} for every 4 rows), pm for the shoulder, ${sts(e)} down the rest of the armhole edge, and ${sts(u / 2)} along the rest of the cast-on. Pm for BOR. Join to work in the round.`,
+			count: sts(top),
+			tip: `A sleeve is too narrow to stretch around the long needle, so use magic loop, double-pointed needles or a short circular needle. ${TIPS.pickUp} Pick up one stitch in the middle of each edge stitch, so the armhole is neat. If the armhole gathers or gapes, pick up a few more or a few fewer: you can even this out on the next round.`
+		});
+		const capLabels: string[] = [];
+		for (let p = 1; p <= P; p++) {
+			capLabels.push(`Short row (RS): ${p > 1 ? 'MDS, ' : ''}knit to ${hw[p - 1]} sts past the shoulder marker, turn`);
+			capLabels.push(`Short row (WS): MDS, purl to ${hw[p - 1]} sts past the shoulder marker, turn`);
+		}
+		sl.push({
+			text: `Shape the sleeve cap with ${P} pairs of German short rows, working back and forth over the top of the sleeve, a little further each time. On each pair, on the RS row knit to H sts past the shoulder marker, turn; on the WS row MDS, purl to H sts past the marker, turn (from the second pair on, start each RS row with MDS too). H is ${list(hw)} for the successive pairs.`,
+			tally: { unit: 'Row', first: 1, rows: capLabels },
+			count: sts(top),
+			adds: addsOf(2 * P),
+			tip: `The cap makes the sleeve a little taller over the shoulder than it is under the arm, so it hangs down from the shoulder instead of sticking out sideways. Each short row goes a few stitches past the shoulder marker (counting from it, on whichever side you are heading for). On the last pair you reach the underarm stitches, and from then on the whole sleeve is worked in the round.`
+		});
+		sl.push({
+			text: `Round ${2 * P + 1}: MDS, knit around to BOR, working each double stitch as one st. From now on work in the round.`,
+			count: sts(top),
+			adds: addsOf(1)
+		});
+		({ sleeveEndSts, cuffSts } = sleeveTail(d, m, top, sl));
+		sections.push({ id: 'sleeves', title: 'Sleeves', intro: `${SLEEVES_INTRO} Each is picked up around the armhole, so there is no seam to sew.`, steps: sl, twice: ['First sleeve', 'Second sleeve'] });
 	}
-	sl.push({
-		text: `Shape the sleeve cap with ${P} pairs of German short rows, working back and forth over the top of the sleeve, a little further each time. On each pair, on the RS row knit to H sts past the shoulder marker, turn; on the WS row MDS, purl to H sts past the marker, turn (from the second pair on, start each RS row with MDS too). H is ${list(hw)} for the successive pairs.`,
-		tally: { unit: 'Row', first: 1, rows: capLabels },
-		count: sts(top),
-		adds: addsOf(2 * P),
-		tip: `The cap makes the sleeve a little taller over the shoulder than it is under the arm, so it hangs down from the shoulder instead of sticking out sideways. Each short row goes a few stitches past the shoulder marker (counting from it, on whichever side you are heading for). On the last pair you reach the underarm stitches, and from then on the whole sleeve is worked in the round.`
-	});
-	sl.push({
-		text: `Round ${2 * P + 1}: MDS, knit around to BOR, working each double stitch as one st. From now on work in the round.`,
-		count: sts(top),
-		adds: addsOf(1)
-	});
-	const { sleeveEndSts, cuffSts } = sleeveTail(d, m, top, sl);
-	sections.push({ id: 'sleeves', title: 'Sleeves', intro: `${SLEEVES_INTRO} Each is picked up around the armhole, so there is no seam to sew.`, steps: sl, twice: ['First sleeve', 'Second sleeve'] });
 
 	// ── Neckband ──
 	const nk: Step[] = [];
@@ -398,15 +413,19 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 
 	// ── Front matter ──
 	const est = estimate(d);
-	const notions = `2 stitch markers plus 1 in a different colour (BOR), waste yarn or a spare circular needle, tapestry needle${cardigan ? `, ${buttons} buttons about ${buttonMm} mm across` : ''}`;
+	const notions = `${slip ? '1 stitch marker (BOR)' : '2 stitch markers plus 1 in a different colour (BOR)'}, waste yarn or a spare circular needle, tapestry needle${cardigan ? `, ${buttons} buttons about ${buttonMm} mm across` : ''}`;
 	const measurements: [string, string][] = [
 		['Chest', len((bodySts + band) / stPerCm)],
 		['Length, back neck to hem', len(m.L)],
 		['Across the shoulders', len(castOn / stPerCm)],
 		['Armhole depth, shoulder to underarm', len(armTotal / rowPerCm)],
-		['Upper arm', len(top / stPerCm)],
-		['Sleeve length from underarm', len(m.sleeveBody + m.cuffLen)],
-		['Cuff', len(cuffSts / stPerCm)]
+		...(slip
+			? ([['Armhole edge, around', len(top / stPerCm)]] as [string, string][])
+			: ([
+					['Upper arm', len(top / stPerCm)],
+					['Sleeve length from underarm', len(m.sleeveBody + m.cuffLen)],
+					['Cuff', len(cuffSts / stPerCm)]
+				] as [string, string][]))
 	];
 	const abbreviations: [string, string][] = [...BASE_ABBREVIATIONS, MDS_ABBREVIATION];
 	if (vNeck) abbreviations.push(['s2kp', 'slip 2 together knitwise, k1, pass the 2 slipped sts over (2 sts decreased, centred)']);
@@ -417,7 +436,8 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 	return {
 		ok: true,
 		construction: 'Set-in',
-		title: `${wearer}${d.neckline} set-in ${d.garment.toLowerCase()}, ${custom ? 'custom fit' : `size ${d.size}`}`,
+		sleeveless: slip,
+		title: `${wearer}${d.neckline} ${slip ? '' : 'set-in '}${d.garment.toLowerCase()}, ${custom ? 'custom fit' : `size ${d.size}`}`,
 		level: est.level,
 		materials: materialsOf(d, m, notions),
 		gauge: gaugeText(m, cardigan),

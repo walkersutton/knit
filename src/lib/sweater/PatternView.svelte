@@ -173,7 +173,7 @@
 	{:else}
 		<header>
 			<h1>{pattern.title}</h1>
-			<p class="meta">Top-down {pattern.construction.toLowerCase()} · {pattern.level}</p>
+			<p class="meta">Top-down {pattern.sleeveless ? 'seamless' : pattern.construction.toLowerCase()} · {pattern.level}</p>
 		</header>
 
 		{#if interactive}
@@ -198,7 +198,7 @@
 		{#if beginner}
 			<section class="primer">
 				<h2>Before you start</h2>
-				{#each primer(cardigan, pattern.construction === 'Set-in') as p (p.title)}
+				{#each primer(cardigan, pattern.construction === 'Set-in', pattern.sleeveless) as p (p.title)}
 					<div class="point">
 						<h3>{p.title}</h3>
 						<p>{p.body}</p>

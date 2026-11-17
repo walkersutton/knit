@@ -24,7 +24,7 @@ export const faq = [
 	},
 	{
 		q: 'Which designs come with a written pattern?',
-		a: 'Sweaters, T-shirts and cardigans come with a full written pattern, worked top-down and seamless, with either raglan or set-in sleeves. Slipovers can be previewed in 3D, and their written patterns are coming soon.'
+		a: 'Sweaters, T-shirts, cardigans and slipovers all come with a full written pattern, worked top-down and seamless. Sleeved garments use either raglan or set-in sleeves; slipovers have a rolled edge round each armhole instead.'
 	},
 	{
 		q: 'What does the pattern include?',

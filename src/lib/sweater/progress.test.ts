@@ -114,7 +114,7 @@ describe('knittedOf', () => {
 			const p = writePattern(d);
 			if (!p.ok) continue;
 			const all = Object.fromEntries(tasksOf(p.sections).map((t) => [t.key, t.total]));
-			expect(knittedOf(p.sections, all)).toEqual({ yoke: 1, body: 1, sleeves: [1, 1], neck: 1, bands: d.garment === 'Cardigan' ? 1 : 0 });
+			expect(knittedOf(p.sections, all)).toEqual({ yoke: 1, body: 1, sleeves: d.garment === 'Slipover' ? [0, 0] : [1, 1], neck: 1, bands: d.garment === 'Cardigan' ? 1 : 0 });
 			for (const s of p.sections) for (const step of s.steps) expect(step.adds ?? 0).toBeGreaterThanOrEqual(0);
 		}
 	});
