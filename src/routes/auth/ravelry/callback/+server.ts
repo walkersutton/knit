@@ -3,12 +3,15 @@ import { error, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { callbackUrl, cookieOptions, createSession, ravelryConfigured, SESSION_COOKIE } from '$lib/server/auth';
 import { database } from '$lib/server/db';
+import { profilePhoto } from '$lib/server/members';
 
 export const prerender = false;
 
 type OAuthCookie = { state: string; verifier: string };
 type TokenResponse = { access_token?: string; error?: string };
-type CurrentUserResponse = { user?: { id?: number | string; username?: string } };
+type CurrentUserResponse = {
+	user?: { id?: number | string; username?: string; small_photo_url?: string; tiny_photo_url?: string; photo_url?: string };
+};
 
 export const GET: RequestHandler = async ({ cookies, url }) => {
 	if (!ravelryConfigured()) error(503, 'Ravelry sign-in is not configured yet.');
@@ -47,10 +50,11 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		error(502, 'Ravelry did not return a usable account profile. Please try again.');
 	}
 	const sql = database();
+	const photo = profilePhoto(profile.user);
 	const users = await sql`
-		INSERT INTO users (ravelry_user_id, ravelry_username)
-		VALUES (${String(ravelryId)}, ${username})
-		ON CONFLICT (ravelry_user_id) DO UPDATE SET ravelry_username = EXCLUDED.ravelry_username
+		INSERT INTO users (ravelry_user_id, ravelry_username, photo_url)
+		VALUES (${String(ravelryId)}, ${username}, ${photo})
+		ON CONFLICT (ravelry_user_id) DO UPDATE SET ravelry_username = EXCLUDED.ravelry_username, photo_url = EXCLUDED.photo_url
 		RETURNING id
 	`;
 	const session = await createSession(String(users[0].id));

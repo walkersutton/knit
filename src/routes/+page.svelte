@@ -1,6 +1,6 @@
 <script lang="ts">
+	import Members from '$lib/Members.svelte';
 	import Seo from '$lib/Seo.svelte';
-	import Logo from '$lib/Logo.svelte';
 	import Roll from '$lib/sweater/Roll.svelte';
 	import { SITE } from '$lib/site';
 	import { yarn } from '$lib/yarn.svelte';
@@ -82,11 +82,6 @@
 <Seo {title} {description} path="/" {jsonLd} />
 
 <div class="page">
-	<header>
-		<a class="home" href="/" aria-label="knit home"><Logo size={32} word={false} /></a>
-		<nav><a href="/about">How it works</a><a href="/account">Account</a><a href={SITE.source} target="_blank" rel="noopener">Source</a></nav>
-	</header>
-
 	<main>
 		<h1>
 			<button type="button" class="patch" onclick={unravel} aria-label="knit. Unravel the swatch below.">
@@ -140,6 +135,8 @@
 		</ol>
 	</section>
 
+	<Members />
+
 	<footer>knit is open source. <a href={SITE.source} target="_blank" rel="noopener">View the code on GitHub</a>.</footer>
 </div>
 
@@ -150,43 +147,16 @@
 		--line: #e6dcc0;
 		display: flex;
 		flex-direction: column;
-		min-height: 100dvh;
+		min-height: calc(100dvh - var(--bar));
 		color: var(--ink);
 		font-size: 15px;
 		line-height: 1.6;
 	}
-	header,
 	.steps {
 		max-width: 912px;
 		width: 100%;
 		margin: 0 auto;
 		padding: 0 16px;
-	}
-	header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		height: 60px;
-	}
-	.home {
-		display: flex;
-		align-items: center;
-		height: 44px;
-		color: var(--ink);
-		text-decoration: none;
-	}
-	nav {
-		display: flex;
-		gap: 16px;
-		font-size: 14px;
-	}
-	nav a {
-		display: flex;
-		align-items: center;
-		height: 44px;
-		color: var(--ink);
-		font-weight: 500;
-		text-decoration: none;
 	}
 	main {
 		display: flex;

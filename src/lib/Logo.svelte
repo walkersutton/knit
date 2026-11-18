@@ -1,17 +1,12 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	let { size = 28, word = true }: { size?: number; word?: boolean } = $props();
 	let svg: SVGSVGElement;
 
-	// Fun click: a springy spin-and-hop, restartable on rapid clicks.
-	// The logo is usually inside a link whose page unmounts on navigation, which would cut the
-	// animation off, so a plain click holds navigation until the animation finishes.
-	async function play(e: MouseEvent) {
+	// Fun click: a springy spin-and-hop, restartable on rapid clicks. It never holds navigation:
+	// the page switches immediately and the animation plays for as long as the logo stays mounted.
+	function play() {
 		if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-		const a = (e.target as Element).closest('a');
-		const plain = a && !e.defaultPrevented && e.button === 0 && !(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey);
-		if (plain) e.preventDefault();
-		const anim = svg.animate(
+		svg.animate(
 			[
 				{ transform: 'translateY(0) rotate(0) scale(1)', offset: 0 },
 				{ transform: 'translateY(2px) rotate(0) scale(1.1, 0.8)', offset: 0.15 },
@@ -22,10 +17,6 @@
 			],
 			{ duration: 550, easing: 'cubic-bezier(0.34, 1.2, 0.64, 1)' }
 		);
-		if (plain) {
-			await anim.finished.catch(() => {}); // a rapid re-click cancels nothing; this just waits
-			if (a.pathname !== location.pathname) await goto(a.href);
-		}
 	}
 	const STITCH = 'M0 0C-7 -4 -10.5 -12 -9.5 -18.5C-9 -21.5 -5.5 -21.5 -4 -19C-1.5 -14.5 0 -8 0 0Z';
 </script>

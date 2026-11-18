@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import Logo from '$lib/Logo.svelte';
 	import { SITE } from '$lib/site';
 
 	let status = $derived(page.status);
@@ -26,7 +25,6 @@
 </svelte:head>
 
 <div class="page">
-	<a class="mark" href="/" aria-label="knit home"><Logo size={24} /></a>
 	<main>
 		<svg class="swatch" viewBox="0 0 {COLS * W + 18} {y(ROWS - 1) + 10}" role="img" aria-label="A knitted swatch with one dropped stitch running down it">
 			<defs>
@@ -62,20 +60,10 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		min-height: 100dvh;
-		padding: 0 16px;
+		min-height: calc(100dvh - var(--bar));
+		color: var(--ink);
 		font-size: 15px;
 		line-height: 1.6;
-	}
-	.mark {
-		align-self: flex-start;
-		display: flex;
-		align-items: center;
-		height: 44px;
-		color: var(--ink);
-		font-size: 13px;
-		font-weight: 600;
-		text-decoration: none;
 	}
 	main {
 		flex: 1;
@@ -85,7 +73,7 @@
 		justify-content: center;
 		max-width: 440px;
 		margin: 0 auto;
-		padding: 32px 0 96px;
+		padding: 32px 16px 96px;
 		text-align: center;
 	}
 	.swatch {
@@ -174,24 +162,27 @@
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: center;
-		gap: 16px;
-		margin: 28px 0 0;
+		gap: 20px;
+		margin: 32px 0 0;
 	}
 	.cta {
 		display: inline-flex;
 		align-items: center;
-		height: 40px;
-		padding: 0 18px;
-		border-radius: 6px;
-		background: var(--ink);
-		color: #fff;
-		font-size: 14px;
-		font-weight: 500;
+		height: 52px;
+		padding: 0 28px;
+		border-radius: 14px;
+		background: #c8543e;
+		box-shadow: 0 4px 0 #8f3a2a;
+		color: #fff8e6;
+		font-family: var(--display);
+		font-size: 19px;
+		font-weight: 600;
 		text-decoration: none;
-		transition: background-color 120ms ease-out, transform 120ms ease-out;
+		transition: transform 120ms ease-out, box-shadow 120ms ease-out;
 	}
 	.cta:active {
-		transform: scale(0.97);
+		transform: translateY(3px);
+		box-shadow: 0 1px 0 #8f3a2a;
 	}
 	.link {
 		color: var(--ink);
@@ -204,7 +195,7 @@
 	}
 	@media (hover: hover) and (pointer: fine) {
 		.cta:hover {
-			background: #3f3f46;
+			background: #d0604a;
 		}
 	}
 </style>

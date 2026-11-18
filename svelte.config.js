@@ -9,7 +9,7 @@ const config = {
 		prerender: {
 			// Links like /design#d=… and /patterns#motif=… carry a design in the hash, not an anchor on the page.
 			handleMissingId: ({ id, message }) => {
-				if (/^(d|motif)=/.test(id)) return;
+				if (/^(d|motif|tool)=/.test(id)) return;
 				throw new Error(message);
 			}
 		}

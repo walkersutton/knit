@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { Design } from './garment';
-	import { editLink, loadLibrary, type SavedPattern } from './library';
+	import { loadLibrary, type SavedPattern } from './library';
 	import { choose } from './options';
 	import { chart, chartFit, CUSTOM_PATTERN, FINE_GAUGE, FINE_TILE, PATTERNS, resizeMotif, STANDARD_TILE, TILE_ROWS, TILE_ST } from './motifs';
 	import { stitchGauge } from './needles';
 	import MotifSwatch from './MotifSwatch.svelte';
 
-	let { design = $bindable() }: { design: Design } = $props();
+	let { design = $bindable(), onedit }: { design: Design; onedit: (motif: string) => void } = $props();
 
 	const cells = (pattern: string, motif: string) => {
 		const out: [number, number][] = [];
@@ -66,7 +66,7 @@
 				<p class="sub">This only changes the chart on this sweater, not the one saved in your patterns.</p>
 			</div>
 		{/if}
-		<a class="edit" href={editLink(design.motif)}>Open the pattern designer <span aria-hidden="true">→</span></a>
+		<button type="button" class="edit" onclick={() => onedit(design.motif)}>Open the chart designer <span aria-hidden="true">→</span></button>
 		<p class="hint">Paint your own chart full-screen, keep as many as you like, then bring one back here.</p>
 	</div>
 {/if}
@@ -108,9 +108,10 @@
 		outline-offset: 2px;
 	}
 	.opt[aria-checked='true'] {
-		border-color: #b88a1c;
-		background: #e8bd53;
-		box-shadow: 0 2px 0 rgb(184 138 28 / 0.55);
+		border-color: #465e9d;
+		background: #465e9d;
+		color: var(--on-ink);
+		box-shadow: 0 2px 0 rgb(70 94 157 / 0.55);
 		font-weight: 600;
 	}
 	.custom {
@@ -143,8 +144,9 @@
 		cursor: pointer;
 	}
 	.pick[aria-checked='true'] {
-		border-color: #b88a1c;
-		background: #e8bd53;
+		border-color: #465e9d;
+		background: #465e9d;
+		color: var(--on-ink);
 		font-weight: 600;
 	}
 	.thumb {
@@ -159,9 +161,14 @@
 		white-space: nowrap;
 	}
 	.edit {
+		justify-self: start;
+		padding: 0;
+		border: 0;
+		background: none;
 		color: var(--accent-deep, var(--ink));
+		font: inherit;
 		font-weight: 600;
-		text-decoration: none;
+		cursor: pointer;
 	}
 	.nudge {
 		display: grid;

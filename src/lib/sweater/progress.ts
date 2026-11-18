@@ -108,7 +108,7 @@ const KEY = 'knit-it:v1';
 const KEEP = 6;
 
 /** A saved design is only used if it has exactly the default's fields, each choice set to an option the designer still offers. */
-function validDesign(value: unknown, like: Design): value is Design {
+export function validDesign(value: unknown, like: Design): value is Design {
 	if (!value || typeof value !== 'object') return false;
 	const v = value as Record<string, unknown>;
 	const keys = Object.keys(like);

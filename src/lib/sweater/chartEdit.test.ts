@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { flipH, flipV, invert, isOn, lineCells, mirror, paint, shift } from './chartEdit';
-import { designLink, editLink, freshName, parseLibrary, readMotifHash } from './library';
+import { designLink, editLink, freshName, parseLibrary, readMotifHash, wantsChart } from './library';
 import { blankMotif, FINE_TILE, starterMotif, TILE_ROWS, TILE_ST, validMotif } from './motifs';
 
 const one = (i: number, j: number) => paint(blankMotif(), [[i, j]], true);
@@ -64,7 +64,9 @@ describe('pattern library', () => {
 	it('carries a chart and colours in a link, and rejects broken ones', () => {
 		const m = starterMotif();
 		expect(readMotifHash(designLink(m, '#c8543e', '#faf3dc').split('#').slice(1).join('#'))).toEqual({ motif: m, color: '#c8543e', contrast: '#faf3dc' });
-		expect(readMotifHash(editLink(m).slice('/patterns'.length))).toEqual({ motif: m });
+		expect(readMotifHash(editLink(m).slice('/design'.length))).toEqual({ motif: m });
+		expect(wantsChart(editLink(m).slice('/design'.length))).toBe(true);
+		expect(wantsChart(designLink(m).slice('/design'.length))).toBe(false);
 		expect(readMotifHash('#motif=0101')).toBeUndefined();
 		expect(readMotifHash(`#motif=${m}&color=red`)).toEqual({ motif: m });
 		expect(readMotifHash('#d=abc')).toBeUndefined();

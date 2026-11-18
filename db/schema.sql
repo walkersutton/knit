@@ -6,6 +6,10 @@ CREATE TABLE IF NOT EXISTS users (
 	created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- The Ravelry profile photo, refreshed at each sign-in. It is shown in the circles of knitters on the home page.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url text;
+CREATE INDEX IF NOT EXISTS users_created_at_idx ON users(created_at DESC);
+
 CREATE TABLE IF NOT EXISTS sessions (
 	token_hash text PRIMARY KEY,
 	user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -22,3 +26,34 @@ CREATE TABLE IF NOT EXISTS account_data (
 	updated_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE account_data ADD COLUMN IF NOT EXISTS revision integer NOT NULL DEFAULT 1;
+
+-- Patterns their authors have shared. Anyone can read them at /pattern/<id>; only the author can remove one.
+CREATE TABLE IF NOT EXISTS shared_patterns (
+	id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	name text NOT NULL,
+	design jsonb NOT NULL,
+	-- Hash of the design, so sharing the same design twice returns the same link.
+	design_key text NOT NULL,
+	garment text NOT NULL,
+	created_at timestamptz NOT NULL DEFAULT now(),
+	UNIQUE (user_id, design_key)
+);
+CREATE INDEX IF NOT EXISTS shared_patterns_created_at_idx ON shared_patterns(created_at DESC);
+
+-- Colourwork charts their authors have shared. Anyone can read them at /chart/<id>; only the author can remove one.
+CREATE TABLE IF NOT EXISTS shared_charts (
+	id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	name text NOT NULL,
+	-- A string of '0' and '1', one cell per stitch, top row first (see validMotif).
+	motif text NOT NULL,
+	color text NOT NULL,
+	contrast text NOT NULL,
+	-- 'standard' (12 × 16) or 'fine' (24 × 32).
+	size text NOT NULL,
+	created_at timestamptz NOT NULL DEFAULT now(),
+	-- Sharing the same chart in the same colours twice returns the same link.
+	UNIQUE (user_id, motif, color, contrast)
+);
+CREATE INDEX IF NOT EXISTS shared_charts_created_at_idx ON shared_charts(created_at DESC);

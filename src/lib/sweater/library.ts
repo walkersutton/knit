@@ -1,7 +1,8 @@
 /**
- * The knitter's own colourwork charts, kept in this browser. The pattern designer (/patterns) edits
- * them; the sweater designer (/design) picks one for its Custom pattern. A chart travels from one to
- * the other in the link: /design#motif=…&color=…&contrast=…
+ * The knitter's own colourwork charts, kept in this browser. Both designers live at /design, with the
+ * charts and the sweater patterns listed in one sidebar. The chart designer edits a chart; the sweater
+ * designer picks one for its Custom pattern. A chart travels in a link: /design#motif=…&color=…&contrast=…
+ * opens the sweater designer with it, and adding tool=chart opens the chart designer on it instead.
  */
 import { starterMotif, validMotif } from './motifs';
 import { colors } from './options';
@@ -70,8 +71,11 @@ export const designLink = (motif: string, color?: string, contrast?: string) => 
 	return `/design#${q}`;
 };
 
-/** A link that opens this chart in the pattern designer. */
-export const editLink = (motif: string) => `/patterns#${new URLSearchParams({ motif })}`;
+/** A link that opens this chart in the chart designer. */
+export const editLink = (motif: string) => `/design#${new URLSearchParams({ tool: 'chart', motif })}`;
+
+/** Whether a /design link asks for the chart designer rather than the sweater designer. */
+export const wantsChart = (hash: string) => new URLSearchParams(hash.replace(/^#/, '')).get('tool') === 'chart';
 
 /** What a #motif=… link carries, or undefined if it is not one. Colours outside the palette are left out. */
 export function readMotifHash(hash: string): { motif: string; color?: string; contrast?: string } | undefined {

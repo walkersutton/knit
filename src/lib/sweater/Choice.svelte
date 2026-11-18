@@ -76,13 +76,14 @@
 		outline-offset: 2px;
 	}
 	.opt[aria-checked='true'] {
-		border-color: #b88a1c;
-		background: #e8bd53;
-		box-shadow: 0 2px 0 rgb(184 138 28 / 0.55);
+		border-color: #465e9d;
+		background: #465e9d;
+		color: var(--on-ink);
+		box-shadow: 0 2px 0 rgb(70 94 157 / 0.55);
 		font-weight: 600;
 	}
 	.opt[aria-checked='true']::after {
-		border-color: rgb(38 51 95 / 0.5);
+		border-color: rgb(250 243 220 / 0.5);
 	}
 	.opt[aria-checked='true']:active {
 		box-shadow: 0 0 0 transparent;
