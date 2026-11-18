@@ -1,9 +1,10 @@
 <script lang="ts">
 	import mark from '$lib/ravelry-mark.svg?raw';
+	import { page } from '$app/state';
 	// Ravelry's own ball mark, recoloured through currentColor (brand coral is #EE6E62).
 </script>
 
-<a class="btn" href="/auth/ravelry" data-sveltekit-reload>
+<a class="btn" href="/auth/ravelry?return={encodeURIComponent(page.url.pathname + page.url.search)}" data-sveltekit-reload>
 	<span class="ball" aria-hidden="true">{@html mark}</span>Continue with Ravelry
 	<svg class="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 7h9M7.5 3.5 11 7l-3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
 </a>

@@ -8,7 +8,7 @@ import { cleanBio } from '$lib/server/bio';
 
 export const prerender = false;
 
-type OAuthCookie = { state: string; verifier: string };
+type OAuthCookie = { state: string; verifier: string; returnTo?: string };
 type TokenResponse = { access_token?: string; error?: string };
 type CurrentUserResponse = {
 	user?: { id?: number | string; username?: string; small_photo_url?: string; tiny_photo_url?: string; photo_url?: string };
@@ -18,13 +18,15 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	if (!ravelryConfigured()) error(503, 'Ravelry sign-in is not configured yet.');
 	const saved = cookies.get('knit_ravelry_oauth');
 	cookies.delete('knit_ravelry_oauth', { path: '/auth/ravelry/callback' });
-	if (!saved || url.searchParams.has('error')) redirect(303, '/account?signin=cancelled');
-	let oauth: OAuthCookie;
+	let oauth: OAuthCookie | undefined;
 	try {
-		oauth = JSON.parse(saved);
+		oauth = saved ? JSON.parse(saved) : undefined;
 	} catch {
 		error(400, 'Invalid sign-in attempt. Please try again.');
 	}
+	// Re-validate: the cookie is ours, but only same-site paths are ever redirect targets.
+	const returnTo = oauth?.returnTo && /^\/(?![/\\])/.test(oauth.returnTo) ? oauth.returnTo : '/';
+	if (!oauth || url.searchParams.has('error')) redirect(303, returnTo);
 	const code = url.searchParams.get('code');
 	if (!code || url.searchParams.get('state') !== oauth.state) error(400, 'Ravelry sign-in could not be verified. Please try again.');
 	const form = new URLSearchParams({
@@ -67,5 +69,5 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	`;
 	const session = await createSession(String(users[0].id));
 	cookies.set(SESSION_COOKIE, session, cookieOptions(url.protocol === 'https:'));
-	redirect(303, '/account?signin=success');
+	redirect(303, returnTo);
 };

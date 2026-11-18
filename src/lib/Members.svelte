@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { openSignIn } from '$lib/signin.svelte';
 
 	type Member = { username: string; photo: string | null };
 
@@ -33,11 +34,9 @@
 			{#each members as m (m.username)}
 				<li>
 					<a
-						href="https://www.ravelry.com/people/{encodeURIComponent(m.username)}"
-						target="_blank"
-						rel="noopener"
+						href="/people/{encodeURIComponent(m.username)}"
 						title={m.username}
-						aria-label="{m.username} on Ravelry"
+						aria-label="{m.username}'s profile"
 						style="--tone: {tone(m.username)}"
 					>
 						{#if m.photo && !broken[m.username]}
@@ -50,7 +49,7 @@
 			{/each}
 			{#if more}<li class="more" aria-label="and {more} more">+{more}</li>{/if}
 		</ul>
-		<p><a href="/account">Sign in with Ravelry</a> to save your designs and join them.</p>
+		<p><button type="button" class="signin" onclick={openSignIn}>Sign in with Ravelry</button> to save your designs and join them.</p>
 	</section>
 {/if}
 
@@ -128,7 +127,13 @@
 		color: #5d6385;
 		font-size: 14px;
 	}
-	p a {
+	.signin {
+		padding: 0;
+		border: 0;
+		background: none;
+		font: inherit;
+		text-decoration: underline;
+		cursor: pointer;
 		color: #26335f;
 		font-weight: 500;
 	}

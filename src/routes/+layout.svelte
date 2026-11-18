@@ -2,6 +2,7 @@
 	import '@fontsource-variable/fredoka';
 	import Cursor from '$lib/Cursor.svelte';
 	import AccountSync from '$lib/AccountSync.svelte';
+	import SignInDialog from '$lib/SignInDialog.svelte';
 	import SiteHeader from '$lib/SiteHeader.svelte';
 	import SiteFooter from '$lib/SiteFooter.svelte';
 	import { page } from '$app/state';
@@ -18,6 +19,7 @@
 </div>
 <Cursor />
 <AccountSync />
+<SignInDialog />
 
 <style>
 	.shell {

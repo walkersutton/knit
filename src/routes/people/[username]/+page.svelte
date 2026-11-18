@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import Seo from '$lib/Seo.svelte';
+	import AccountControls from '$lib/AccountControls.svelte';
 	import ChartCard from '$lib/sweater/ChartCard.svelte';
 	import PatternCard from '$lib/sweater/PatternCard.svelte';
 	import type { PageProps } from './$types';
@@ -13,6 +15,14 @@
 			? ([['Location', p.bio.location], ['Favourite colours', p.bio.faveColors], ['Favourite curse', p.bio.faveCurse]] as const).filter(([, v]) => v)
 			: []
 	);
+	// The page is publicly cached, so ownership is only known client-side.
+	let isMe = $state(false);
+	onMount(() => {
+		void fetch('/api/account')
+			.then((r) => (r.ok ? r.json() : null))
+			.then((d) => { isMe = d?.account?.username?.toLowerCase() === p.username.toLowerCase(); })
+			.catch(() => undefined);
+	});
 	let shared = $derived(p.charts.length + p.patterns.length);
 	let liked = $derived(p.likedCharts.length + p.likedPatterns.length);
 </script>
@@ -48,6 +58,8 @@
 			{/if}
 		</section>
 	{/if}
+
+	{#if isMe}<AccountControls />{/if}
 
 	<section aria-labelledby="patterns-h">
 		<h2 id="patterns-h">Shared patterns <small>{p.patterns.length}</small></h2>

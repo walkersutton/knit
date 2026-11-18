@@ -5,11 +5,14 @@ import { callbackUrl, pkceChallenge, randomToken, ravelryConfigured } from '$lib
 
 export const prerender = false;
 
+// Only ever come back to a path on this site.
+const safeReturn = (value: string | null) => (value && /^\/(?![/\\])/.test(value) ? value : '/');
+
 export const GET: RequestHandler = async ({ cookies, url }) => {
 	if (!ravelryConfigured()) error(503, 'Ravelry sign-in is not configured yet.');
 	const state = randomToken(24);
 	const verifier = randomToken(48);
-	cookies.set('knit_ravelry_oauth', JSON.stringify({ state, verifier }), {
+	cookies.set('knit_ravelry_oauth', JSON.stringify({ state, verifier, returnTo: safeReturn(url.searchParams.get('return')) }), {
 		httpOnly: true,
 		secure: url.protocol === 'https:',
 		sameSite: 'lax',

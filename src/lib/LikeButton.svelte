@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { openSignIn } from '$lib/signin.svelte';
 	let { kind, id, likes, liked, signedIn, class: klass = '' }: { kind: 'chart' | 'pattern'; id: string; likes: number; liked: boolean; signedIn: boolean; class?: string } = $props();
 
 	let count = $state(0);
@@ -45,7 +46,7 @@
 		<span aria-hidden="true">{mine ? '♥' : '♡'}</span>
 		{mine ? 'Liked' : 'Like'} · {count}
 	</button>
-	{#if note}<small role="status">{note}{#if !signedIn} <a href="/account">Sign in</a>{/if}</small>{/if}
+	{#if note}<small role="status">{note}{#if !signedIn} <button type="button" class="signin" onclick={openSignIn}>Sign in</button>{/if}</small>{/if}
 </span>
 
 <style>
@@ -78,6 +79,15 @@
 	button:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 2px;
+	}
+	.signin {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-decoration: underline;
+		cursor: pointer;
 	}
 	small {
 		color: #5d6385;
