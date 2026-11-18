@@ -1,9 +1,7 @@
 <script lang="ts">
 	import Seo from '$lib/Seo.svelte';
 	import YourWork from '$lib/sweater/YourWork.svelte';
-	import MotifSwatch from '$lib/sweater/MotifSwatch.svelte';
-	import { previewLink } from '$lib/sweater/library';
-	import { tileOfMotif } from '$lib/sweater/motifs';
+	import ChartCard from '$lib/sweater/ChartCard.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -47,17 +45,7 @@
 	{:else}
 		<ul>
 			{#each data.charts as c (c.id)}
-				{@const tile = tileOfMotif(c.motif)}
-				<li>
-					<a href={previewLink(c.motif, c.color, c.contrast, undefined, c.id)}>
-						<span class="thumb"><MotifSwatch motif={c.motif} color={c.color} contrast={c.contrast} across={2} down={1} /></span>
-						<span class="text">
-							<b>{c.name}</b>
-							<span>{tile.st} × {tile.rows}{tile.fine ? ' · fine' : ''}</span>
-							<em>by {c.author}</em>
-						</span>
-					</a>
-				</li>
+				<ChartCard chart={c} />
 			{/each}
 		</ul>
 		<nav class="pages" aria-label="More charts">
@@ -77,7 +65,7 @@
 		--accent: #c8543e;
 		--accent-deep: #8f3a2a;
 		max-width: 912px;
-		min-height: calc(100dvh - var(--bar));
+		flex: 1;
 		margin: 0 auto;
 		padding: 24px 16px 64px;
 		color: var(--ink);
@@ -161,7 +149,6 @@
 	input:focus-visible,
 	select:focus-visible,
 	button:focus-visible,
-	li a:focus-visible,
 	.pages a:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 2px;
@@ -173,45 +160,6 @@
 		margin: 0;
 		padding: 0;
 		list-style: none;
-	}
-	li a {
-		display: flex;
-		gap: 12px;
-		height: 100%;
-		padding: 14px;
-		border: 1px solid var(--line-strong);
-		border-radius: 12px;
-		background: var(--surface);
-		color: inherit;
-		text-decoration: none;
-		transition: background-color 120ms ease-out, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
-	}
-	li a:active {
-		transform: scale(0.98);
-	}
-	.thumb {
-		flex: none;
-		width: 72px;
-		align-self: flex-start;
-		overflow: hidden;
-		border-radius: 6px;
-		box-shadow: 0 0 0 1px rgb(38 51 95 / 0.15);
-	}
-	.text {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		min-width: 0;
-		font-size: 13px;
-		color: var(--muted);
-	}
-	.text b {
-		color: var(--ink);
-		font-size: 15px;
-		overflow-wrap: anywhere;
-	}
-	.text em {
-		font-style: normal;
 	}
 	.empty {
 		color: var(--muted);
@@ -226,8 +174,5 @@
 		margin-top: 24px;
 	}
 	@media (hover: hover) and (pointer: fine) {
-		li a:hover {
-			background: var(--wash);
-		}
 	}
 </style>

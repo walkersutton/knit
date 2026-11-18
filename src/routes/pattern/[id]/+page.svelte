@@ -37,6 +37,7 @@
 		{est}
 		label={data.pattern.name}
 		author={data.pattern.author}
+		authorPhoto={data.pattern.authorPhoto}
 		sharedId={data.pattern.id}
 		bind:mode
 		{progress}

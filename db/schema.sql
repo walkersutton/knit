@@ -74,3 +74,6 @@ CREATE TABLE IF NOT EXISTS pattern_likes (
 	PRIMARY KEY (user_id, pattern_id)
 );
 CREATE INDEX IF NOT EXISTS pattern_likes_pattern_id_idx ON pattern_likes(pattern_id);
+
+-- A few public fields from the Ravelry profile (location, about me, favourite colours), refreshed at each sign-in. Shown on the knitter's page at /people/<username>.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bio jsonb;

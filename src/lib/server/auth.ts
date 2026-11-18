@@ -2,6 +2,7 @@ import { createHash, randomBytes, webcrypto } from 'node:crypto';
 import { env } from './env';
 import type { Cookies } from '@sveltejs/kit';
 import { database } from './db';
+import { cleanPhoto } from './members';
 
 export const SESSION_COOKIE = 'knit_session';
 const SESSION_DAYS = 30;
@@ -38,13 +39,14 @@ export async function getAccount(cookies: Cookies) {
 	if (!token) return null;
 	const sql = database();
 	const rows = await sql`
-		SELECT users.id, users.ravelry_username AS username
+		SELECT users.id, users.ravelry_username AS username, users.photo_url AS photo
 		FROM sessions
 		JOIN users ON users.id = sessions.user_id
 		WHERE sessions.token_hash = ${digest(token)} AND sessions.expires_at > now()
 		LIMIT 1
 	`;
-	return (rows[0] as { id: string; username: string } | undefined) ?? null;
+	const row = rows[0] as { id: string; username: string; photo: string | null } | undefined;
+	return row ? { ...row, photo: cleanPhoto(row.photo) } : null;
 }
 
 export async function createSession(userId: string) {

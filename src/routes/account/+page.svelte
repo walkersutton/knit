@@ -46,9 +46,9 @@
 <Seo title="Your account — knit" description="Sign in to sync your knitting patterns and progress across devices." path="/account" />
 
 <main>
-	<section class="patch">
+	<section class="patch" class:pending={loading}>
 		{#if loading}
-			<p class="plain">Checking your account…</p>
+			&nbsp;
 		{:else if errorMessage}
 			<p class="eyebrow">Your knitting, with you</p>
 			<h1>Keep your patterns close</h1>
@@ -58,6 +58,7 @@
 			<p class="eyebrow">Your knitting, with you</p>
 			<h1>Hello, {account.username}</h1>
 			<p class="lede">You’re signed in with Ravelry. Saved sweater designs, charts, and knitting progress can sync across your devices.</p>
+			<p class="fine"><a href="/people/{encodeURIComponent(account.username)}">See your public page</a> — your shared charts and patterns, your likes, and your Ravelry bio.</p>
 			<section class="saved">
 				<div class="section-head"><h2>Saved sweater designs</h2><a href="/design">Make a sweater</a></div>
 				{#if designs.length}
@@ -94,7 +95,7 @@
 </main>
 
 <style>
-	main { --out: cubic-bezier(0.23, 1, 0.32, 1); min-height: calc(100svh - var(--bar)); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 20px 40px; }
+	main { --out: cubic-bezier(0.23, 1, 0.32, 1); flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 20px 40px; }
 	/* A sewn-on label: the dashed edge is its stitching. */
 	.patch { position: relative; width: min(100%, 440px); padding: 34px 32px 28px; border-radius: 26px; background: #fffdf8; text-align: center; box-shadow: 0 16px 50px #433c2912, 0 0 0 1px #e6dcc0; }
 	.patch::before { content: ''; position: absolute; inset: 8px; border: 1.5px dashed #c9bb92; border-radius: 19px; pointer-events: none; }
@@ -104,10 +105,11 @@
 	.eyebrow { margin: 0 0 8px; color: #465e9d; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 	h1 { margin: 0 0 10px; color: #26335f; font: 600 clamp(28px, 7vw, 34px) / 1.1 var(--display); text-wrap: balance; }
 	.lede { margin: 0 auto 22px; max-width: 34ch; color: #55545b; font-size: 14px; line-height: 1.55; text-wrap: pretty; }
-	.plain { margin: 0; color: #55545b; font-size: 14px; }
+	.pending { visibility: hidden; }
 	.cta { display: flex; justify-content: center; }
 	.cta :global(.btn) { width: 100%; max-width: 320px; }
 	.fine { margin: 16px auto 0; max-width: 38ch; color: #76747b; font-size: 12px; line-height: 1.5; text-wrap: pretty; }
+	.fine a { color: #3d5aa8; }
 	.fine strong { color: #26335f; font-weight: 700; }
 	.error { margin: 0 0 4px; padding: 10px 12px; border-radius: 9px; background: #fff0eb; color: #8a351d; font-size: 14px; line-height: 1.55; }
 	.secondary { display: inline-flex; justify-content: center; align-items: center; margin-top: 18px; padding: 11px 16px; border: 1px solid #dcdce0; border-radius: 10px; background: white; color: #18181b; font: inherit; font-weight: 650; cursor: pointer; transition: transform 160ms var(--out); }

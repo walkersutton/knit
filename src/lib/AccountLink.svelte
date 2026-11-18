@@ -2,10 +2,16 @@
 	import { onMount } from 'svelte';
 	import mark from '$lib/ravelry-mark.svg?raw';
 	let username = $state<string>();
+	let photo = $state<string | null>(null);
+	let broken = $state(false);
 	onMount(async () => {
 		try {
 			const response = await fetch('/api/account');
-			if (response.ok) username = (await response.json()).account?.username;
+			if (response.ok) {
+				const account = (await response.json()).account;
+				username = account?.username;
+				photo = account?.photo ?? null;
+			}
 		} catch {
 			// The designer remains usable if account services are offline.
 		}
@@ -14,7 +20,11 @@
 
 <a class="account" class:in={username} href="/account" aria-label={username ? `Account: ${username}` : 'Sign in with Ravelry'}>
 	{#if username}
-		<span class="tile avatar" aria-hidden="true">{username[0].toUpperCase()}</span>
+		<span class="tile avatar" aria-hidden="true">
+			{#if photo && !broken}
+				<img src={photo} alt="" width="28" height="28" referrerpolicy="no-referrer" onerror={() => (broken = true)} />
+			{:else}{username[0].toUpperCase()}{/if}
+		</span>
 	{:else}
 		<span class="tile ball" aria-hidden="true">{@html mark}</span>
 	{/if}<span class="label">{username ?? 'Sign in'}</span>
@@ -30,7 +40,8 @@
 	.tile { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; transition: transform 200ms var(--out); }
 	.ball { padding: 6px; background: #ee6e62; color: #fff8e6; }
 	.ball :global(svg) { width: 100%; height: 100%; }
-	.avatar { background: #465e9d; color: #faf3dc; font: 600 14px / 1 var(--display); }
+	.avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+	.avatar { overflow: hidden; background: #465e9d; color: #faf3dc; font: 600 14px / 1 var(--display); }
 	@media (hover: hover) and (pointer: fine) {
 		.account:hover { background: #fbe3d8; }
 		.account.in:hover { background: #fbf5e4; box-shadow: inset 0 0 0 1.5px #26335f; }

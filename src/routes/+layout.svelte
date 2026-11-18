@@ -3,16 +3,33 @@
 	import Cursor from '$lib/Cursor.svelte';
 	import AccountSync from '$lib/AccountSync.svelte';
 	import SiteHeader from '$lib/SiteHeader.svelte';
+	import SiteFooter from '$lib/SiteFooter.svelte';
+	import { page } from '$app/state';
 
 	let { children } = $props();
+	// The designer fills the viewport, so it has no footer.
+	let footer = $derived(!/^\/design(\/|$)/.test(page.url.pathname));
 </script>
 
-<SiteHeader />
-{@render children()}
+<div class="shell">
+	<SiteHeader />
+	<div class="content">{@render children()}</div>
+	{#if footer}<SiteFooter />{/if}
+</div>
 <Cursor />
 <AccountSync />
 
 <style>
+	.shell {
+		display: flex;
+		flex-direction: column;
+		min-height: 100dvh;
+	}
+	.content {
+		display: flex;
+		flex: 1;
+		flex-direction: column;
+	}
 	:global(*) {
 		box-sizing: border-box;
 	}

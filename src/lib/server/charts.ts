@@ -1,4 +1,5 @@
 import { database } from './db';
+import { cleanPhoto } from './members';
 import { isPaletteColor } from '$lib/sweater/library';
 import { tileOfMotif, validMotif } from '$lib/sweater/motifs';
 
@@ -7,7 +8,7 @@ export const PAGE_SIZE = 24;
 export const MAX_SHARED = 100;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export type SharedChart = { id: string; name: string; motif: string; color: string; contrast: string; author: string; createdAt: string };
+export type SharedChart = { id: string; name: string; motif: string; color: string; contrast: string; author: string; authorPhoto: string | null; createdAt: string };
 /** What a knitter sends to share a chart. */
 export type ChartInput = { motif: string; color: string; contrast: string };
 
@@ -48,12 +49,12 @@ export async function unshareChart(userId: string, id: string) {
 	return rows.length > 0;
 }
 
-const toChart = (row: Record<string, any>): SharedChart => ({ id: row.id, name: row.name, motif: row.motif, color: row.color, contrast: row.contrast, author: row.author, createdAt: row.created_at });
+const toChart = (row: Record<string, any>): SharedChart => ({ id: row.id, name: row.name, motif: row.motif, color: row.color, contrast: row.contrast, author: row.author, authorPhoto: cleanPhoto(row.author_photo), createdAt: row.created_at });
 
 export async function getSharedChart(id: string): Promise<(SharedChart & { userId: string }) | null> {
 	if (!isId(id)) return null;
 	const rows = await database()`
-		SELECT c.id, c.name, c.motif, c.color, c.contrast, c.created_at, c.user_id, u.ravelry_username AS author
+		SELECT c.id, c.name, c.motif, c.color, c.contrast, c.created_at, c.user_id, u.ravelry_username AS author, u.photo_url AS author_photo
 		FROM shared_charts c JOIN users u ON u.id = c.user_id
 		WHERE c.id = ${id} LIMIT 1
 	`;
@@ -64,7 +65,7 @@ export async function getSharedChart(id: string): Promise<(SharedChart & { userI
 export async function listSharedCharts(query: string, size: string, page: number) {
 	const words = query.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6);
 	const rows = await database()`
-		SELECT c.id, c.name, c.motif, c.color, c.contrast, c.created_at, u.ravelry_username AS author
+		SELECT c.id, c.name, c.motif, c.color, c.contrast, c.created_at, u.ravelry_username AS author, u.photo_url AS author_photo
 		FROM shared_charts c JOIN users u ON u.id = c.user_id
 		WHERE (${size} = '' OR c.size = ${size})
 			AND NOT EXISTS (

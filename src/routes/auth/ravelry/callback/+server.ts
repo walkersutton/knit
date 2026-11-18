@@ -4,6 +4,7 @@ import type { RequestHandler } from './$types';
 import { callbackUrl, cookieOptions, createSession, ravelryConfigured, SESSION_COOKIE } from '$lib/server/auth';
 import { database } from '$lib/server/db';
 import { profilePhoto } from '$lib/server/members';
+import { cleanBio } from '$lib/server/bio';
 
 export const prerender = false;
 
@@ -49,12 +50,19 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	if (!profileResponse.ok || (typeof ravelryId !== 'number' && typeof ravelryId !== 'string') || !username) {
 		error(502, 'Ravelry did not return a usable account profile. Please try again.');
 	}
+	// The bio is a nicety: if Ravelry's profile call fails, sign-in still succeeds and the old bio is kept.
+	const person = await fetch(`https://api.ravelry.com/people/${encodeURIComponent(username)}.json`, {
+		headers: { authorization: `Bearer ${token.access_token}`, accept: 'application/json' }
+	})
+		.then((r) => (r.ok ? r.json() : null))
+		.catch(() => null);
+	const bio = person?.user ? cleanBio(person.user) : null;
 	const sql = database();
 	const photo = profilePhoto(profile.user);
 	const users = await sql`
-		INSERT INTO users (ravelry_user_id, ravelry_username, photo_url)
-		VALUES (${String(ravelryId)}, ${username}, ${photo})
-		ON CONFLICT (ravelry_user_id) DO UPDATE SET ravelry_username = EXCLUDED.ravelry_username, photo_url = EXCLUDED.photo_url
+		INSERT INTO users (ravelry_user_id, ravelry_username, photo_url, bio)
+		VALUES (${String(ravelryId)}, ${username}, ${photo}, ${bio ? JSON.stringify(bio) : null}::jsonb)
+		ON CONFLICT (ravelry_user_id) DO UPDATE SET ravelry_username = EXCLUDED.ravelry_username, photo_url = EXCLUDED.photo_url, bio = COALESCE(EXCLUDED.bio, users.bio)
 		RETURNING id
 	`;
 	const session = await createSession(String(users[0].id));

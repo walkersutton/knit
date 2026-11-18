@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Seo from '$lib/Seo.svelte';
 	import YourWork from '$lib/sweater/YourWork.svelte';
-	import { designDetail } from '$lib/sweater/random';
+	import PatternCard from '$lib/sweater/PatternCard.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -45,16 +45,7 @@
 	{:else}
 		<ul>
 			{#each data.patterns as p (p.id)}
-				<li>
-					<a href="/pattern/{p.id}">
-						<span class="swatch" aria-hidden="true"><i style:background={p.design.color}></i><i style:background={p.design.contrast}></i></span>
-						<span class="text">
-							<b>{p.name}</b>
-							<span>{designDetail(p.design)}</span>
-							<em>by {p.author}</em>
-						</span>
-					</a>
-				</li>
+				<PatternCard pattern={p} />
 			{/each}
 		</ul>
 		<nav class="pages" aria-label="More patterns">
@@ -74,7 +65,7 @@
 		--accent: #c8543e;
 		--accent-deep: #8f3a2a;
 		max-width: 912px;
-		min-height: calc(100dvh - var(--bar));
+		flex: 1;
 		margin: 0 auto;
 		padding: 24px 16px 64px;
 		color: var(--ink);
@@ -158,7 +149,6 @@
 	input:focus-visible,
 	select:focus-visible,
 	button:focus-visible,
-	li a:focus-visible,
 	.pages a:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 2px;
@@ -170,49 +160,6 @@
 		margin: 0;
 		padding: 0;
 		list-style: none;
-	}
-	li a {
-		display: flex;
-		gap: 12px;
-		height: 100%;
-		padding: 14px;
-		border: 1px solid var(--line-strong);
-		border-radius: 12px;
-		background: var(--surface);
-		color: inherit;
-		text-decoration: none;
-		transition: background-color 120ms ease-out, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
-	}
-	li a:active {
-		transform: scale(0.98);
-	}
-	.swatch {
-		display: flex;
-		flex: none;
-		width: 44px;
-		height: 44px;
-		overflow: hidden;
-		border-radius: 10px;
-		box-shadow: 0 0 0 1px rgb(38 51 95 / 0.15);
-	}
-	.swatch i {
-		flex: 1;
-	}
-	.text {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		min-width: 0;
-		font-size: 13px;
-		color: var(--muted);
-	}
-	.text b {
-		color: var(--ink);
-		font-size: 15px;
-		overflow-wrap: anywhere;
-	}
-	.text em {
-		font-style: normal;
 	}
 	.empty {
 		color: var(--muted);
@@ -227,8 +174,5 @@
 		margin-top: 24px;
 	}
 	@media (hover: hover) and (pointer: fine) {
-		li a:hover {
-			background: var(--wash);
-		}
 	}
 </style>

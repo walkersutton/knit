@@ -60,7 +60,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		min-height: calc(100dvh - var(--bar));
+		flex: 1;
 		color: var(--ink);
 		font-size: 15px;
 		line-height: 1.6;

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import Author from '$lib/Author.svelte';
 	import MotifSwatch from '$lib/sweater/MotifSwatch.svelte';
 	import { tileOfMotif } from '$lib/sweater/motifs';
 	import { designDetail } from '$lib/sweater/random';
@@ -26,21 +27,21 @@
 			{#if picks.chart}
 				{@const chart = picks.chart}
 				{@const tile = tileOfMotif(chart.motif)}
-				<a class="card chart" href="/chart/{chart.id}">
+				<div class="card chart">
 					<div class="art"><MotifSwatch motif={chart.motif} color={chart.color} contrast={chart.contrast} across={3} down={2} label="{chart.name}, repeated across a swatch" /></div>
 					<p class="kind">Favourite chart</p>
-					<h3>{chart.name}</h3>
-					<p class="meta">{tile.st} × {tile.rows} · by {chart.author} · {hearts(chart.likes)}</p>
-				</a>
+					<h3><a class="open" href="/chart/{chart.id}">{chart.name}</a></h3>
+					<p class="meta">{tile.st} × {tile.rows} · by <span class="by"><Author name={chart.author} photo={chart.authorPhoto} /></span> · {hearts(chart.likes)}</p>
+				</div>
 			{/if}
 			{#if picks.pattern}
 				{@const pattern = picks.pattern}
-				<a class="card pattern" href="/pattern/{pattern.id}">
+				<div class="card pattern">
 					<p class="kind">Favourite pattern</p>
-					<h3>{pattern.name}</h3>
+					<h3><a class="open" href="/pattern/{pattern.id}">{pattern.name}</a></h3>
 					<p class="detail">{designDetail(pattern.design)}</p>
-					<p class="meta">by {pattern.author} · {hearts(pattern.likes)}</p>
-				</a>
+					<p class="meta">by <span class="by"><Author name={pattern.author} photo={pattern.authorPhoto} /></span> · {hearts(pattern.likes)}</p>
+				</div>
 			{/if}
 		</div>
 	</section>
@@ -68,6 +69,7 @@
 		gap: 16px;
 	}
 	.card {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
@@ -75,7 +77,6 @@
 		border-radius: 18px;
 		color: inherit;
 		text-align: left;
-		text-decoration: none;
 		transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
 	}
 	.chart {
@@ -111,7 +112,22 @@
 		color: #3f4770;
 		font-size: 14px;
 	}
-	.card:focus-visible {
+	/* The title link covers the card; the author link sits above it so both can be clicked. */
+	.open {
+		color: inherit;
+		text-decoration: none;
+	}
+	.open::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: 18px;
+	}
+	.by {
+		position: relative;
+		z-index: 1;
+	}
+	.card:has(.open:focus-visible) {
 		outline: 3px solid var(--focus);
 		outline-offset: 4px;
 	}

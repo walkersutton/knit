@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import Author from '$lib/Author.svelte';
 	import LikeButton from '$lib/LikeButton.svelte';
 	import Stage from './Stage.svelte';
 	import PatternView from './PatternView.svelte';
@@ -21,6 +22,7 @@
 		onsave,
 		sharedId,
 		author,
+		authorPhoto,
 		onunshare,
 		likes
 	}: {
@@ -38,6 +40,7 @@
 		sharedId?: string;
 		/** Who shared it, when it is someone else's page. */
 		author?: string;
+		authorPhoto?: string | null;
 		/** Offered to the author of a shared pattern, to take it down. */
 		onunshare?: () => void;
 		/** The like button for a shared pattern. */
@@ -99,7 +102,7 @@
 	<section class="cover">
 		<div class="model"><Stage {design} /></div>
 		<div class="info">
-			<p class="eyebrow">{author ? `Shared by ${author}` : 'Your pattern'}</p>
+			<p class="eyebrow">{#if author}Shared by <Author name={author} photo={authorPhoto} />{:else}Your pattern{/if}</p>
 			<h1>{label}</h1>
 			<dl>
 				<div><dt>Yarn</dt><dd>{est.yards} yd · {est.skeins} {est.skeins === 1 ? 'skein' : 'skeins'}</dd></div>

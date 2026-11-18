@@ -139,8 +139,6 @@
 	<Featured />
 
 	<Members />
-
-	<footer>knit is open source. <a href={SITE.source} target="_blank" rel="noopener">View the code on GitHub</a>.</footer>
 </div>
 
 <style>
@@ -148,9 +146,6 @@
 		--ink: #26335f;
 		--muted: #5d6385;
 		--line: #e6dcc0;
-		display: flex;
-		flex-direction: column;
-		min-height: calc(100dvh - var(--bar));
 		color: var(--ink);
 		font-size: 15px;
 		line-height: 1.6;
@@ -416,17 +411,6 @@
 		margin: 0;
 		color: #3f4770;
 		text-wrap: pretty;
-	}
-	footer {
-		margin-top: auto;
-		padding: 28px 16px;
-		background: #465e9d;
-		color: #faf3dc;
-		font-size: 13px;
-		text-align: center;
-	}
-	footer a {
-		color: #faf3dc;
 	}
 	a:focus-visible {
 		outline: 2px solid var(--focus);

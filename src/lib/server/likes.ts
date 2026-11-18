@@ -1,4 +1,5 @@
 import { database } from './db';
+import { cleanPhoto } from './members';
 import type { SharedChart } from './charts';
 import type { SharedPattern } from './patterns';
 
@@ -44,22 +45,22 @@ export async function featured(): Promise<Featured> {
 	const sql = database();
 	const [charts, patterns] = await Promise.all([
 		sql`
-			SELECT c.id, c.name, c.motif, c.color, c.contrast, c.created_at, u.ravelry_username AS author, count(l.user_id)::int AS likes
+			SELECT c.id, c.name, c.motif, c.color, c.contrast, c.created_at, u.ravelry_username AS author, u.photo_url AS author_photo, count(l.user_id)::int AS likes
 			FROM shared_charts c JOIN users u ON u.id = c.user_id JOIN chart_likes l ON l.chart_id = c.id
-			GROUP BY c.id, u.ravelry_username
+			GROUP BY c.id, u.ravelry_username, u.photo_url
 			ORDER BY likes DESC, c.created_at DESC LIMIT 1
 		`,
 		sql`
-			SELECT p.id, p.name, p.design, p.created_at, u.ravelry_username AS author, count(l.user_id)::int AS likes
+			SELECT p.id, p.name, p.design, p.created_at, u.ravelry_username AS author, u.photo_url AS author_photo, count(l.user_id)::int AS likes
 			FROM shared_patterns p JOIN users u ON u.id = p.user_id JOIN pattern_likes l ON l.pattern_id = p.id
-			GROUP BY p.id, u.ravelry_username
+			GROUP BY p.id, u.ravelry_username, u.photo_url
 			ORDER BY likes DESC, p.created_at DESC LIMIT 1
 		`
 	]);
 	const c = charts[0];
 	const p = patterns[0];
 	return {
-		chart: c ? { id: c.id, name: c.name, motif: c.motif, color: c.color, contrast: c.contrast, author: c.author, createdAt: c.created_at, likes: c.likes } : null,
-		pattern: p ? { id: p.id, name: p.name, design: p.design, author: p.author, createdAt: p.created_at, likes: p.likes } : null
+		chart: c ? { id: c.id, name: c.name, motif: c.motif, color: c.color, contrast: c.contrast, author: c.author, authorPhoto: cleanPhoto(c.author_photo), createdAt: c.created_at, likes: c.likes } : null,
+		pattern: p ? { id: p.id, name: p.name, design: p.design, author: p.author, authorPhoto: cleanPhoto(p.author_photo), createdAt: p.created_at, likes: p.likes } : null
 	};
 }

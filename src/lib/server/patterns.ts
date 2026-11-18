@@ -1,4 +1,5 @@
 import { database } from './db';
+import { cleanPhoto } from './members';
 import { digest } from './auth';
 import { DEFAULT_DESIGN } from '$lib/sweater/defaults';
 import type { Design } from '$lib/sweater/garment';
@@ -11,7 +12,7 @@ export const PAGE_SIZE = 24;
 export const MAX_SHARED = 100;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export type SharedPattern = { id: string; name: string; design: Design; author: string; createdAt: string };
+export type SharedPattern = { id: string; name: string; design: Design; author: string; authorPhoto: string | null; createdAt: string };
 
 export const isId = (value: string) => UUID.test(value);
 
@@ -48,12 +49,12 @@ export async function unsharePattern(userId: string, id: string) {
 	return rows.length > 0;
 }
 
-const toPattern = (row: Record<string, any>): SharedPattern => ({ id: row.id, name: row.name, design: row.design, author: row.author, createdAt: row.created_at });
+const toPattern = (row: Record<string, any>): SharedPattern => ({ id: row.id, name: row.name, design: row.design, author: row.author, authorPhoto: cleanPhoto(row.author_photo), createdAt: row.created_at });
 
 export async function getShared(id: string): Promise<(SharedPattern & { userId: string }) | null> {
 	if (!isId(id)) return null;
 	const rows = await database()`
-		SELECT p.id, p.name, p.design, p.created_at, p.user_id, u.ravelry_username AS author
+		SELECT p.id, p.name, p.design, p.created_at, p.user_id, u.ravelry_username AS author, u.photo_url AS author_photo
 		FROM shared_patterns p JOIN users u ON u.id = p.user_id
 		WHERE p.id = ${id} LIMIT 1
 	`;
@@ -64,7 +65,7 @@ export async function getShared(id: string): Promise<(SharedPattern & { userId: 
 export async function listShared(query: string, garment: string, page: number) {
 	const words = query.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6);
 	const rows = await database()`
-		SELECT p.id, p.name, p.design, p.created_at, u.ravelry_username AS author
+		SELECT p.id, p.name, p.design, p.created_at, u.ravelry_username AS author, u.photo_url AS author_photo
 		FROM shared_patterns p JOIN users u ON u.id = p.user_id
 		WHERE (${garment} = '' OR p.garment = ${garment})
 			AND NOT EXISTS (

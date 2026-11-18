@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import Author from '$lib/Author.svelte';
 	import LikeButton from '$lib/LikeButton.svelte';
 	import Seo from '$lib/Seo.svelte';
 	import MotifSwatch from '$lib/sweater/MotifSwatch.svelte';
@@ -55,7 +56,7 @@
 <Seo title="{chart.name} — knit" description="A {tile.st} × {tile.rows} two-colour knitting chart shared by {chart.author}. Put it on a sweater and get a free written pattern." path="/chart/{chart.id}" />
 
 <main>
-	<p class="eyebrow">Shared by {chart.author}</p>
+	<p class="eyebrow">Shared by <Author name={chart.author} photo={chart.authorPhoto} /></p>
 	<h1>{chart.name}</h1>
 	<div class="layout">
 		<div class="art">
