@@ -16,13 +16,13 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		path: '/auth/ravelry/callback',
 		maxAge: 10 * 60
 	});
-	const authorize = new URL('https://www.ravelry.com/oauth2/auth');
+	const authorize = new URL('https://auth.ravelry.com/oauth2/auth');
 	authorize.search = new URLSearchParams({
 		response_type: 'code',
 		client_id: env.RAVELRY_CLIENT_ID!,
 		redirect_uri: callbackUrl(url.origin),
 		state,
-		scope: 'offline',
+		scope: 'offline_access',
 		code_challenge: await pkceChallenge(verifier),
 		code_challenge_method: 'S256'
 	}).toString();

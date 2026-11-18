@@ -30,7 +30,7 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		code_verifier: oauth.verifier
 	});
 	const credentials = Buffer.from(`${env.RAVELRY_CLIENT_ID}:${env.RAVELRY_CLIENT_SECRET}`).toString('base64');
-	const tokenResponse = await fetch('https://www.ravelry.com/oauth2/token', {
+	const tokenResponse = await fetch('https://auth.ravelry.com/oauth2/token', {
 		method: 'POST',
 		headers: { authorization: `Basic ${credentials}`, 'content-type': 'application/x-www-form-urlencoded' },
 		body: form
