@@ -1,5 +1,10 @@
 # Search engines and AI assistants are welcome to crawl and cite this site.
+# llms.txt summarises it for language models.
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /pattern/view
+Disallow: /chart/view
 
 Sitemap: https://knit.walkersutton.com/sitemap.xml

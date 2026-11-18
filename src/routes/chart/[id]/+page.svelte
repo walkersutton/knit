@@ -53,7 +53,7 @@
 	}
 </script>
 
-<Seo title="{chart.name} — knit" description="A {tile.st} × {tile.rows} two-colour knitting chart shared by {chart.author}. Put it on a sweater and get a free written pattern." path="/chart/{chart.id}" />
+<Seo title="{chart.name} — knit" description="A {tile.st} × {tile.rows} two-colour knitting chart shared by {chart.author}. Put it on a sweater and get a free written pattern." path="/chart/{chart.id}" type="article" image="/og/chart/{chart.id}.png" imageAlt="{chart.name}, a colourwork chart by {chart.author}" />
 
 <main>
 	<p class="eyebrow">Shared by <Author name={chart.author} photo={chart.authorPhoto} /></p>

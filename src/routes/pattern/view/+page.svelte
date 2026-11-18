@@ -39,7 +39,7 @@
 	const name = () => (design ? summary(design) : '');
 </script>
 
-<Seo title="Your pattern — knit" description="A written knitting pattern for your own sweater design." path="/pattern/view" />
+<Seo title="Your pattern — knit" description="A written knitting pattern for your own sweater design." path="/pattern/view" noindex />
 
 {#if design && pattern?.ok}
 	<PatternPage

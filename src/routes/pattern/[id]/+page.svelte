@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import Seo from '$lib/Seo.svelte';
+	import { SITE } from '$lib/site';
 	import PatternPage from '$lib/sweater/PatternPage.svelte';
 	import { estimate, writePattern } from '$lib/sweater/pattern';
 	import { encodeDesign, type Mode, type Progress } from '$lib/sweater/progress';
@@ -28,7 +29,7 @@
 	}
 </script>
 
-<Seo title="{data.pattern.name} — knit" description="{designDetail(design)}. A free knitting pattern shared by {data.pattern.author}, adjustable to your yarn, gauge and size." path="/pattern/{data.pattern.id}" />
+<Seo title="{data.pattern.name} — knit" description="{designDetail(design)}. A free knitting pattern shared by {data.pattern.author}, adjustable to your yarn, gauge and size." path="/pattern/{data.pattern.id}" type="article" image="/og/pattern/{data.pattern.id}.png" imageAlt="{data.pattern.name}, a knitting pattern by {data.pattern.author}" jsonLd={{ '@context': 'https://schema.org', '@type': 'CreativeWork', name: data.pattern.name, url: SITE.url + '/pattern/' + data.pattern.id, image: SITE.url + '/og/pattern/' + data.pattern.id + '.png', author: { '@type': 'Person', name: data.pattern.author, url: SITE.url + '/people/' + encodeURIComponent(data.pattern.author) }, dateCreated: data.pattern.createdAt, isAccessibleForFree: true, learningResourceType: 'Knitting pattern' }} />
 
 {#if pattern.ok}
 	<PatternPage

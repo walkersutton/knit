@@ -45,7 +45,7 @@
 
 <svelte:window onhashchange={read} />
 
-<Seo title="Chart on a sweater — knit" description="See a knitting chart on a 3D sweater before you cast on." path="/chart/view" />
+<Seo title="Chart on a sweater — knit" description="See a knitting chart on a 3D sweater before you cast on." path="/chart/view" noindex />
 
 <main>
 	{#if design && chart}

@@ -9,7 +9,7 @@
   ·
   <a href="https://knit.walkersutton.com/about">How it works</a>
   ·
-  <a href="https://github.com/walkersutton/knit/issues">Report a bug</a>
+  <a href="https://github.com/walkersutton/knit/issues">Tell us what's wrong</a>
 </p>
 
 <p align="center">
@@ -18,108 +18,48 @@
   </a>
 </p>
 
-knit is a free sweater designer whose pattern calculations run in the browser. Pick a garment, size, fit, neckline, sleeves, edge finishes and yarn, watch a 3D model update with every choice, and get a written top-down raglan or set-in pattern with the stitch counts worked out for that exact design. An optional Ravelry sign-in syncs saved designs, charts and knitting progress across devices.
+**knit is a free website for designing a sweater and getting the pattern to knit it.** Choose the shape, size and yarn, watch a 3D sweater change as you decide, and when you're happy, get a written pattern with every stitch count worked out for you. No account, no download, nothing to pay.
 
-## Features
+**[Start designing →](https://knit.walkersutton.com/design)**
 
-- **Live 3D preview.** A Three.js model with procedural stitch textures, rebuilt as you change the design. Drag to rotate.
-- **Written patterns.** Materials, gauge, finished measurements in cm and inches, and step-by-step instructions with the stitch count after every shaping step.
-- **Sized to your yarn.** Fingering, DK, worsted and bulky weights, with yardage and skein estimates per colour.
-- **Uses the needles you own.** Tell it which sizes you have and the pattern is rewritten for the closest workable needle and its gauge, keeping the finished size the same.
-- **Colourwork.** Solid, stripes or Fair Isle, with a chart.
-- **Saved designs and charts.** Keep named sweater designs and custom colourwork charts in your library.
-- **Beginner view.** Every abbreviation written out, tips on the steps that trip people up, and links to free tutorials at the step where you first need each technique.
-- **Progress tracking.** Tick off steps and count rounds. The 3D model grows to show the fabric you have knitted so far.
-- **Works offline.** A service worker keeps the whole app on the device, and your design and place are saved in the browser.
-- **Optional account sync.** Sign in with Ravelry to sync saved sweater designs, charts and knitting progress across devices.
-- **Print or save as PDF.**
+## What you can do
 
-### What you can design
+- **See it before you cast on.** Change the neckline, sleeves, colours or fit and a 3D sweater updates right away. Drag it to look from every side.
+- **Get a real pattern.** Yarn amounts, needle sizes, the gauge to match, finished measurements in inches and centimetres, and step-by-step instructions with the stitch count after every shaping step.
+- **Make it fit you.** Pick a standard size from XS to XL, or type in your own measurements.
+- **Use the yarn and needles you have.** Choose fingering, DK, worsted or bulky weight, and tell knit which needles are in your bag. The pattern is rewritten for them and the finished size stays the same.
+- **Add colour.** Solid, stripes, Fair Isle, or draw your own colourwork chart square by square.
+- **Knit along.** Tick off steps and count rounds as you go. The 3D sweater grows to show how far you've got.
+- **New to knitting?** Switch to the Beginner view: every abbreviation is spelled out, tricky steps come with tips, and there are links to free tutorials right where you first need them.
+- **Print it or save it as a PDF.**
+- **Works offline.** Once it has loaded, you can keep designing and knitting without internet.
+
+### Things you can design
 
 | | |
 | --- | --- |
 | Garments | Sweater, T-shirt, cardigan, slipover |
-| Made for | Adult, junior, kid, baby, in XS to XL |
-| Fit | Fitted, relaxed, oversized; cropped, regular or long body |
+| Made for | Adult, junior, kid, baby, in XS to XL, or your own measurements |
+| Fit | Fitted, relaxed, oversized; cropped, regular or long |
 | Necklines | Crew, V-neck, boat, I-cord, mock neck, turtleneck |
 | Sleeves | Short, 3/4 or full; straight, balloon or puff |
-| Edges | Ribbed (1×1, 2×2, 2×1, twisted), folded hem, rolled edge, I-cord |
-| Fabric | Solid, stripes or Fair Isle in 12 colours |
+| Edges | Ribbing, folded hem, rolled edge, I-cord |
+| Colour | Solid, stripes or Fair Isle, in 12 colours |
 
-Every garment comes with a full written pattern: raglan or set-in for sleeved garments, and set-in shoulders with rolled armhole edges for slipovers.
+## Share with other knitters
 
-## Getting started
+Signing in is optional and uses your Ravelry account. It lets you:
 
-You need [Node.js](https://nodejs.org) 20 or later and [pnpm](https://pnpm.io).
+- **Save your designs and charts** and pick them up on any device.
+- **Share patterns and colourwork charts** with everyone. Browse what others have made, put any chart on your own sweater, and open any pattern to adapt it to your yarn and size.
+- **Like your favourites**, and have a page of your own that shows what you've shared.
 
-```sh
-git clone https://github.com/walkersutton/knit.git
-cd knit
-pnpm install
-pnpm dev
-```
+knit only uses Ravelry to find out who you are. It never posts for you and doesn't keep your Ravelry password or access.
 
-Then open <http://localhost:5173>.
+## Help us get the patterns right
 
-### Account sync setup
+A pattern that doesn't work on the needles is the worst kind of bug, so corrections from knitters are the most useful thing you can send. If a stitch count or an instruction looks wrong, please [open an issue](https://github.com/walkersutton/knit/issues) and tell us which design you chose. You don't need to know anything about code: just describe what you saw, and a screenshot helps. Ideas and wishes are welcome too.
 
-Account sync uses a Vercel server runtime and Neon Postgres. `DATABASE_URL` is injected by the Vercel Neon integration (for local dev, `vercel env pull .env.local`); run `db/schema.sql` against it once. `PUBLIC_ORIGIN` and the Ravelry client ID and secret live in the dotenvx-encrypted `.env.production`, which is committed: set them with `pnpm exec dotenvx set NAME value -f .env.production`. The private key is in `.env.keys` (gitignored) and in Vercel as `DOTENV_PRIVATE_KEY_PRODUCTION`; the server decrypts the file at runtime (`src/lib/server/env.ts`). Register `{PUBLIC_ORIGIN}/auth/ravelry/callback` as the Ravelry app's callback URL. For local sign-in, register `http://localhost:5173/auth/ravelry/callback` as an additional callback and set `PUBLIC_ORIGIN=http://localhost:5173` in `.env.local`.
+## For people who build things
 
-Ravelry access tokens are used server-side only to read the Ravelry account identity and are not stored. knit stores an opaque session token hash and each account's saved designs, charts and progress in Postgres. The browser continues to store a local copy for offline use.
-
-| Command | What it does |
-| --- | --- |
-| `pnpm dev` | Start the development server |
-| `pnpm check` | Run Svelte and TypeScript checks |
-| `pnpm test` | Run the Vitest suite |
-| `pnpm build` | Build the production site |
-| `pnpm preview` | Serve the production build locally |
-
-## How it works
-
-One function, `measure()`, turns a design into finished measurements. The 3D model and the written pattern both read from it, so the pattern always describes the garment on screen.
-
-```
-Design ──► measure() ──┬──► buildGarment() ──► Three.js viewer
-                       └──► writePattern() ──► pattern view, print, progress
-```
-
-Everything is computed in the browser, and every page is prerendered to static HTML.
-
-### Project layout
-
-```
-src/
-├── lib/
-│   ├── sweater/
-│   │   ├── garment.ts       Design type, measurements and 3D geometry
-│   │   ├── pattern.ts       Written pattern and yarn estimates
-│   │   ├── needles.ts       Needle sizes, gauge and picking from the sizes you own
-│   │   ├── options.ts       Every choice the designer offers
-│   │   ├── yarn.ts          Procedural stitch textures and colourwork charts
-│   │   ├── viewer.ts        Three.js scene, camera and controls
-│   │   ├── progress.ts      Step tracking and saved state
-│   │   ├── learn.ts         Beginner view: tutorials and spelled-out shorthand
-│   │   └── *.svelte         Designer and pattern components
-│   ├── Seo.svelte           Meta tags and structured data
-│   └── site.ts              Site-wide constants
-├── routes/
-│   ├── +page.svelte         The landing page
-│   ├── design/              The sweater designer
-│   └── about/               How it works and FAQ
-└── service-worker.ts        Offline support
-```
-
-### Tech stack
-
-[SvelteKit](https://svelte.dev/docs/kit) with Svelte 5, [TypeScript](https://www.typescriptlang.org), [Three.js](https://threejs.org), [Vite](https://vite.dev) and [Vitest](https://vitest.dev).
-
-## Contributing
-
-Issues and pull requests are welcome. Corrections from knitters are especially useful: if a pattern gives a stitch count or instruction that does not work on the needles, please [open an issue](https://github.com/walkersutton/knit/issues) with the design you chose.
-
-Before opening a pull request:
-
-1. Run `pnpm check` and `pnpm test`.
-2. Add or update tests when you change anything in `src/lib/sweater/`. The suite writes patterns for a wide range of designs and checks that the stitch counts add up.
-3. Keep sweater logic in `src/lib/sweater/` and route UI in `src/routes/`.
+knit is open source. If you'd like to run it on your own computer or help with the code, see the [developer guide](docs/DEVELOPING.md).

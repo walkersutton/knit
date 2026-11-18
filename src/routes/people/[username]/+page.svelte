@@ -34,7 +34,7 @@
 	<ul>{#each items as x (x.id)}<PatternCard pattern={x} />{/each}</ul>
 {/snippet}
 
-<Seo title="{p.username} — knit" description="{p.username} on knit: {p.patterns.length} shared {p.patterns.length === 1 ? 'pattern' : 'patterns'} and {p.charts.length} shared {p.charts.length === 1 ? 'chart' : 'charts'}." path="/people/{encodeURIComponent(p.username)}" />
+<Seo title="{p.username} — knit" description="{p.username} on knit: {p.patterns.length} shared {p.patterns.length === 1 ? 'pattern' : 'patterns'} and {p.charts.length} shared {p.charts.length === 1 ? 'chart' : 'charts'}." path="/people/{encodeURIComponent(p.username)}" type="profile" image="/og/people/{encodeURIComponent(p.username)}.png" imageAlt="{p.username} on knit" />
 
 <main>
 	<header class="who">
