@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Seo from '$lib/Seo.svelte';
+	import YourWork from '$lib/sweater/YourWork.svelte';
 	import { designDetail } from '$lib/sweater/random';
 	import type { PageProps } from './$types';
 
@@ -21,7 +22,11 @@
 
 <main>
 	<p class="eyebrow">Shared by knitters</p>
-	<h1>Patterns</h1>
+	<div class="head">
+		<h1>Patterns</h1>
+		<a class="new" href="/design">Design a new pattern</a>
+	</div>
+	<YourWork kind="pattern" />
 	<form role="search" method="get">
 		<input type="search" name="q" value={data.q} placeholder="Search by name, garment or knitter" aria-label="Search patterns" />
 		<select name="type" aria-label="Garment">
@@ -83,8 +88,35 @@
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
 	}
+	.head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		margin-bottom: 20px;
+	}
+	.new {
+		display: inline-flex;
+		align-items: center;
+		height: 40px;
+		padding: 0 18px;
+		border: 1.5px solid var(--accent-deep);
+		border-radius: 8px;
+		background: var(--accent);
+		color: #fff8e6;
+		font-weight: 500;
+		text-decoration: none;
+	}
+	.new:active {
+		filter: brightness(0.93);
+	}
+	.new:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
+	}
 	h1 {
-		margin: 0 0 20px;
+		margin: 0;
 		font-family: var(--display);
 		font-size: 36px;
 		font-weight: 600;

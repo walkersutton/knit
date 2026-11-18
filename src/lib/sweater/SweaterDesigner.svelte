@@ -22,11 +22,11 @@
 	import { estimate, writePattern } from '$lib/sweater/pattern';
 	import PatternView from '$lib/sweater/PatternView.svelte';
 	import { readMotifHash, wantsChart } from '$lib/sweater/library';
-	import { saveDesign } from '$lib/sweater/designs';
+	import { saveDesign, type SavedDesign } from '$lib/sweater/designs';
 	import { CUSTOM_PATTERN } from '$lib/sweater/motifs';
 	import { decodeDesign, encodeDesign, load, save, signature, type Mode, type Progress } from '$lib/sweater/progress';
 
-	let { incoming, onconsumed, onEditChart }: { incoming?: Incoming; onconsumed?: () => void; onEditChart: (motif: string) => void } = $props();
+	let { incoming, active, onconsumed, onsaved, onremove, onEditChart }: { incoming?: Incoming; active?: SavedDesign; onconsumed?: () => void; onsaved?: (id: string) => void; onremove?: () => void; onEditChart: (motif: string) => void } = $props();
 
 	let design = $state<Design>({ ...DEFAULT_DESIGN });
 	/** Needle sizes (mm) the knitter owns. */
@@ -62,16 +62,23 @@
 
 	let est = $derived(estimate(knit));
 	let pattern = $derived(writePattern(knit));
-	let steps = $derived([...tabs, { id: 'pattern', label: 'Pattern', disabled: !pattern.ok, reason: pattern.ok ? undefined : pattern.reason }]);
 
 	// ── Reading and tracking the pattern ──
 	let mode = $state<Mode>('beginner');
 	/** The knitter's place in each pattern they have started, by design signature. */
 	let progress = $state<Record<string, Progress>>({});
 	let sig = $derived(signature(knit));
+	/** Shown beside the save button so a save is never silent. */
+	let saveNote = $state('');
+	let saveTimer: ReturnType<typeof setTimeout>;
 	function saveCurrentDesign() {
-		const name = prompt('Name this sweater design:', summary(design));
-		if (name !== null) saveDesign(knit, name);
+		const name = prompt('Name this sweater design:', active?.name ?? summary(design));
+		if (name === null) return;
+		const item = saveDesign(knit, name, active?.id);
+		saveNote = item ? (item.id === active?.id ? 'Renamed' : 'Saved to your patterns') : 'Could not save: this browser is out of storage';
+		clearTimeout(saveTimer);
+		saveTimer = setTimeout(() => (saveNote = ''), 4000);
+		if (item) onsaved?.(item.id);
 	}
 
 	function apply({ design: next, chart }: Incoming) {
@@ -92,6 +99,8 @@
 	onMount(() => {
 		const saved = load(design);
 		if (saved.design) design = saved.design;
+		// Coming back from the chart designer with a saved pattern still open: carry on with that pattern.
+		if (active) design = structuredClone($state.snapshot(active.design));
 		// A design opened from a link (the sweaters on the home page) wins over the one saved here.
 		const linked = location.hash.startsWith('#d=') ? decodeDesign(location.hash.slice(3), design) : undefined;
 		if (linked) {
@@ -118,21 +127,52 @@
 		untrack(() => apply(next));
 		onconsumed?.();
 	});
+	// A saved pattern keeps itself up to date as it is edited.
+	$effect(() => {
+		if (!restored || incoming || !active) return;
+		const snapshot = $state.snapshot(design);
+		if (JSON.stringify(snapshot) === JSON.stringify(active.design)) return;
+		const { id, name } = active;
+		const timer = setTimeout(() => saveDesign(snapshot, name, id), 500);
+		return () => clearTimeout(timer);
+	});
 	$effect(() => {
 		const state = { design: $state.snapshot(design), mode, needles: $state.snapshot(owned), progress: $state.snapshot(progress) };
 		if (restored) save(state, sig);
 	});
 </script>
 
-{#snippet center()}<Stepper {steps} {tab} onTab={go} />{/snippet}
+{#snippet center()}<Stepper steps={tabs} {tab} onTab={go} />{/snippet}
 {#snippet right()}<HowItWorks /><AccountLink />{/snippet}
 <!-- Reading the pattern gets the same plain bar as the home and about pages. -->
 <HeaderSlot app {center} {right} />
 
 <div class="app">
 	<div class="layout">
+		<main>
+			<div class="stage"><Stage design={knit} /></div>
+			<div class="pattern">
+				<dl>
+					<div><dt>Yarn</dt><dd>{est.yards} yd · {est.skeins} {est.skeins === 1 ? 'skein' : 'skeins'}</dd></div>
+					<div><dt>Needles</dt><dd>{needleLabel(est.needles.main)}</dd></div>
+					<div><dt>Gauge</dt><dd>{est.gauge} sts / 4 in</dd></div>
+					<div><dt>Skill</dt><dd>{est.level}</dd></div>
+				</dl>
+				{#if pattern.ok}
+					<button type="button" class="step view" onclick={() => go('pattern')}>Get my pattern</button>
+				{/if}
+				<button type="button" class="save" onclick={() => window.print()} disabled={!pattern.ok} title={pattern.ok ? 'Print, or choose “Save as PDF” in the print dialog' : pattern.reason}>
+					Print pattern
+				</button>
+				<button type="button" class="save save-design" onclick={saveCurrentDesign} disabled={!pattern.ok} title="Save this sweater design to your account or this device">{active ? 'Rename design' : 'Save design'}</button>
+				{#if active}
+					<button type="button" class="step danger" onclick={onremove}>Delete design</button>
+				{/if}
+				<p class="save-note" role="status">{saveNote}</p>
+			</div>
+		</main>
 		<aside bind:this={panel}>
-			<div id="panel" role="tabpanel" aria-label={steps.find((t) => t.id === tab)?.label}>
+			<div id="panel" role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label}>
 				{#if section}
 					{#each section.groups as group (group.id)}
 						{@const fields = visible(group, design)}
@@ -186,24 +226,6 @@
 				{/if}
 			</div>
 		</aside>
-		<main>
-			<div class="stage"><Stage design={knit} /></div>
-			<div class="pattern">
-				<dl>
-					<div><dt>Yarn</dt><dd>{est.yards} yd · {est.skeins} {est.skeins === 1 ? 'skein' : 'skeins'}</dd></div>
-					<div><dt>Needles</dt><dd>{needleLabel(est.needles.main)}</dd></div>
-					<div><dt>Gauge</dt><dd>{est.gauge} sts / 4 in</dd></div>
-					<div><dt>Skill</dt><dd>{est.level}</dd></div>
-				</dl>
-				{#if pattern.ok}
-					<button type="button" class="step view" onclick={() => go('pattern')}>Get my pattern</button>
-				{/if}
-				<button type="button" class="save" onclick={() => window.print()} disabled={!pattern.ok} title={pattern.ok ? 'Print, or choose “Save as PDF” in the print dialog' : pattern.reason}>
-					Print pattern
-				</button>
-				<button type="button" class="save save-design" onclick={saveCurrentDesign} disabled={!pattern.ok} title="Save this sweater design to your account or this device">Save design</button>
-			</div>
-		</main>
 	</div>
 </div>
 <div class="print-only"><PatternView {pattern} main={design.color} contrast={design.contrast} {mode} /></div>
@@ -237,7 +259,7 @@
 	}
 	.layout {
 		display: grid;
-		grid-template-columns: 400px minmax(0, 1fr);
+		grid-template-columns: minmax(0, 1fr) 400px;
 		flex: 1;
 		min-height: 0;
 	}
@@ -246,7 +268,7 @@
 		flex-direction: column;
 		overflow-y: auto;
 		padding: 0 16px;
-		border-right: 1px solid var(--hairline);
+		border-left: 1px solid var(--hairline);
 		background: var(--surface);
 	}
 	.step:focus-visible {
@@ -304,6 +326,20 @@
 		font-weight: 500;
 		white-space: nowrap;
 		transition: background-color 120ms ease-out, filter 120ms ease-out;
+	}
+	.step.danger {
+		grid-column: 1 / -1;
+		color: #9b2c1f;
+	}
+	.save-note {
+		grid-column: 1 / -1;
+		margin: 0;
+		color: var(--muted);
+		font-size: 12px;
+		text-align: center;
+	}
+	.save-note:empty {
+		display: none;
 	}
 	.step {
 		grid-column: 1;
@@ -443,7 +479,7 @@
 		}
 		.layout {
 			display: flex;
-			flex-direction: column-reverse;
+			flex-direction: column;
 		}
 		main {
 			position: sticky;
@@ -466,7 +502,7 @@
 		}
 		aside {
 			overflow: visible;
-			border-right: 0;
+			border-left: 0;
 		}
 	}
 </style>

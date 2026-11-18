@@ -1,6 +1,8 @@
 <script lang="ts">
 	import Seo from '$lib/Seo.svelte';
+	import YourWork from '$lib/sweater/YourWork.svelte';
 	import MotifSwatch from '$lib/sweater/MotifSwatch.svelte';
+	import { previewLink } from '$lib/sweater/library';
 	import { tileOfMotif } from '$lib/sweater/motifs';
 	import type { PageProps } from './$types';
 
@@ -22,7 +24,11 @@
 
 <main>
 	<p class="eyebrow">Shared by knitters</p>
-	<h1>Charts</h1>
+	<div class="head">
+		<h1>Charts</h1>
+		<a class="new" href="/design#tool=chart">Design a new chart</a>
+	</div>
+	<YourWork kind="chart" />
 	<form role="search" method="get">
 		<input type="search" name="q" value={data.q} placeholder="Search by name or knitter" aria-label="Search charts" />
 		<select name="size" aria-label="Chart size">
@@ -43,7 +49,7 @@
 			{#each data.charts as c (c.id)}
 				{@const tile = tileOfMotif(c.motif)}
 				<li>
-					<a href="/chart/{c.id}">
+					<a href={previewLink(c.motif, c.color, c.contrast, undefined, c.id)}>
 						<span class="thumb"><MotifSwatch motif={c.motif} color={c.color} contrast={c.contrast} across={2} down={1} /></span>
 						<span class="text">
 							<b>{c.name}</b>
@@ -85,8 +91,35 @@
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
 	}
+	.head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		margin-bottom: 20px;
+	}
+	.new {
+		display: inline-flex;
+		align-items: center;
+		height: 40px;
+		padding: 0 18px;
+		border: 1.5px solid var(--accent-deep);
+		border-radius: 8px;
+		background: var(--accent);
+		color: #fff8e6;
+		font-weight: 500;
+		text-decoration: none;
+	}
+	.new:active {
+		filter: brightness(0.93);
+	}
+	.new:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
+	}
 	h1 {
-		margin: 0 0 20px;
+		margin: 0;
 		font-family: var(--display);
 		font-size: 36px;
 		font-weight: 600;

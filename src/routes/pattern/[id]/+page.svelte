@@ -45,5 +45,6 @@
 		onedit={() => goto(`/design#d=${encodeDesign(design)}`)}
 		onsave={() => saveDesign(design, data.pattern.name)}
 		onunshare={data.mine ? unshare : undefined}
+		likes={{ count: data.likes, liked: data.liked, signedIn: data.signedIn }}
 	/>
 {/if}

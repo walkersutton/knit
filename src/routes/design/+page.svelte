@@ -4,7 +4,8 @@
 	import ChartDesigner from '$lib/sweater/ChartDesigner.svelte';
 	import DesignLibrary from '$lib/sweater/DesignLibrary.svelte';
 	import SweaterDesigner, { type Incoming } from '$lib/sweater/SweaterDesigner.svelte';
-	import { loadDesigns, type SavedDesign } from '$lib/sweater/designs';
+	import { DEFAULT_DESIGN } from '$lib/sweater/defaults';
+	import { deleteDesign, loadDesigns, saveDesign, type SavedDesign } from '$lib/sweater/designs';
 	import { markDeleted } from '$lib/sweater/deletions';
 	import { freshName, loadLibrary, newId, parseLibrary, readMotifHash, saveLibrary, wantsChart, type Library } from '$lib/sweater/library';
 	import { blankMotif } from '$lib/sweater/motifs';
@@ -28,6 +29,9 @@
 	let designs = $state<SavedDesign[]>([]);
 	/** Handed to the sweater designer, which clears it once it has taken it. */
 	let incoming = $state<Incoming>();
+	/** The saved design open in the sweater designer, which saves its edits as they are made. */
+	let activeId = $state<string>();
+	let active = $derived(designs.find((d) => d.id === activeId));
 
 	let current = $derived(lib.patterns.find((p) => p.id === selected) ?? lib.patterns[0]);
 
@@ -36,6 +40,22 @@
 		lib.patterns.push(p);
 		selected = p.id;
 		tool = 'chart';
+	}
+	/** A new pattern joins the sidebar straight away, like a new chart, and keeps itself saved as it is edited. */
+	function newPattern() {
+		const item = saveDesign({ ...DEFAULT_DESIGN }, freshName('Untitled sweater', designs.map((d) => d.name)));
+		if (!item) return alert('Could not start a new pattern: this browser is out of storage.');
+		refreshDesigns();
+		activeId = item.id;
+		incoming = { design: item.design };
+		tool = 'sweater';
+	}
+	function removePattern() {
+		if (!active || !confirm(`Delete “${active.name}”? This can't be undone.`)) return;
+		const { id } = active;
+		activeId = undefined;
+		deleteDesign(id);
+		refreshDesigns();
 	}
 	function remove() {
 		if (!confirm(`Delete “${current.name}”? This can't be undone.`)) return;
@@ -56,6 +76,15 @@
 	function useChart() {
 		incoming = { chart: { motif: current.motif, color: lib.color, contrast: lib.contrast } };
 		tool = 'sweater';
+	}
+
+	/** Delete (or Backspace, which is the Mac's delete key) removes whatever is selected, unless the knitter is typing. */
+	function onkeydown(e: KeyboardEvent) {
+		if ((e.key !== 'Delete' && e.key !== 'Backspace') || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+		if ((e.target as HTMLElement).closest('input, textarea, select, [contenteditable]')) return;
+		e.preventDefault();
+		if (tool === 'chart') remove();
+		else removePattern();
 	}
 
 	const refreshDesigns = () => (designs = loadDesigns());
@@ -86,6 +115,8 @@
 	});
 </script>
 
+<svelte:window {onkeydown} />
+
 <Seo {...seo[tool]} path="/design" />
 
 <div class="shell">
@@ -96,13 +127,15 @@
 		color={lib.color}
 		contrast={lib.contrast}
 		{designs}
+		active={active?.id}
 		onchart={(id) => {
 			selected = id;
 			tool = 'chart';
 		}}
 		onnewchart={() => add()}
-		oncurrent={() => (tool = 'sweater')}
+		onnewpattern={newPattern}
 		onopen={(d) => {
+			activeId = d.id;
 			incoming = { design: d.design };
 			tool = 'sweater';
 		}}
@@ -111,14 +144,19 @@
 		{#if tool === 'chart'}
 			<ChartDesigner bind:lib {selected} onadd={add} onuse={useChart} onremove={remove} />
 		{:else}
-			<SweaterDesigner {incoming} onconsumed={() => (incoming = undefined)} onEditChart={editChart} />
+			<SweaterDesigner {incoming} {active} onsaved={(id) => (activeId = id)} onremove={removePattern} onconsumed={() => (incoming = undefined)} onEditChart={editChart} />
 		{/if}
 	</div>
 </div>
 
 <style>
 	/* The same cream paper and navy ink as both designers, so the sidebar matches whichever is open. */
+	/* The designers sit on plain paper: no knit-stitch texture behind the 3D stage or the page. */
+	:global(body:has(.shell)) {
+		background: var(--paper);
+	}
 	.shell {
+		--knit: none;
 		--ink: #26335f;
 		--muted: #5d6385;
 		--line-strong: #c9bb92;

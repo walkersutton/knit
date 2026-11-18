@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getAccount } from '$lib/server/auth';
+import { likesOf } from '$lib/server/likes';
 import { getSharedChart } from '$lib/server/charts';
 
 export const prerender = false;
@@ -12,5 +13,6 @@ export const load: PageServerLoad = async ({ params, cookies, setHeaders }) => {
 	const account = cookies.get('knit_session') ? await getAccount(cookies).catch(() => null) : null;
 	setHeaders({ 'cache-control': account ? 'private, no-store' : 'public, max-age=0, s-maxage=60, stale-while-revalidate=300' });
 	const { userId, ...chart } = shared;
-	return { chart, mine: account?.id === userId };
+	const { likes, liked } = await likesOf('chart', shared.id, account?.id).catch(() => ({ likes: 0, liked: false }));
+	return { chart, mine: account?.id === userId, signedIn: !!account, likes, liked };
 };

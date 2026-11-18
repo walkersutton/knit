@@ -45,6 +45,13 @@ export function loadLibrary(): Library {
 	return parseLibrary(read(KEY), read(DESIGN_KEY)?.design);
 }
 
+/** The charts the knitter has kept, without the placeholder chart the designer invents when there are none. Account charts are merged into storage on sign-in. */
+export function loadOwnCharts(): { library: Library; charts: SavedPattern[] } {
+	const library = loadLibrary();
+	const starter = starterMotif();
+	return { library, charts: library.patterns.filter((p) => !(p.name === 'My pattern' && p.motif === starter)) };
+}
+
 export function saveLibrary(lib: Library) {
 	try {
 		localStorage.setItem(KEY, JSON.stringify(lib));
@@ -69,6 +76,16 @@ export const designLink = (motif: string, color?: string, contrast?: string) => 
 	if (color) q.set('color', color);
 	if (contrast) q.set('contrast', contrast);
 	return `/design#${q}`;
+};
+
+/** A link that shows this chart on a 3D garment (/chart/view). */
+export const previewLink = (motif: string, color?: string, contrast?: string, garment?: string, id?: string) => {
+	const q = new URLSearchParams({ motif });
+	if (id) q.set('id', id);
+	if (color) q.set('color', color);
+	if (contrast) q.set('contrast', contrast);
+	if (garment && garment !== 'Sweater') q.set('garment', garment);
+	return `/chart/view#${q}`;
 };
 
 /** A link that opens this chart in the chart designer. */

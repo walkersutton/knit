@@ -14,9 +14,10 @@
 		color,
 		contrast,
 		designs,
+		active,
 		onchart,
 		onnewchart,
-		oncurrent,
+		onnewpattern,
 		onopen
 	}: {
 		tool: 'chart' | 'sweater';
@@ -25,9 +26,11 @@
 		color: string;
 		contrast: string;
 		designs: SavedDesign[];
+		/** The saved design open in the sweater designer. */
+		active?: string;
 		onchart: (id: string) => void;
 		onnewchart: () => void;
-		oncurrent: () => void;
+		onnewpattern: () => void;
 		onopen: (design: SavedDesign) => void;
 	} = $props();
 </script>
@@ -51,22 +54,16 @@
 	<section aria-labelledby="lib-patterns">
 		<h2 id="lib-patterns">Patterns</h2>
 		<ul>
-			<li>
-				<button type="button" class="item" aria-current={tool === 'sweater' ? 'true' : undefined} onclick={oncurrent}>
-					<span class="chip current" aria-hidden="true"></span>
-					<span class="name">Current sweater</span>
-				</button>
-			</li>
 			{#each designs as d (d.id)}
 				<li>
-					<button type="button" class="item" title="Open “{d.name}” in the sweater designer" onclick={() => onopen(d)}>
+					<button type="button" class="item" aria-current={tool === 'sweater' && d.id === active ? 'true' : undefined} title="Open “{d.name}” in the sweater designer" onclick={() => onopen(d)}>
 						<span class="chip" aria-hidden="true" style:--a={d.design.color} style:--b={d.design.contrast}></span>
 						<span class="name">{d.name}</span>
 					</button>
 				</li>
 			{/each}
 		</ul>
-		{#if !designs.length}<p class="empty">Designs you save show up here.</p>{/if}
+		<button type="button" class="new" onclick={onnewpattern}><span aria-hidden="true">+</span> New pattern</button>
 	</section>
 </nav>
 
@@ -133,10 +130,6 @@
 		height: 30px;
 		background: linear-gradient(135deg, var(--a, #465e9d) 50%, var(--b, #faf3dc) 50%);
 	}
-	.chip.current {
-		--a: var(--ink);
-		--b: var(--wash);
-	}
 	.name {
 		min-width: 0;
 		overflow: hidden;
@@ -152,11 +145,6 @@
 		font: inherit;
 		font-weight: 500;
 		cursor: pointer;
-	}
-	.empty {
-		margin: 0 6px;
-		color: var(--muted);
-		font-size: 12px;
 	}
 	button:focus-visible {
 		outline: 2px solid var(--focus);
@@ -186,9 +174,6 @@
 			gap: 4px;
 		}
 		h2,
-		.empty {
-			display: none;
-		}
 		ul {
 			display: flex;
 		}

@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import LikeButton from '$lib/LikeButton.svelte';
 	import Seo from '$lib/Seo.svelte';
 	import MotifSwatch from '$lib/sweater/MotifSwatch.svelte';
 	import { chartToText } from '$lib/sweater/chartText';
-	import { designLink, freshName, loadLibrary, newId, saveLibrary } from '$lib/sweater/library';
+	import { designLink, freshName, loadLibrary, newId, previewLink, saveLibrary } from '$lib/sweater/library';
 	import { contrastShare, longestFloat, tileOfMotif } from '$lib/sweater/motifs';
 	import type { PageProps } from './$types';
 
@@ -64,7 +65,9 @@
 		<aside>
 			<p class="meta">{tile.st} × {tile.rows}{tile.fine ? ' · fine' : ''} · {share}% pattern colour</p>
 			{#if float > 5}<p class="warn">Floats of {float} stitches can snag; the written pattern says where to catch them.</p>{/if}
+			<LikeButton kind="chart" id={chart.id} likes={data.likes} liked={data.liked} signedIn={data.signedIn} />
 			<a class="use" href={designLink(chart.motif, chart.color, chart.contrast)}>Use on my sweater</a>
+			<a class="btn" href={previewLink(chart.motif, chart.color, chart.contrast)}>Preview in 3D</a>
 			<div class="row">
 				<button type="button" onclick={save}>{status === 'saved' ? 'Saved ✓' : 'Save to my charts'}</button>
 				<a class="btn" href="/design#{new URLSearchParams({ tool: 'chart', motif: chart.motif })}">Edit</a>

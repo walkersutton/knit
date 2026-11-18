@@ -57,3 +57,20 @@ CREATE TABLE IF NOT EXISTS shared_charts (
 	UNIQUE (user_id, motif, color, contrast)
 );
 CREATE INDEX IF NOT EXISTS shared_charts_created_at_idx ON shared_charts(created_at DESC);
+
+-- Likes from signed-in knitters. The most-liked chart and pattern are the community favourites on the home page.
+CREATE TABLE IF NOT EXISTS chart_likes (
+	user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	chart_id uuid NOT NULL REFERENCES shared_charts(id) ON DELETE CASCADE,
+	created_at timestamptz NOT NULL DEFAULT now(),
+	PRIMARY KEY (user_id, chart_id)
+);
+CREATE INDEX IF NOT EXISTS chart_likes_chart_id_idx ON chart_likes(chart_id);
+
+CREATE TABLE IF NOT EXISTS pattern_likes (
+	user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	pattern_id uuid NOT NULL REFERENCES shared_patterns(id) ON DELETE CASCADE,
+	created_at timestamptz NOT NULL DEFAULT now(),
+	PRIMARY KEY (user_id, pattern_id)
+);
+CREATE INDEX IF NOT EXISTS pattern_likes_pattern_id_idx ON pattern_likes(pattern_id);

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Featured from '$lib/Featured.svelte';
 	import Members from '$lib/Members.svelte';
 	import Seo from '$lib/Seo.svelte';
 	import Roll from '$lib/sweater/Roll.svelte';
@@ -134,6 +135,8 @@
 			{/each}
 		</ol>
 	</section>
+
+	<Featured />
 
 	<Members />
 

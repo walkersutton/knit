@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getAccount } from '$lib/server/auth';
+import { likesOf } from '$lib/server/likes';
 import { getShared } from '$lib/server/patterns';
 
 export const prerender = false;
@@ -12,5 +13,6 @@ export const load: PageServerLoad = async ({ params, cookies, setHeaders }) => {
 	const account = cookies.get('knit_session') ? await getAccount(cookies).catch(() => null) : null;
 	setHeaders({ 'cache-control': account ? 'private, no-store' : 'public, max-age=0, s-maxage=60, stale-while-revalidate=300' });
 	const { userId, ...pattern } = shared;
-	return { pattern, mine: account?.id === userId };
+	const { likes, liked } = await likesOf('pattern', shared.id, account?.id).catch(() => ({ likes: 0, liked: false }));
+	return { pattern, mine: account?.id === userId, signedIn: !!account, likes, liked };
 };

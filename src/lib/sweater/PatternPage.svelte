@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import LikeButton from '$lib/LikeButton.svelte';
 	import Stage from './Stage.svelte';
 	import PatternView from './PatternView.svelte';
 	import { needleLabel } from './needles';
@@ -20,7 +21,8 @@
 		onsave,
 		sharedId,
 		author,
-		onunshare
+		onunshare,
+		likes
 	}: {
 		design: Design;
 		pattern: Pattern;
@@ -38,6 +40,8 @@
 		author?: string;
 		/** Offered to the author of a shared pattern, to take it down. */
 		onunshare?: () => void;
+		/** The like button for a shared pattern. */
+		likes?: { count: number; liked: boolean; signedIn: boolean };
 	} = $props();
 
 	let made = $state('');
@@ -109,6 +113,7 @@
 				<button class="ghost" type="button" onclick={() => window.print()}>Print</button>
 				<button class="ghost" type="button" onclick={onsave} title="Save this sweater design to your account or this device">Save design</button>
 				<button class="ghost" type="button" onclick={share} disabled={shareState === 'busy'}>{shareState === 'busy' ? 'Sharing…' : shareState === 'copied' ? 'Link copied' : link ? 'Copy link' : 'Share'}</button>
+				{#if likes && sharedId}<LikeButton kind="pattern" id={sharedId} likes={likes.count} liked={likes.liked} signedIn={likes.signedIn} />{/if}
 				{#if onunshare}<button class="ghost" type="button" onclick={onunshare}>Unshare</button>{/if}
 			</div>
 			<p class="share-note" role="status">
