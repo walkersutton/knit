@@ -11,11 +11,11 @@ const list = (key: keyof Design) => {
 
 export const faq = [
 	{
-		q: 'What is Knit It?',
-		a: 'Knit It is a free sweater designer that runs in your browser. You pick a garment, size, fit, neckline, sleeves, edge finishes, yarn weight and colours, watch the result update on a 3D model, and get a written knitting pattern with stitch counts worked out for that exact design.'
+		q: 'What is knit?',
+		a: 'knit is a free sweater designer that runs in your browser. You pick a garment, size, fit, neckline, sleeves, edge finishes, yarn weight and colours, watch the result update on a 3D model, and get a written knitting pattern with stitch counts worked out for that exact design.'
 	},
 	{
-		q: 'Is Knit It free?',
+		q: 'Is knit free?',
 		a: 'Yes. There is no payment and nothing to install. You can design and print patterns without an account; a Ravelry sign-in is optional and syncs saved work across devices.'
 	},
 	{

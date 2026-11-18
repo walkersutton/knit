@@ -5,7 +5,7 @@
 	import { SITE } from '$lib/site';
 	import { yarn } from '$lib/yarn.svelte';
 
-	const title = 'Knit It — Custom sweater pattern generator with 3D preview';
+	const title = 'knit — Custom sweater pattern generator with 3D preview';
 	const description =
 		'Design a sweater, cardigan or tee in 3D, then get a free written top-down raglan or set-in knitting pattern sized to your yarn weight, gauge and measurements.';
 	const jsonLd = {
@@ -83,14 +83,14 @@
 
 <div class="page">
 	<header>
-		<a class="home" href="/" aria-label="Knit It home"><Logo size={32} word={false} /></a>
+		<a class="home" href="/" aria-label="knit home"><Logo size={32} word={false} /></a>
 		<nav><a href="/about">How it works</a><a href="/account">Account</a><a href={SITE.source} target="_blank" rel="noopener">Source</a></nav>
 	</header>
 
 	<main>
 		<h1>
-			<button type="button" class="patch" onclick={unravel} aria-label="Knit It. Unravel the swatch below.">
-				<span>Knit <em>It</em></span>
+			<button type="button" class="patch" onclick={unravel} aria-label="knit. Unravel the swatch below.">
+				<span>kn<strong>it</strong></span>
 			</button>
 		</h1>
 		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -123,7 +123,7 @@
 		</ul>
 		<h2 class="tagline">Design a sweater, then <em>knit it</em></h2>
 		<p class="lede">Shape it in 3D, pick your yarn, and get a written pattern with every stitch count worked out.</p>
-		<p class="actions"><a class="cta" href="/design">Start designing</a><a class="link" href="/about">How Knit It works</a></p>
+		<p class="actions"><a class="cta" href="/design">Start designing</a><a class="link" href="/about">How knit works</a></p>
 	</main>
 
 	<Roll />
@@ -140,7 +140,7 @@
 		</ol>
 	</section>
 
-	<footer>Knit It is open source. <a href={SITE.source} target="_blank" rel="noopener">View the code on GitHub</a>.</footer>
+	<footer>knit is open source. <a href={SITE.source} target="_blank" rel="noopener">View the code on GitHub</a>.</footer>
 </div>
 
 <style>
@@ -304,7 +304,7 @@
 			0 8px 14px rgb(143 58 42 / 0.25);
 		font-family: var(--display);
 		font-size: clamp(52px, 15vw, 84px);
-		font-weight: 700;
+		font-weight: 500;
 		line-height: 1;
 		letter-spacing: -0.02em;
 		transform: rotate(-2deg);
@@ -335,9 +335,8 @@
 		border-radius: 8px;
 		color: #fff8e6;
 	}
-	.patch em {
-		color: #f6e2a4;
-		font-style: normal;
+	.patch strong {
+		font-weight: 750;
 	}
 	@keyframes iron {
 		from {

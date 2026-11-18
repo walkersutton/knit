@@ -7,7 +7,7 @@ const motif = starterMotif();
 describe('chart text', () => {
 	it('writes a header, the colours by name, a key and 16 rows of 12', () => {
 		const lines = chartToText('Hearts', motif, '#465e9d', '#faf3dc').split('\n');
-		expect(lines.slice(0, 4)).toEqual(['Knit It pattern: Hearts', 'Main colour: Denim (#465e9d)', 'Pattern colour: Cream (#faf3dc)', '# = pattern colour, . = main colour']);
+		expect(lines.slice(0, 4)).toEqual(['knit pattern: Hearts', 'Main colour: Denim (#465e9d)', 'Pattern colour: Cream (#faf3dc)', '# = pattern colour, . = main colour']);
 		expect(lines.slice(4)).toHaveLength(16);
 		expect(lines.slice(4).every((l) => /^[#.]{12}$/.test(l))).toBe(true);
 	});

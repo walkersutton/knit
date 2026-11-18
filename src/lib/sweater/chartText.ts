@@ -1,7 +1,7 @@
 /**
  * A custom chart as plain text, to keep in a note or send to a friend, who pastes it back in:
  *
- *   Knit It pattern: Hearts
+ *   knit pattern: Hearts
  *   Main colour: Denim (#465e9d)
  *   Pattern colour: Cream (#faf3dc)
  *   # = pattern colour, . = main colour
@@ -40,7 +40,7 @@ export function chartToText(name: string, motif: string, color: string, contrast
 	const { st, rows: n } = tileOfMotif(motif);
 	for (let j = 0; j < n; j++) rows.push([...motif.slice(j * st, (j + 1) * st)].map((c) => (c === '1' ? '#' : '.')).join(''));
 	return [
-		`Knit It pattern: ${name}`,
+		`knit pattern: ${name}`,
 		`Main colour: ${colorName(color)} (${color})`,
 		`Pattern colour: ${colorName(contrast)} (${contrast})`,
 		'# = pattern colour, . = main colour',

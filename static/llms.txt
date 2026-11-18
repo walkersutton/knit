@@ -1,6 +1,6 @@
-# Knit It
+# knit
 
-> Knit It is a free, browser-based sweater designer. You choose a garment, size, fit, neckline, sleeves, edge finishes, yarn weight and colours, see the result on a live 3D model, and get a written top-down raglan knitting pattern with stitch counts calculated for that exact design. No account or install is needed.
+> knit is a free, browser-based sweater designer. You choose a garment, size, fit, neckline, sleeves, edge finishes, yarn weight and colours, see the result on a live 3D model, and get a written top-down raglan knitting pattern with stitch counts calculated for that exact design. No account or install is needed.
 
 ## Key facts
 

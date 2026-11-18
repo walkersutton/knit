@@ -10,9 +10,9 @@
 	import Garment from './Garment.svelte';
 	import { colors, contrastFor, defaultDesign, faq, needleLabel, reveal, steps, tiles, TILE_ROWS, TILE_ST, yarnWeights } from './content';
 
-	const title = 'How Knit It works — custom knitting patterns and FAQ';
+	const title = 'How knit works — custom knitting patterns and FAQ';
 	const description =
-		'How Knit It turns your choices of garment, size, fit and yarn weight into a 3D preview and a written top-down raglan or set-in knitting pattern, plus answers to common questions.';
+		'How knit turns your choices of garment, size, fit and yarn weight into a 3D preview and a written top-down raglan or set-in knitting pattern, plus answers to common questions.';
 	const jsonLd = [
 		{
 			'@context': 'https://schema.org',
@@ -70,9 +70,9 @@
 <Chrome wide>
 	<section class="hero">
 		<p class="kicker" use:reveal>Five patches make a sweater</p>
-		<h1 use:reveal={60}>How Knit It works</h1>
+		<h1 use:reveal={60}>How knit works</h1>
 		<p class="lede" use:reveal={120}>
-			Knit It is a free sweater designer. Choose a garment, size, fit and yarn, see it on a 3D model, and get a written knitting pattern with the stitch
+			knit is a free sweater designer. Choose a garment, size, fit and yarn, see it on a 3D model, and get a written knitting pattern with the stitch
 			counts worked out for your design. Try each step below: every choice carries through to the next patch.
 		</p>
 	</section>

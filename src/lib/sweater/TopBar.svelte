@@ -18,7 +18,7 @@
 </script>
 
 <header class="top">
-	<a class="home" href="/" aria-label="Knit It home"><Logo size={26} word={false} /></a>
+	<a class="home" href="/" aria-label="knit home"><Logo size={26} word={false} /></a>
 
 	<div class="steps" role="tablist" aria-label="Steps" style="--i: {index}; --n: {steps.length - 1}">
 		<div class="track" aria-hidden="true"><div class="fill"></div></div>

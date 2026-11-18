@@ -19,7 +19,7 @@
 <dialog bind:this={dialog} aria-labelledby="how-title" onclick={backdrop}>
 	<div class="card">
 		<button type="button" class="close" aria-label="Close" onclick={() => dialog?.close()}>×</button>
-		<h2 id="how-title">How Knit It works</h2>
+		<h2 id="how-title">How knit works</h2>
 		<p class="lede">Design a sweater, see it in 3D, and get a pattern with the maths done.</p>
 		<ol>
 			{#each steps as s, i (s.id)}

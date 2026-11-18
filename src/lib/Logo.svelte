@@ -40,7 +40,7 @@
 			{/each}
 		</g>
 	</svg>
-	{#if word}<span class="word">Knit <em>It</em></span>{/if}
+	{#if word}<span class="word">kn<strong>it</strong></span>{/if}
 </span>
 
 <style>
@@ -57,13 +57,12 @@
 	.word {
 		font-family: var(--display);
 		font-size: 1.35em;
-		font-weight: 700;
+		font-weight: 500;
 		line-height: 1;
 		letter-spacing: -0.01em;
 	}
-	em {
-		color: #c8543e;
-		font-style: normal;
+	strong {
+		font-weight: 750;
 	}
 	@media (hover: hover) and (pointer: fine) {
 		:global(a:hover) > .logo svg {

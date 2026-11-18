@@ -17,7 +17,7 @@
 	import { decodeDesign, knittedOf, load, progressAt, save, signature, tasksOf, type Mode, type Progress } from '$lib/sweater/progress';
 	import Seo from '$lib/Seo.svelte';
 
-	const title = 'Sweater designer — Knit It';
+	const title = 'Sweater designer — knit';
 	const description = 'Design a sweater, cardigan or tee in 3D and get a free written top-down raglan or set-in knitting pattern for your yarn, gauge and size.';
 
 	let design = $state<Design>({

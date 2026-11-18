@@ -42,7 +42,7 @@
 	}
 </script>
 
-<Seo title="Your account — Knit It" description="Sign in to sync your knitting patterns and progress across devices." path="/account" />
+<Seo title="Your account — knit" description="Sign in to sync your knitting patterns and progress across devices." path="/account" />
 
 <main>
 	<a class="brand" href="/"><Logo /></a>
@@ -75,7 +75,7 @@
 		{:else if configured}
 			<p>Sign in with Ravelry to keep your saved sweater designs, charts, and knitting progress in sync across devices.</p>
 			<a class="primary" href="/auth/ravelry">Continue with Ravelry</a>
-			<p class="fine">Knit It uses your Ravelry account to identify you. Your knitting data is stored by Knit It and is not posted to Ravelry.</p>
+			<p class="fine">knit uses your Ravelry account to identify you. Your knitting data is stored by knit and is not posted to Ravelry.</p>
 		{:else}
 			<p>Account sync is being set up. Your designs, charts, and knitting progress continue to save on this device.</p>
 		{/if}
@@ -92,7 +92,7 @@
 				</ul>
 			</section>
 		{/if}
-		<a class="back" href="/">← Back to Knit It</a>
+		<a class="back" href="/">← Back to knit</a>
 	</div>
 </main>
 

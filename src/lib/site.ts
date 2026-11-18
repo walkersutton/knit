@@ -1,8 +1,8 @@
 /** Site-wide facts used for meta tags and structured data. */
 export const SITE = {
-	name: 'Knit It',
+	name: 'knit',
 	url: 'https://knit.walkersutton.com',
 	source: 'https://github.com/walkersutton/knit',
 	image: 'https://knit.walkersutton.com/og.png',
-	imageAlt: 'Knit It: design a sweater in 3D and get the written knitting pattern'
+	imageAlt: 'knit: design a sweater in 3D and get the written knitting pattern'
 };

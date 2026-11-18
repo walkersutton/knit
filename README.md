@@ -1,4 +1,4 @@
-<h1 align="center">Knit It</h1>
+<h1 align="center">knit</h1>
 
 <p align="center">
   Design a sweater in 3D. Get the written knitting pattern.
@@ -14,11 +14,11 @@
 
 <p align="center">
   <a href="https://knit.walkersutton.com">
-    <img src="docs/screenshot.png" alt="The Knit It designer: garment options on the left, a 3D model of a blue raglan sweater on the right, and yarn, needle, gauge and skill estimates below" width="900">
+    <img src="docs/screenshot.png" alt="The knit designer: garment options on the left, a 3D model of a blue raglan sweater on the right, and yarn, needle, gauge and skill estimates below" width="900">
   </a>
 </p>
 
-Knit It is a free sweater designer whose pattern calculations run in the browser. Pick a garment, size, fit, neckline, sleeves, edge finishes and yarn, watch a 3D model update with every choice, and get a written top-down raglan or set-in pattern with the stitch counts worked out for that exact design. An optional Ravelry sign-in syncs saved designs, charts and knitting progress across devices.
+knit is a free sweater designer whose pattern calculations run in the browser. Pick a garment, size, fit, neckline, sleeves, edge finishes and yarn, watch a 3D model update with every choice, and get a written top-down raglan or set-in pattern with the stitch counts worked out for that exact design. An optional Ravelry sign-in syncs saved designs, charts and knitting progress across devices.
 
 ## Features
 
@@ -65,7 +65,7 @@ Then open <http://localhost:5173>.
 
 Account sync uses a Vercel server runtime and Neon Postgres. `DATABASE_URL` is injected by the Vercel Neon integration (for local dev, `vercel env pull .env.local`); run `db/schema.sql` against it once. `PUBLIC_ORIGIN` and the Ravelry client ID and secret live in the dotenvx-encrypted `.env.production`, which is committed: set them with `pnpm exec dotenvx set NAME value -f .env.production`. The private key is in `.env.keys` (gitignored) and in Vercel as `DOTENV_PRIVATE_KEY_PRODUCTION`; the server decrypts the file at runtime (`src/lib/server/env.ts`). Register `{PUBLIC_ORIGIN}/auth/ravelry/callback` as the Ravelry app's callback URL. For local sign-in, register `http://localhost:5173/auth/ravelry/callback` as an additional callback and set `PUBLIC_ORIGIN=http://localhost:5173` in `.env.local`.
 
-Ravelry access tokens are used server-side only to read the Ravelry account identity and are not stored. Knit It stores an opaque session token hash and each account's saved designs, charts and progress in Postgres. The browser continues to store a local copy for offline use.
+Ravelry access tokens are used server-side only to read the Ravelry account identity and are not stored. knit stores an opaque session token hash and each account's saved designs, charts and progress in Postgres. The browser continues to store a local copy for offline use.
 
 | Command | What it does |
 | --- | --- |

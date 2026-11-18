@@ -8,11 +8,11 @@
 
 <div class="page">
 	<header class="top">
-		<a class="home" href="/" aria-label="Knit It home"><Logo size={32} word={false} /></a>
+		<a class="home" href="/" aria-label="knit home"><Logo size={32} word={false} /></a>
 		<a class="cta" href="/design">Open the designer</a>
 	</header>
 	<main class:wide>{@render children()}</main>
-	<footer>Knit It is open source. <a href={SITE.source} target="_blank" rel="noopener">View the code on GitHub</a>.</footer>
+	<footer>knit is open source. <a href={SITE.source} target="_blank" rel="noopener">View the code on GitHub</a>.</footer>
 </div>
 
 <style>

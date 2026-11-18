@@ -26,7 +26,7 @@
 </svelte:head>
 
 <div class="page">
-	<a class="mark" href="/" aria-label="Knit It home"><Logo size={24} /></a>
+	<a class="mark" href="/" aria-label="knit home"><Logo size={24} /></a>
 	<main>
 		<svg class="swatch" viewBox="0 0 {COLS * W + 18} {y(ROWS - 1) + 10}" role="img" aria-label="A knitted swatch with one dropped stitch running down it">
 			<defs>
@@ -54,7 +54,7 @@
 		{:else}
 			<p class="lede">The page couldn’t load. Give it a moment and try again.</p>
 		{/if}
-		<p class="actions"><a class="cta" href="/design">Pick it back up</a><a class="link" href="/about">How Knit It works</a></p>
+		<p class="actions"><a class="cta" href="/design">Pick it back up</a><a class="link" href="/about">How knit works</a></p>
 	</main>
 </div>
 

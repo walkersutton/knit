@@ -12,7 +12,7 @@
 	import { markDeleted } from '$lib/sweater/deletions';
 	import { colors } from '$lib/sweater/options';
 
-	const title = 'Pattern designer — Knit It';
+	const title = 'Pattern designer — knit';
 	const description = 'Paint your own two-colour knitting chart, see it repeat across the fabric, and put it on a sweater with a free written pattern.';
 
 	const initial = parseLibrary(null);
@@ -138,7 +138,7 @@
 
 <div class="app">
 	<header class="top">
-		<a class="home" href="/" aria-label="Knit It home"><Logo size={26} word={false} /></a>
+		<a class="home" href="/" aria-label="knit home"><Logo size={26} word={false} /></a>
 		<h1>Pattern designer</h1>
 		<a class="back" href="/design">Sweater designer <span aria-hidden="true">→</span></a>
 	</header>
