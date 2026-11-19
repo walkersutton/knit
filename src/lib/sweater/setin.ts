@@ -308,7 +308,7 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 	});
 
 	// ── Body ──
-	sections.push(bodySection(d, m, bodySts, `${cardigan ? 'The body is worked straight down' : 'The body is one plain tube'} to the hem. No shaping, no counting. ${slip ? 'The armhole edges come later, picked up around the openings.' : 'The sleeves come later, picked up around the armholes.'}`));
+	sections.push(bodySection(d, m, bodySts, `${cardigan ? 'The body is worked straight down' : 'The body is one plain tube'} to the hem. No shaping, no counting. ${slip ? 'The armhole edges come later, picked up around the openings.' : 'The sleeves come later, picked up around the armholes.'}`, cardigan ? undefined : front));
 
 	// ── Sleeves ──
 	const sl: Step[] = [];

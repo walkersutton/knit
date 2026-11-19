@@ -69,10 +69,26 @@ export type KnitOptions = {
 
 export type KnitMaps = { map: THREE.CanvasTexture; normalMap: THREE.CanvasTexture };
 
+/** The fabric of a repeating pattern: one tile that the mesh's UVs repeat over the whole garment. */
 export function makeKnitMaps(o: KnitOptions): KnitMaps {
 	const tile = o.tile ?? STANDARD_TILE;
-	const TILE_ST = tile.st;
-	const TILE_ROWS = tile.rows;
+	return render(o, tile.st, tile.rows, (ii, jj) => chart(o.pattern, ii, jj, o.motif, tile), tile);
+}
+
+/** A picture of cells (true = contrast colour) knitted once, in stitches the same size as the garment's, with a transparent stitch all round. */
+export function makePatchMaps(o: { color: string; contrast: string; cells: boolean[][]; shade?: number; bump?: number }): KnitMaps {
+	const rows = o.cells.length;
+	const cols = o.cells[0]?.length ?? 0;
+	return render({ kind: 'stockinette', color: o.color, contrast: o.contrast, pattern: '', shade: o.shade ?? 0.3, bump: o.bump ?? 3.4 }, cols + 2, rows + 2, (ii, jj) => o.cells[jj - 1]?.[ii - 1] === true, null);
+}
+
+/**
+ * Draws the fabric for a grid of `TILE_ST` × `TILE_ROWS` stitches, `alt(i, j)` saying which are in the
+ * contrast colour. With a tile it wraps round and repeats; without one (a patch) it is drawn once, its
+ * outer ring of stitches left transparent so the patch can be laid on a garment with an alpha test.
+ */
+function render(o: KnitOptions, TILE_ST: number, TILE_ROWS: number, alt_: (i: number, j: number) => boolean, tile: Tile | null): KnitMaps {
+	const patch = tile === null;
 	const w = TILE_ST * SW;
 	const h = TILE_ROWS * RH;
 	const mk = () => {
@@ -103,7 +119,7 @@ export function makeKnitMaps(o: KnitOptions): KnitMaps {
 
 	// Rows are drawn bottom-up so each stitch tucks under the row above it.
 	for (let j = TILE_ROWS + 1; j >= -1; j--) {
-		const jj = mod(j, TILE_ROWS);
+		const jj = patch ? j : mod(j, TILE_ROWS);
 		for (let pass = 0; pass <= LEVELS.length; pass++) {
 			for (let i = -1; i <= TILE_ST; i++) {
 				const ii = mod(i, TILE_ST);
@@ -111,8 +127,8 @@ export function makeKnitMaps(o: KnitOptions): KnitMaps {
 				const y0 = j * RH;
 				const isPurl = purlAt(ii);
 				if (pass === 0) {
-					const base = !rib && chart(o.pattern, ii, jj, o.motif, tile) ? alt : main;
-					const jitter = 0.965 + 0.07 * (((ii * 7919 + jj * 104729) % 97) / 97);
+					const base = !rib && alt_(ii, jj) ? alt : main;
+					const jitter = 0.965 + 0.07 * ((Math.abs(ii * 7919 + jj * 104729) % 97) / 97);
 					cc.strokeStyle = css(base, jitter * (isPurl ? 0.95 : 1));
 					cc.lineWidth = SW * LEVELS[0][0];
 					if (isPurl) purl(cc, x0, y0);
@@ -155,6 +171,8 @@ export function makeKnitMaps(o: KnitOptions): KnitMaps {
 	for (let y = 0; y < h; y++) {
 		for (let x = 0; x < w; x++) {
 			const p = (y * w + x) * 4;
+			// The patch's ring of stitches is only there to give its edge something to join; it is not shown.
+			if (patch && (x < SW || x >= w - SW || y < RH || y >= h - RH)) C.data[p + 3] = 0;
 			const light = (1 - o.shade + o.shade * (H[p] / 255)) * (0.955 + rnd() * 0.09);
 			C.data[p] *= light;
 			C.data[p + 1] *= light;
@@ -173,10 +191,12 @@ export function makeKnitMaps(o: KnitOptions): KnitMaps {
 
 	const tex = (canvas: HTMLCanvasElement, srgb: boolean) => {
 		const t = new THREE.CanvasTexture(canvas);
-		t.wrapS = t.wrapT = THREE.RepeatWrapping;
 		t.anisotropy = 8;
-		// The mesh's UVs count standard tiles, so a bigger tile covers proportionally more of them.
-		t.repeat.set(TILE_ST_STD / tile.st, TILE_ROWS_STD / tile.rows);
+		if (tile) {
+			t.wrapS = t.wrapT = THREE.RepeatWrapping;
+			// The mesh's UVs count standard tiles, so a bigger tile covers proportionally more of them.
+			t.repeat.set(TILE_ST_STD / tile.st, TILE_ROWS_STD / tile.rows);
+		}
 		if (srgb) t.colorSpace = THREE.SRGBColorSpace;
 		return t;
 	};

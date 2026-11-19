@@ -251,6 +251,21 @@
 						{@render item(s, pass, step, i, links[i])}
 					{/each}
 				</ol>
+				{#if s.id === 'body' && pattern.centerpiece}
+					{@const rows = pattern.centerpiece.length}
+					{@const cols = pattern.centerpiece[0].length}
+					<figure>
+						<svg viewBox="0 0 {cols * CELL + 24} {rows * CELL}" width={cols * CELL + 24} height={rows * CELL} role="img" aria-label="Centerpiece chart, {cols} stitches by {rows} rows">
+							{#each pattern.centerpiece as row, j (j)}
+								{#each row as on, i (i)}
+									<rect x={i * CELL} y={j * CELL} width={CELL} height={CELL} fill={on ? contrast : main} stroke="rgba(0,0,0,0.25)" stroke-width="0.5" />
+								{/each}
+								<text x={cols * CELL + 6} y={j * CELL + CELL - 3.5}>{j + 1}</text>
+							{/each}
+						</svg>
+						<figcaption>Centerpiece chart: {cols} sts × {rows} rows, worked once. Work rows 1 → {rows}, top to bottom; read each row right to left.</figcaption>
+					</figure>
+				{/if}
 				{#if s.id === 'colour' && pattern.chart}
 					{@const rows = pattern.chart.length}
 					{@const cols = pattern.chart[0].length}

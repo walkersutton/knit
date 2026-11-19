@@ -79,7 +79,7 @@ export async function unsharePattern(userId: string, id: string) {
 	return rows.length > 0;
 }
 
-const toPattern = (row: Record<string, any>): SharedPattern => ({ id: row.id, name: row.name, design: row.design, author: row.author, authorPhoto: cleanPhoto(row.author_photo), createdAt: row.created_at });
+const toPattern = (row: Record<string, any>): SharedPattern => ({ id: row.id, name: row.name, design: { ...DEFAULT_DESIGN, ...row.design }, author: row.author, authorPhoto: cleanPhoto(row.author_photo), createdAt: row.created_at });
 
 export async function getShared(id: string): Promise<(SharedPattern & { userId: string }) | null> {
 	if (!isId(id)) return null;

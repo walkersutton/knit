@@ -1,6 +1,7 @@
 import { measure, type Design } from './garment';
 import { needleLabel, needlesOf, weightOf } from './needles';
 import { contrastShare, longestFloat, tileFor, tileOf, TILE_ROWS } from './motifs';
+import { bodyBoxOf, centerpieceOf, countOn, dropRows, longestStrand, offsetSts, rowsOf, type Centerpiece } from './centerpiece';
 
 /**
  * What the raglan and set-in pattern writers share: the shape of a pattern, small knitting helpers,
@@ -96,6 +97,8 @@ type Done = {
 	chart: boolean[][] | null;
 	/** Name of the charted pattern, e.g. "Fair Isle". */
 	chartName: string;
+	/** The centerpiece, worked once on the front of the body (same layout as `chart`); null for none. */
+	centerpiece: boolean[][] | null;
 	/** A slipover: no sleeves, so armhole edgings in their place. */
 	sleeveless: boolean;
 };
@@ -150,8 +153,10 @@ export const isColourwork = (pattern: string) => pattern !== 'Solid' && pattern 
 
 /** The chart a colourwork design is knit from, and what the pattern calls it. */
 export function chartOf(d: Design, gauge: number) {
-	if (!isColourwork(d.pattern)) return { chart: null, chartName: '' };
-	return { chart: tileOf(d.pattern, d.motif, tileFor(d.pattern, gauge, d.motif)), chartName: d.pattern === 'Fair isle' ? 'Fair Isle' : d.pattern };
+	const cp = centerpieceOf(d);
+	const centerpiece = cp ? rowsOf(cp) : null;
+	if (!isColourwork(d.pattern)) return { chart: null, chartName: '', centerpiece };
+	return { chart: tileOf(d.pattern, d.motif, tileFor(d.pattern, gauge, d.motif)), chartName: d.pattern === 'Fair isle' ? 'Fair Isle' : d.pattern, centerpiece };
 }
 
 // ── Materials (also used by the bottom bar) ─────────────────────────────
@@ -171,11 +176,14 @@ export function estimate(d: Design) {
 	let share = 0;
 	if (d.pattern === 'Stripes') share = 5 / TILE_ROWS;
 	if (fairIsle) share = contrastShare(d.pattern, d.motif, tileFor(d.pattern, m.gauge, d.motif));
-	const contrastYards = share ? Math.max(20, Math.round(yards * share * 1.1)) : 0;
+	// A centerpiece is stranded colourwork over a patch of the front: yarn for the stitches it paints, and a little more for carrying it.
+	const cp = centerpieceOf(d);
+	const patchYards = cp ? Math.round((countOn(cp) / (m.stPerCm * m.rowPerCm)) * 0.125 * (m.gauge / 18) * 1.3) : 0;
+	const contrastYards = share || cp ? Math.max(20, Math.round(yards * share * 1.1) + patchYards) : 0;
 	const mainYards = yards - Math.round(yards * share);
 	const skeins = (y: number) => Math.ceil(y / yarn.yardage);
 	const level =
-		(m.hasSleeves && !m.raglan) || d.neckline === 'V-neck' || d.neckline === 'I-cord' || d.sleeveShape === 'Puff' || d.slits !== 'None' || d.hemFinish === 'Folded hem' || d.hemFinish === 'I-cord' || fairIsle
+		(m.hasSleeves && !m.raglan) || d.neckline === 'V-neck' || d.neckline === 'I-cord' || d.sleeveShape === 'Puff' || d.slits !== 'None' || d.hemFinish === 'Folded hem' || d.hemFinish === 'I-cord' || fairIsle || Boolean(cp)
 			? 'Intermediate'
 			: 'Beginner';
 	return { yarn, needles: needlesOf(d), gauge: m.gauge, yards: mainYards + contrastYards, mainYards, contrastYards, skeins: skeins(mainYards) + (contrastYards ? skeins(contrastYards) : 0), mainSkeins: skeins(mainYards), contrastSkeins: contrastYards ? skeins(contrastYards) : 0, level };
@@ -256,7 +264,7 @@ export function colourSection(d: Design, m: Measures, how: { flat: boolean; star
 }
 
 /** From the underarm down to the hem. `bodySts` are on the needle; a cardigan is worked flat. */
-export function bodySection(d: Design, m: Measures, bodySts: number, intro: string): PatternSection {
+export function bodySection(d: Design, m: Measures, bodySts: number, intro: string, frontSts?: number): PatternSection {
 	const { k } = m;
 	const cardigan = d.garment === 'Cardigan';
 	const slits = !cardigan && m.slitH > 0;
@@ -265,9 +273,14 @@ export function bodySection(d: Design, m: Measures, bodySts: number, intro: stri
 	const bodyLen = m.ya - m.hemH - rolled;
 	const fabric = cardigan ? 'Work in stockinette (knit RS rows, purl WS rows)' : 'Knit every round';
 	const bodyTip = `The long, easy stretch. Measure with the work lying flat, straight down from the underarm cast-on, without stretching it. Because you knit from the top down you can try it on at any point, and stop earlier or later to change the length.`;
+	// The part worked in the round: all of the body, or down to the slits. A centerpiece is worked inside it.
+	const round = (length: number): Step[] => {
+		const cp = centerpieceOf(d);
+		return cp ? centerpieceSteps(d, m, cp, bodySts, length, fabric, bodyTip, frontSts) : [{ text: `${fabric} until the body measures ${len(length)} from the underarm${cardigan ? ', ending with a WS row' : ''}.`, tip: bodyTip, adds: length }];
+	};
 	if (slits) {
 		const half = bodySts / 2;
-		body.push({ text: `${fabric} until the body measures ${len(bodyLen - m.slitH)} from the underarm.`, tip: bodyTip, adds: bodyLen - m.slitH });
+		body.push(...round(bodyLen - m.slitH));
 		body.push({
 			text: `Side slits: from here the back and front are finished separately, flat. Keep the front sts on hold. Work the back sts back and forth, knitting the first 2 and last 2 sts of every row for a neat slit edge, for ${len(m.slitH)}.`,
 			count: sts(half),
@@ -277,7 +290,7 @@ export function bodySection(d: Design, m: Measures, bodySts: number, intro: stri
 		body.push(...edgeSteps(d.hemFinish, d.bodyRib, m.hemH, half, true, k));
 		body.push({ text: `Work the front sts the same way.` });
 	} else {
-		body.push({ text: `${fabric} until the body measures ${len(bodyLen)} from the underarm${cardigan ? ', ending with a WS row' : ''}.`, tip: bodyTip, adds: bodyLen });
+		body.push(...round(bodyLen));
 		body.push(...edgeSteps(d.hemFinish, d.bodyRib, m.hemH, bodySts, cardigan, k));
 	}
 	return {
@@ -286,6 +299,48 @@ export function bodySection(d: Design, m: Measures, bodySts: number, intro: stri
 		intro,
 		steps: body
 	};
+}
+
+/**
+ * The body knitted down to `length` cm below the underarm with the centerpiece worked on the front: plain
+ * knitting down to the picture, one round per chart row, then plain knitting again.
+ */
+function centerpieceSteps(d: Design, m: Measures, cp: Centerpiece, bodySts: number, length: number, fabric: string, bodyTip: string, frontSts?: number): Step[] {
+	const rowsPerCm = m.rowPerCm;
+	const drop = dropRows(cp, d.centerpieceY, bodyBoxOf(d, m));
+	const before = drop / rowsPerCm;
+	const picture = cp.h / rowsPerCm;
+	const after = Math.max(0, length - before - picture);
+	const across = Math.min(cp.w, frontSts ?? bodySts);
+	// The round runs right to left across the front, so the viewer's right (the wearer's left chest) is reached first.
+	const off = offsetSts(d.centerpieceAt, bodyBoxOf(d, m));
+	const span = frontSts ?? bodySts;
+	const left = Math.min(Math.max(0, span - across), Math.max(0, Math.floor((span - across) / 2 - off)));
+	const right = bodySts - left - across;
+	const spot = off > 0 ? ' over the left chest' : off < 0 ? ' over the right chest' : '';
+	const where = frontSts === undefined ? 'the front is the half of the round opposite BOR (which is at centre back)' : 'the front is the first part of the round, starting at BOR';
+	const plain = d.pattern === 'Solid' ? 'in main colour' : d.pattern === 'Stripes' ? 'in your stripes' : 'in your pattern';
+	const strand = longestStrand(cp);
+	const steps: Step[] = [];
+	if (drop > 0) steps.push({ text: `${fabric} until the body measures ${len(before)} from the underarm.`, tip: bodyTip, adds: before });
+	steps.push({
+		text: `Centerpiece set-up round${spot}: knit ${sts(left)}, pm, work row 1 of the centerpiece chart over the next ${sts(across)}, pm, then knit the remaining ${sts(right)} ${plain}.`,
+		count: sts(bodySts),
+		tip: `${cap(where)}. The picture goes ${off ? `${off > 0 ? 'on the wearer\'s left' : 'on the wearer\'s right'} of` : 'in the middle of'} it, so count carefully from BOR: the ${left} stitches before the first marker run from BOR to the left edge of the picture. Row 1 is the top row of the chart, read right to left, as every row is.`
+	});
+	steps.push({
+		text: `Work the rest of the chart, one chart row per round: knit to the first marker, work the chart row, knit to BOR ${plain}. Slip the markers as you come to them.`,
+		note: true,
+		tip: `Stranded colourwork: carry the colour you are not using loosely behind the work. In the picture, ${strand > 5 ? `the yarn is carried over up to ${strand} stitches, so catch any float longer than 5 sts by twisting the two yarns together at the back` : `no float is longer than ${strand} st${strand === 1 ? '' : 's'}`}. Outside the markers, keep working as before.`
+	});
+	steps.push({
+		text: `Work chart rows 2–${cp.h}, one per round. Row ${cp.h} is the bottom of the picture.`,
+		count: sts(bodySts),
+		tally: { unit: 'Round', first: 2, rows: Array.from({ length: cp.h - 1 }, (_, j) => `Chart row ${j + 2}`) },
+		adds: Math.max(0, picture - 1 / rowsPerCm)
+	});
+	steps.push({ text: `Remove both markers.${after > 0.2 ? ` ${fabric} until the body measures ${len(length)} from the underarm.` : ''}`, adds: Math.max(0, after + 1 / rowsPerCm), tip: after > 0.2 ? undefined : `The picture ends right where the body does.` });
+	return steps;
 }
 
 /**
@@ -454,6 +509,7 @@ export function patternText(p: Pattern): string {
 		out.push('');
 	}
 	if (p.chart) out.push('CHART (X = contrast, read top to bottom, right to left)', ...p.chart.map((row, j) => `${String(j + 1).padStart(2)} ${row.map((c) => (c ? 'X' : '.')).join('')}`), '');
+	if (p.centerpiece) out.push('CENTERPIECE CHART (X = contrast, worked once on the front, read top to bottom, right to left)', ...p.centerpiece.map((row, j) => `${String(j + 1).padStart(2)} ${row.map((c) => (c ? 'X' : '.')).join('')}`), '');
 	out.push('ABBREVIATIONS', ...p.abbreviations.map(([a, b]) => `${a}: ${b}`));
 	return out.join('\n');
 }

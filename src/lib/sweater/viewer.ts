@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { buildGarment, PIECE, shapeKey, type Design, type Garment } from './garment';
+import { buildGarment, measure, PIECE, shapeKey, type Design, type Garment } from './garment';
+import { bodyBoxOf, centerpieceOf, dropRows, offsetSts, rowsOf } from './centerpiece';
 import type { Knitted } from './progress';
-import { makeKnitMaps, tileFor, type KnitMaps } from './yarn';
+import { makeKnitMaps, makePatchMaps, tileFor, type KnitMaps } from './yarn';
 import { stitchGauge } from './needles';
 import { RIBS } from './options';
 
@@ -119,7 +120,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 	// Drawing the stitch textures and building the geometry is the slow part of changing the design.
 	// Both are written as stepped jobs: `setDesign` runs one straight through, `prefetch` runs it a step
 	// at a time in idle time, so that changing the design later only has to swap the finished pieces in.
-	type Shape = { children: THREE.Object3D[]; y: number; floorY: number; floorScale: [number, number]; scale: number };
+	type Shape = { children: THREE.Object3D[]; y: number; floorY: number; floorScale: [number, number]; scale: number; fabric: THREE.BufferGeometry; wraps: number };
 	const readyMaps = new Map<string, KnitMaps[]>();
 	const readyShapes = new Map<string, Shape>();
 	const inFlight = new Map<string, Promise<void>>();
@@ -201,7 +202,75 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 		fuzzMat.color.copy(main).lerp(new THREE.Color(0xffffff), 0.1);
 	}
 
+	// ── The centerpiece ──────────────────────────────────────────────────
+	// A picture knitted once on the front. It is its own piece of fabric laid over the body's front
+	// panel: the body's triangles around it, UV-mapped onto a patch texture whose stitches line up with
+	// the garment's own. The patch is transparent round its edge, so only the picture itself shows.
+	let patch: { mesh: THREE.Mesh; maps: KnitMaps } | null = null;
+	let patchKey = '';
+	let current: Shape | null = null;
+	const patchMat = knitted(new THREE.MeshPhysicalMaterial({ roughness: 1, specularIntensity: 0.12, sheen: 0.6, sheenRoughness: 0.75, vertexColors: true, alphaTest: 0.5, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+	function dropPatch() {
+		if (!patch) return;
+		garment.remove(patch.mesh);
+		patch.mesh.geometry.dispose();
+		patch.maps.map.dispose();
+		patch.maps.normalMap.dispose();
+		patch = null;
+	}
+	function syncPatch(d: Design) {
+		const cp = centerpieceOf(d);
+		const key = cp && current ? [key_, d.centerpiece, d.centerpieceY, d.centerpieceAt, d.color, d.contrast].join('|') : '';
+		if (key === patchKey) return;
+		patchKey = key;
+		dropPatch();
+		if (!cp || !current) return;
+		const m = measure(d);
+		// The picture's top-left corner on the body's UV grid: stitches count 12 to a UV unit, rows 16.
+		const left = 6 * current.wraps + offsetSts(d.centerpieceAt, bodyBoxOf(d, m)) - Math.floor(cp.w / 2);
+		const top = Math.round(m.ya * m.rowPerCm) - dropRows(cp, d.centerpieceY, bodyBoxOf(d, m));
+		const src = current.fabric;
+		const pos = src.getAttribute('position');
+		const uv = src.getAttribute('uv');
+		const knit = src.getAttribute('knit');
+		const index = src.getIndex()!;
+		const tx = (i: number) => ((uv.getX(i) * 12 - left + 1) / (cp.w + 2));
+		const ty = (i: number) => 1 - (top - uv.getY(i) * 16 + 1) / (cp.h + 2);
+		const keep: number[] = [];
+		for (let t = 0; t < index.count; t += 3) {
+			const tri = [index.getX(t), index.getX(t + 1), index.getX(t + 2)];
+			if (tri.some((i) => knit.getX(i) !== PIECE.body)) continue;
+			// Skip a triangle whose corners are all beyond one edge of the patch, and one that wraps the seam.
+			const us = tri.map(tx);
+			const vs = tri.map(ty);
+			if (Math.max(...us) < 0 || Math.min(...us) > 1 || Math.max(...vs) < 0 || Math.min(...vs) > 1) continue;
+			if (Math.max(...us) - Math.min(...us) > 1) continue;
+			keep.push(...tri);
+		}
+		if (!keep.length) return;
+		const g = new THREE.BufferGeometry();
+		g.setAttribute('position', pos);
+		g.setAttribute('normal', src.getAttribute('normal'));
+		g.setAttribute('color', src.getAttribute('color'));
+		g.setAttribute('knit', knit);
+		const U = new Float32Array(pos.count * 2);
+		for (let i = 0; i < pos.count; i++) U.set([tx(i), ty(i)], i * 2);
+		g.setAttribute('uv', new THREE.BufferAttribute(U, 2));
+		g.setIndex(keep);
+		const maps = makePatchMaps({ color: d.color, contrast: d.contrast, cells: rowsOf(cp) });
+		maps.map.wrapS = maps.map.wrapT = maps.normalMap.wrapS = maps.normalMap.wrapT = THREE.ClampToEdgeWrapping;
+		patchMat.map = maps.map;
+		patchMat.normalMap = maps.normalMap;
+		patchMat.needsUpdate = true;
+		const mesh = new THREE.Mesh(g, patchMat);
+		mesh.receiveShadow = true;
+		patch = { mesh, maps };
+		garment.add(mesh);
+	}
+
 	function clear() {
+		dropPatch();
+		patchKey = '';
 		for (const child of [...garment.children]) {
 			garment.remove(child);
 			(child as THREE.Mesh).geometry?.dispose();
@@ -238,17 +307,20 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 			y: -mid.y,
 			floorY: box.min.y - mid.y - 7 * built.scale,
 			floorScale: [(box.max.x - box.min.x) * 0.95, (box.max.z - box.min.z) * 2.6],
-			scale: built.scale
+			scale: built.scale,
+			fabric: built.fabric,
+			wraps: built.bodyWraps
 		};
 	}
 
-	function applyShape(shape: Shape) {
+	function applyShape(next: Shape) {
 		clear();
-		frameScale = shape.scale;
-		garment.add(...shape.children);
-		garment.position.set(0, shape.y, 0);
-		floor.position.y = shape.floorY;
-		floor.scale.set(shape.floorScale[0], shape.floorScale[1], 1);
+		current = next;
+		frameScale = next.scale;
+		garment.add(...next.children);
+		garment.position.set(0, next.y, 0);
+		floor.position.y = next.floorY;
+		floor.scale.set(next.floorScale[0], next.floorScale[1], 1);
 		fit();
 	}
 
@@ -536,6 +608,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 				readyShapes.delete(next);
 				applyShape(ready ?? finish(shapeJob(d)));
 			}
+			syncPatch(d);
 			invalidate();
 		},
 		snapshot(type = 'image/webp') {

@@ -1,3 +1,4 @@
+import { PLACEMENTS, validCenterpiece } from './centerpiece';
 import { validCustom } from './fit';
 import type { Design } from './garment';
 import { cleanNeedles } from './needles';
@@ -93,7 +94,7 @@ export function progressAt(tasks: Task[], key: string, p: Progress = {}): Progre
 export const signature = (d: Design) =>
 	Object.entries(d)
 		// Custom measurements only count while they are in use; switching back to a size leaves them out.
-		.filter(([key, value]) => key !== 'color' && key !== 'contrast' && key !== 'ribNeedle' && (key !== 'motif' || d.pattern === 'Custom') && (key !== 'needle' || value) && (key !== 'custom' || d.size === 'Custom'))
+		.filter(([key, value]) => key !== 'color' && key !== 'contrast' && key !== 'ribNeedle' && (key !== 'motif' || d.pattern === 'Custom') && ((key !== 'centerpieceY' && key !== 'centerpieceAt') || d.centerpiece !== '') && (key !== 'needle' || value) && (key !== 'custom' || d.size === 'Custom'))
 		.sort(([a], [b]) => a.localeCompare(b))
 		.map(([key, value]) => `${key}=${key === 'custom' ? JSON.stringify(value) : value}`)
 		.join('|');
@@ -113,7 +114,7 @@ export function validDesign(value: unknown, like: Design): value is Design {
 	const v = value as Record<string, unknown>;
 	const keys = Object.keys(like);
 	const fields = sections.flatMap((s) => s.groups).flatMap((g) => g.fields);
-	return Object.keys(v).length === keys.length && keys.every((key) => key in v) && validCustom(v.custom) && fields.every((f) => f.options.some((o) => o.value === v[f.key]));
+	return Object.keys(v).length === keys.length && keys.every((key) => key in v) && validCustom(v.custom) && validCenterpiece(v.centerpiece) && typeof v.centerpieceY === 'number' && v.centerpieceY >= 0 && v.centerpieceY <= 1 && PLACEMENTS.includes(v.centerpieceAt as string) && fields.every((f) => f.options.some((o) => o.value === v[f.key]));
 }
 
 /** A design as text for a link, so a sweater can be opened in the designer exactly as it was. */

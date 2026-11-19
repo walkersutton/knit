@@ -30,6 +30,12 @@ export type Design = {
 	pattern: string;
 	/** The knitter's own chart (TILE_ST × TILE_ROWS cells of 0/1, rows top to bottom), used while `pattern` is Custom. */
 	motif: string;
+	/** A picture or word worked once on the front of the body, as `"<w>x<h>:<cells>"` (see `centerpiece.ts`); '' for none. */
+	centerpiece: string;
+	/** How far down the body the centerpiece sits: 0 right under the arms, 1 as low as it can go. */
+	centerpieceY: number;
+	/** Where across the front it sits: 'Centre', 'Left chest' or 'Right chest' (the wearer's). */
+	centerpieceAt: string;
 	color: string;
 	contrast: string;
 	/** Yarn weight, as its standard gauge (stitches per 4 in). */
@@ -61,11 +67,13 @@ export type Garment = {
 	bodyWhen: (y: number) => number;
 	/** Relative size of the wearer, for camera framing. */
 	scale: number;
+	/** Standard chart tiles round the body, so the front centre is at tile `bodyWraps / 2` of the body's UVs. */
+	bodyWraps: number;
 };
 
 /** Everything that changes the mesh (colour and pattern only change the textures). */
 export const shapeKey = (d: Design) => {
-	const { color: _c, contrast: _x, pattern: _p, motif: _m, ribNeedle: _r, ...shape } = d;
+	const { color: _c, contrast: _x, pattern: _p, motif: _m, centerpiece: _cp, centerpieceY: _cy, centerpieceAt: _ca, ribNeedle: _r, ...shape } = d;
 	// A finer colourwork chart repeats half as often, which changes the UVs but nothing else.
 	return JSON.stringify({ ...shape, fine: tileFor(d.pattern, stitchGauge(d) || 18, d.motif).fine });
 };
@@ -927,6 +935,7 @@ export function buildGarment(d: Design): Garment {
 		holes: holes.length ? mergeGeometries(holes)! : null,
 		seams,
 		bodyWhen,
-		scale: lerp(1, k, 0.6)
+		scale: lerp(1, k, 0.6),
+		bodyWraps
 	};
 }
