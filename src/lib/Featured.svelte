@@ -1,33 +1,92 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import Author from '$lib/Author.svelte';
 	import MotifSwatch from '$lib/sweater/MotifSwatch.svelte';
+	import Viewer from '$lib/sweater/Viewer.svelte';
+	import { DEFAULT_DESIGN } from '$lib/sweater/defaults';
+	import type { Design } from '$lib/sweater/garment';
 	import { chartSize, isCenterpieceChart } from '$lib/sweater/library';
+	import { CUSTOM_PATTERN } from '$lib/sweater/motifs';
 	import { designDetail } from '$lib/sweater/random';
 	import type { Featured } from '$lib/server/likes';
 
 	let picks = $state<Featured>({ chart: null, pattern: null });
+	/** Each favourite as a 3D sweater, drawn once on a hidden scene; until then the flat picture stands in. */
+	let pictures = $state<{ chart: string | null; pattern: string | null }>({ chart: null, pattern: null });
+	/** The off-screen 3D scene, alive only while the pictures are being drawn. */
+	let cameraOn = $state(false);
+	let camera = $state<Viewer>();
+	let section = $state<HTMLElement>();
+	let alive = true;
 
-	onMount(async () => {
-		try {
-			const res = await fetch('/api/featured');
-			if (res.ok) picks = await res.json();
-		} catch {
-			// The favourites are a nicety; the page is complete without them.
+	/** The chart on a sweater: a centerpiece worked once on the front, any other chart all over. */
+	const chartDesign = (c: NonNullable<Featured['chart']>): Design =>
+		isCenterpieceChart(c.motif)
+			? { ...DEFAULT_DESIGN, centerpiece: c.motif, color: c.color, contrast: c.contrast }
+			: { ...DEFAULT_DESIGN, pattern: CUSTOM_PATTERN, motif: c.motif, color: c.color, contrast: c.contrast };
+
+	async function draw() {
+		const jobs = [
+			picks.pattern && (['pattern', picks.pattern.design] as const),
+			picks.chart && (['chart', chartDesign(picks.chart)] as const)
+		].filter((j) => !!j);
+		if (!jobs.length) return;
+		cameraOn = true;
+		await tick();
+		for (const [kind, design] of jobs) {
+			const blob = await camera?.still(design).catch(() => null);
+			if (!alive) return;
+			if (blob) pictures[kind] = URL.createObjectURL(blob);
 		}
+		cameraOn = false;
+	}
+
+	onMount(() => {
+		let io: IntersectionObserver | undefined;
+		(async () => {
+			try {
+				const res = await fetch('/api/featured');
+				if (res.ok) picks = await res.json();
+			} catch {
+				// The favourites are a nicety; the page is complete without them.
+			}
+			if (!alive || (!picks.chart && !picks.pattern)) return;
+			await tick();
+			// Nothing is drawn until the section is about to scroll into view.
+			io = new IntersectionObserver(
+				([hit]) => {
+					if (!hit.isIntersecting) return;
+					io?.disconnect();
+					draw();
+				},
+				{ rootMargin: '200px' }
+			);
+			if (section) io.observe(section);
+		})();
+		return () => {
+			alive = false;
+			io?.disconnect();
+			[pictures.chart, pictures.pattern].forEach((u) => u && URL.revokeObjectURL(u));
+		};
 	});
 
 	const hearts = (n: number) => `♥ ${n} ${n === 1 ? 'like' : 'likes'}`;
 </script>
 
 {#if picks.chart || picks.pattern}
-	<section class="featured" aria-labelledby="featured-h">
+	<section class="featured" aria-labelledby="featured-h" bind:this={section}>
 		<h2 id="featured-h">Community favourites</h2>
 		<div class="cards">
 			{#if picks.chart}
 				{@const chart = picks.chart}
 				<div class="card chart">
-					<div class="art"><MotifSwatch motif={chart.motif} color={chart.color} contrast={chart.contrast} across={3} down={2} label={isCenterpieceChart(chart.motif) ? `${chart.name}, a centerpiece` : `${chart.name}, repeated across a swatch`} /></div>
+					<div class="art" class:sweater={pictures.chart}>
+						{#if pictures.chart}
+							<img src={pictures.chart} alt={isCenterpieceChart(chart.motif) ? `${chart.name}, a centerpiece on the front of a sweater` : `A sweater knitted all over in ${chart.name}`} />
+						{:else}
+							<MotifSwatch motif={chart.motif} color={chart.color} contrast={chart.contrast} across={3} down={2} label={isCenterpieceChart(chart.motif) ? `${chart.name}, a centerpiece` : `${chart.name}, repeated across a swatch`} />
+						{/if}
+					</div>
 					<p class="kind">Favourite {isCenterpieceChart(chart.motif) ? 'centerpiece' : 'chart'}</p>
 					<h3><a class="open" href="/chart/{chart.id}">{chart.name}</a></h3>
 					<p class="meta">{chartSize(chart.motif)} · by <span class="by"><Author name={chart.author} photo={chart.authorPhoto} /></span> · {hearts(chart.likes)}</p>
@@ -37,11 +96,15 @@
 				{@const pattern = picks.pattern}
 				<div class="card pattern">
 					<div class="art sweater">
+						{#if pictures.pattern}
+							<img src={pictures.pattern} alt="{pattern.name}, a sweater in {pattern.design.color} with {pattern.design.contrast} trim" />
+						{:else}
 						<svg viewBox="0 0 120 90" role="img" aria-label="{pattern.name}, a sweater in {pattern.design.color} with {pattern.design.contrast} trim">
 							<path d="M40 10 Q60 22 80 10 L104 22 L116 66 L98 70 L90 40 L90 80 L30 80 L30 40 L22 70 L4 66 L16 22 Z" fill={pattern.design.color} />
 							<path d="M30 74h60v6H30zM4 66l18 4-2 8-18-4zM116 66l-18 4 2 8 18-4z" fill={pattern.design.contrast} />
 							<path d="M40 10 Q60 22 80 10 L76 8 Q60 17 44 8 Z" fill={pattern.design.contrast} />
 						</svg>
+						{/if}
 					</div>
 					<p class="kind">Favourite pattern</p>
 					<h3><a class="open" href="/pattern/{pattern.id}">{pattern.name}</a></h3>
@@ -50,6 +113,10 @@
 				</div>
 			{/if}
 		</div>
+		{#if cameraOn}
+			<!-- An off-screen camera that draws the sweaters; never shown, and gone once they are drawn. -->
+			<div class="camera" aria-hidden="true"><Viewer bind:this={camera} onview={() => {}} intro={false} /></div>
+		{/if}
 	</section>
 {/if}
 
@@ -106,6 +173,20 @@
 		width: 100%;
 		height: auto;
 		max-height: 150px;
+	}
+	.sweater img {
+		display: block;
+		width: 100%;
+		height: 200px;
+		object-fit: contain;
+	}
+	.camera {
+		position: absolute;
+		left: -10000px;
+		top: 0;
+		width: 360px;
+		height: 414px;
+		pointer-events: none;
 	}
 	.kind {
 		margin: 0;
