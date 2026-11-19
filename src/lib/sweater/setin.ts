@@ -8,6 +8,9 @@ import {
 	TIPS,
 	bandsSection,
 	bodySection,
+	centerpieceAtJoin,
+	centerpiecePlan,
+	centerpieceYokeStart,
 	cap,
 	chartOf,
 	colourSection,
@@ -263,6 +266,10 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 
 	// ── Yoke: back, then the two fronts, then joined at the underarm ──
 	const yoke: Step[] = [...back0];
+	let frontBefore: number[] = [];
+	let yokeFront: number[] = [];
+	let plan = centerpiecePlan(d, m, []);
+	let cpAt = -1;
 	if (cardigan) {
 		yoke.push(...strapSteps('left', frontRows, true));
 		yoke.push({ text: `Leave the ${sts(strapWidth(frontRows))} of the left front on hold.`, tip: `Waste yarn, or a spare needle.` });
@@ -282,8 +289,21 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 			tip: `The two straps become one piece. Cast on with a backward loop, so the new stitches sit in the gap between the fronts. This is the bottom of the neck opening: from here the neck edge is finished, and only the armholes grow.`
 		});
 		const labels = range(J + 1, frontRows).map((i) => (i % 2 === 0 ? (frontInc.has(i) ? 'armhole inc row' : 'knit row') : 'purl row'));
+		const joined = total;
 		const after = labels.map((l) => (l === 'armhole inc row' ? (total += 2) : total));
-		yoke.push(...runs(labels, J + 1, 'Row', (j) => sts(after[j]), addsOf));
+		// The front's width before each row below the neck join, and on the round that joins the body: room for a centerpiece.
+		frontBefore = [joined, ...after];
+		yokeFront = frontBefore.slice().reverse();
+		plan = centerpiecePlan(d, m, yokeFront);
+		// The index in `labels` of the row with chart row 1 (labels.length is the join round), or -1 for none.
+		cpAt = plan.cp && plan.up ? labels.length - plan.up + 1 : -1;
+		const cpStep = () => centerpieceYokeStart(d, plan.cp!, plan.box, frontBefore[cpAt], plan.up, true, 'armhole increases');
+		if (cpAt >= 0 && cpAt < labels.length) {
+			yoke.push(...runs(labels.slice(0, cpAt), J + 1, 'Row', (j) => sts(after[j]), addsOf));
+			yoke.push(cpStep());
+			yoke.push(...runs(labels.slice(cpAt), J + 1 + cpAt, 'Row', (j) => sts(after[cpAt + j]), addsOf));
+		} else yoke.push(...runs(labels, J + 1, 'Row', (j) => sts(after[j]), addsOf));
+		if (cpAt === labels.length) yoke.push(cpStep());
 	}
 	// Join back and front.
 	const underarmJoin: Step = cardigan
@@ -293,7 +313,7 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 				tip: `Slide all three pieces onto one long needle first. Cast on the underarm stitches with a backward loop. Then try it on: the armholes should reach comfortably under your arms.`
 			}
 		: {
-				text: `Join the body: with RS facing, knit across the ${sts(front)} of the front, then cast on ${sts(u)}, knit across the ${sts(back)} of the back, then cast on ${sts(u)}. Pm for BOR at the start of the front (the left armhole). Join to work in the round without twisting.`,
+				text: `Join the body: with RS facing, knit across the ${sts(front)} of the front, then cast on ${sts(u)}, knit across the ${sts(back)} of the back, then cast on ${sts(u)}. Pm for BOR at the start of the front (the left armhole). Join to work in the round without twisting.${centerpieceAtJoin(plan.cp, plan.up)}`,
 				count: sts(bodySts),
 				tip: `This is where it starts to look like a sweater. Slide the back stitches off the waste yarn onto the needle, then work around. Cast on the underarm stitches with a backward loop. Check that the work is not twisted before you join, then try it on.`
 			};
@@ -308,7 +328,7 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 	});
 
 	// ── Body ──
-	sections.push(bodySection(d, m, bodySts, `${cardigan ? 'The body is worked straight down' : 'The body is one plain tube'} to the hem. No shaping, no counting. ${slip ? 'The armhole edges come later, picked up around the openings.' : 'The sleeves come later, picked up around the armholes.'}`, cardigan ? undefined : front));
+	sections.push(bodySection(d, m, bodySts, `${cardigan ? 'The body is worked straight down' : 'The body is one plain tube'} to the hem. No shaping, no counting. ${slip ? 'The armhole edges come later, picked up around the openings.' : 'The sleeves come later, picked up around the armholes.'}`, cardigan ? undefined : front, plan.drop));
 
 	// ── Sleeves ──
 	const sl: Step[] = [];
@@ -437,6 +457,7 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 		ok: true,
 		construction: 'Set-in',
 		sleeveless: slip,
+		yokeFront,
 		title: `${wearer}${d.neckline} ${slip ? '' : 'set-in '}${d.garment.toLowerCase()}, ${custom ? 'custom fit' : `size ${d.size}`}`,
 		level: est.level,
 		materials: materialsOf(d, m, notions),

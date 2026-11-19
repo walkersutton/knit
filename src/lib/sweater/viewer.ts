@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { buildGarment, measure, PIECE, shapeKey, type Design, type Garment } from './garment';
-import { bodyBoxOf, centerpieceOf, dropRows, offsetSts, rowsOf } from './centerpiece';
+import { centerpieceOf, dropRows, offsetSts, rowsOf } from './centerpiece';
+import { centerpieceBox } from './pattern';
 import type { Knitted } from './progress';
 import { makeKnitMaps, makePatchMaps, tileFor, type KnitMaps } from './yarn';
 import { stitchGauge } from './needles';
@@ -227,8 +228,9 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 		if (!cp || !current) return;
 		const m = measure(d);
 		// The picture's top-left corner on the body's UV grid: stitches count 12 to a UV unit, rows 16.
-		const left = 6 * current.wraps + offsetSts(d.centerpieceAt, bodyBoxOf(d, m)) - Math.floor(cp.w / 2);
-		const top = Math.round(m.ya * m.rowPerCm) - dropRows(cp, d.centerpieceY, bodyBoxOf(d, m));
+		const box = centerpieceBox(d);
+		const left = 6 * current.wraps + offsetSts(d.centerpieceAt, box) - Math.floor(cp.w / 2);
+		const top = Math.round(m.ya * m.rowPerCm) - dropRows(cp, d.centerpieceY, box, d.centerpieceAt);
 		const src = current.fabric;
 		const pos = src.getAttribute('position');
 		const uv = src.getAttribute('uv');

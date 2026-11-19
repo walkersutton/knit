@@ -1,7 +1,7 @@
 import { measure, type Design } from './garment';
 import { needleLabel, needlesOf, weightOf } from './needles';
 import { contrastShare, longestFloat, tileFor, tileOf, TILE_ROWS } from './motifs';
-import { bodyBoxOf, centerpieceOf, countOn, dropRows, longestStrand, offsetSts, rowsOf, type Centerpiece } from './centerpiece';
+import { bodyBoxOf, centerpieceOf, countOn, dropRows, longestStrand, offsetSts, rowsOf, type BodyBox, type Centerpiece } from './centerpiece';
 
 /**
  * What the raglan and set-in pattern writers share: the shape of a pattern, small knitting helpers,
@@ -101,6 +101,8 @@ type Done = {
 	centerpiece: boolean[][] | null;
 	/** A slipover: no sleeves, so armhole edgings in their place. */
 	sleeveless: boolean;
+	/** Front stitches on the rows above the underarm a centerpiece can rise into (see `BodyBox.yoke`). */
+	yokeFront: number[];
 };
 export type Pattern = { ok: false; reason: string } | (Done & { construction: 'Raglan'; counts: Counts }) | (Done & { construction: 'Set-in'; counts: SetInCounts });
 
@@ -264,7 +266,7 @@ export function colourSection(d: Design, m: Measures, how: { flat: boolean; star
 }
 
 /** From the underarm down to the hem. `bodySts` are on the needle; a cardigan is worked flat. */
-export function bodySection(d: Design, m: Measures, bodySts: number, intro: string, frontSts?: number): PatternSection {
+export function bodySection(d: Design, m: Measures, bodySts: number, intro: string, frontSts?: number, cpDrop?: number): PatternSection {
 	const { k } = m;
 	const cardigan = d.garment === 'Cardigan';
 	const slits = !cardigan && m.slitH > 0;
@@ -276,7 +278,7 @@ export function bodySection(d: Design, m: Measures, bodySts: number, intro: stri
 	// The part worked in the round: all of the body, or down to the slits. A centerpiece is worked inside it.
 	const round = (length: number): Step[] => {
 		const cp = centerpieceOf(d);
-		return cp ? centerpieceSteps(d, m, cp, bodySts, length, fabric, bodyTip, frontSts) : [{ text: `${fabric} until the body measures ${len(length)} from the underarm${cardigan ? ', ending with a WS row' : ''}.`, tip: bodyTip, adds: length }];
+		return cp ? centerpieceSteps(d, m, cp, bodySts, length, fabric, bodyTip, frontSts, cpDrop) : [{ text: `${fabric} until the body measures ${len(length)} from the underarm${cardigan ? ', ending with a WS row' : ''}.`, tip: bodyTip, adds: length }];
 	};
 	if (slits) {
 		const half = bodySts / 2;
@@ -303,11 +305,14 @@ export function bodySection(d: Design, m: Measures, bodySts: number, intro: stri
 
 /**
  * The body knitted down to `length` cm below the underarm with the centerpiece worked on the front: plain
- * knitting down to the picture, one round per chart row, then plain knitting again.
+ * knitting down to the picture, one round per chart row, then plain knitting again. `drop` is where
+ * the writer placed the picture (see `centerpiecePlan`); when it began up in the yoke, the body only
+ * finishes it.
  */
-function centerpieceSteps(d: Design, m: Measures, cp: Centerpiece, bodySts: number, length: number, fabric: string, bodyTip: string, frontSts?: number): Step[] {
+function centerpieceSteps(d: Design, m: Measures, cp: Centerpiece, bodySts: number, length: number, fabric: string, bodyTip: string, frontSts?: number, cpDrop?: number): Step[] {
 	const rowsPerCm = m.rowPerCm;
-	const drop = dropRows(cp, d.centerpieceY, bodyBoxOf(d, m));
+	const drop = cpDrop ?? dropRows(cp, d.centerpieceY, bodyBoxOf(d, m), d.centerpieceAt);
+	if (drop < 0) return centerpieceRest(cp, m, Math.min(cp.h, -drop), length, fabric, bodyTip);
 	const before = drop / rowsPerCm;
 	const picture = cp.h / rowsPerCm;
 	const after = Math.max(0, length - before - picture);
@@ -342,6 +347,57 @@ function centerpieceSteps(d: Design, m: Measures, cp: Centerpiece, bodySts: numb
 	steps.push({ text: `Remove both markers.${after > 0.2 ? ` ${fabric} until the body measures ${len(length)} from the underarm.` : ''}`, adds: Math.max(0, after + 1 / rowsPerCm), tip: after > 0.2 ? undefined : `The picture ends right where the body does.` });
 	return steps;
 }
+
+/** The body below a centerpiece that began in the yoke: the chart rows still to work, then plain knitting. */
+function centerpieceRest(cp: Centerpiece, m: Measures, done: number, length: number, fabric: string, bodyTip: string): Step[] {
+	const left = cp.h - done;
+	if (left <= 0) return [{ text: `${fabric} until the body measures ${len(length)} from the underarm.`, tip: bodyTip, adds: length }];
+	const picture = left / m.rowPerCm;
+	const after = Math.max(0, length - picture);
+	return [
+		{
+			text: left === 1 ? `Work chart row ${cp.h}, the bottom of the centerpiece, between the chart markers.` : `Keep working the centerpiece between the chart markers: chart rows ${done + 1}–${cp.h}, one per round. Row ${cp.h} is the bottom of the picture.`,
+			tally: { unit: 'Round', first: 1, rows: Array.from({ length: left }, (_, j) => `Chart row ${done + 1 + j}`) },
+			adds: picture,
+			tip: `The picture began up in the yoke and carries on here, so the markers are already in place. Outside them, knit as before.`
+		},
+		{ text: `Remove the chart markers.${after > 0.2 ? ` ${fabric} until the body measures ${len(length)} from the underarm.` : ''}`, adds: after, tip: after > 0.2 ? bodyTip : `The picture ends right where the body does.` }
+	];
+}
+
+/**
+ * Where a writer puts the centerpiece, given the front's width on the yoke rows above the underarm
+ * (nearest first, the underarm join round being the first). `up` is how many of those rows the
+ * picture reaches into: 0 when it sits wholly in the body.
+ */
+export function centerpiecePlan(d: Design, m: Measures, yoke: number[]) {
+	const cp = centerpieceOf(d);
+	const box: BodyBox = { ...bodyBoxOf(d, m), yoke };
+	const drop = cp ? dropRows(cp, d.centerpieceY, box, d.centerpieceAt) : 0;
+	return { cp, box, drop, up: Math.max(0, -drop) };
+}
+
+/**
+ * The yoke step that starts a centerpiece placed above the underarm, worked just before the row (or
+ * round) that has chart row 1. `front` is the front's stitch count then; `up` counts the rows from that
+ * one down to and including the underarm join, so the chart may carry on into the body.
+ */
+export function centerpieceYokeStart(d: Design, cp: Centerpiece, box: BodyBox, front: number, up: number, flat: boolean, grow: string): Step {
+	const off = offsetSts(d.centerpieceAt, box);
+	const across = Math.min(cp.w, front);
+	const right = Math.min(Math.max(0, front - across), Math.max(0, Math.floor((front - across) / 2 - off)));
+	const left = front - right - across;
+	const spot = off > 0 ? ' over the left chest' : off < 0 ? ' over the right chest' : ', in the middle';
+	const R = flat ? 'row' : 'round';
+	const ends = cp.h < up ? `After chart row ${cp.h}, the bottom of the picture, remove the chart markers and carry on as before.` : cp.h === up ? `The last chart row falls on the underarm ${flat ? 'join' : 'divide'} ${R}.` : `The picture is ${cp.h} rows tall, so it carries on into the body.`;
+	return {
+		text: `Centerpiece: start it on the next ${R}${spot}. As you work across the front, place 2 chart markers: ${sts(right)} in from the front's right-hand edge (as you look at the right side), then ${sts(across)} for the picture, leaving ${sts(left)} to its left edge. Work row 1 of the centerpiece chart between them. From then on, work the next chart row between the markers on every ${R}, alongside the ${R}s below. ${ends}`,
+		tip: `Count the front stitches as they are before this ${R}: any ${grow} on it sit at the edges of the front, outside the chart markers, and do not change where the picture goes. Row 1 is the top row of the chart.${flat ? ' On RS rows read the chart right to left and knit; on WS rows read it left to right and purl, in whichever colour each stitch shows.' : ' Read each chart row right to left.'} Carry the colour you are not using loosely behind the work, catching any float longer than 5 sts.`
+	};
+}
+
+/** Words for the underarm join when the centerpiece is part-way through then (`up` as for `centerpieceYokeStart`). */
+export const centerpieceAtJoin = (cp: Centerpiece | null, up: number) => (cp && up > 0 && cp.h >= up ? ` As you cross the front, work chart row ${up} of the centerpiece between the chart markers${cp.h === up ? ', then remove them' : ''}.` : '');
 
 /**
  * The sleeve from the underarm down: taper (or balloon / puff shaping), the plain stretch and the cuff.

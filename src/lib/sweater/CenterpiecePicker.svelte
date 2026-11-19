@@ -16,6 +16,7 @@
 		parseCenterpiece,
 		resizeCenterpiece,
 		PLACEMENTS,
+	riseRows,
 	room,
 		shiftCenterpiece,
 		textCenterpiece,
@@ -35,6 +36,9 @@
 	const cp = $derived(parseCenterpiece(design.centerpiece));
 	const space = $derived(room(box, design.centerpieceAt));
 	const problem = $derived(cp ? fitProblem(cp, box, design.centerpieceAt) : undefined);
+	/** Rows the picture can rise above the underarm, up the chest: none when the yoke is too narrow for it. */
+	const rise = $derived(cp ? riseRows(cp, box, design.centerpieceAt) : 0);
+	const where = $derived(design.centerpieceY < -0.95 && rise ? 'High on the chest' : Math.abs(design.centerpieceY) < 0.05 ? 'Just under the arms' : design.centerpieceY > 0.95 ? 'Down by the hem' : '');
 	/** A stitch is wider than a row is tall, so a cell is drawn that much shorter to show the picture as it will knit. */
 	const squash = $derived(box.stPerCm / box.rowPerCm);
 	const set = (c: Centerpiece | null) => (design.centerpiece = c ? encodeCenterpiece(c) : '');
@@ -256,8 +260,8 @@
 			{/each}
 		</div>
 		<label class="slide">
-			<span><em>Height</em><span>{design.centerpieceY < 0.05 ? 'Under the arms' : design.centerpieceY > 0.95 ? 'Down by the hem' : ''}</span></span>
-			<input type="range" min="0" max="1" step="0.01" bind:value={design.centerpieceY} aria-label="How far down the front the centerpiece sits" />
+			<span><em>Height</em><span>{where}</span></span>
+			<input type="range" min={rise ? -1 : 0} max="1" step="0.01" bind:value={design.centerpieceY} aria-label="How far down the front the centerpiece sits" />
 			<span class="ends"><span>Higher</span><span>Lower</span></span>
 		</label>
 		{#if problem}
@@ -266,8 +270,8 @@
 					This is {cp.w} stitches wide, but the front of this sweater has room for about {space.sts} at this gauge.
 					{#if space.sts >= MIN_SIZE}<button type="button" onclick={() => resize(space.sts, cp.h)}>Make it {space.sts} wide</button>{/if}
 				{:else}
-					This is {cp.h} rows tall, but only about {space.rows} rows of the body fit under the arms and above the hem.
-					{#if space.rows >= MIN_SIZE}<button type="button" onclick={() => resize(cp.w, space.rows)}>Make it {space.rows} tall</button>{/if}
+					This is {cp.h} rows tall, but only about {space.rows + rise} rows of the front fit {rise ? 'between the neckline' : 'under the arms'} and the hem.
+					{#if space.rows + rise >= MIN_SIZE}<button type="button" onclick={() => resize(cp.w, space.rows + rise)}>Make it {space.rows + rise} tall</button>{/if}
 				{/if}
 			</p>
 		{/if}

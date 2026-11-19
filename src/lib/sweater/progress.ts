@@ -114,7 +114,7 @@ export function validDesign(value: unknown, like: Design): value is Design {
 	const v = value as Record<string, unknown>;
 	const keys = Object.keys(like);
 	const fields = sections.flatMap((s) => s.groups).flatMap((g) => g.fields);
-	return Object.keys(v).length === keys.length && keys.every((key) => key in v) && validCustom(v.custom) && validCenterpiece(v.centerpiece) && typeof v.centerpieceY === 'number' && v.centerpieceY >= 0 && v.centerpieceY <= 1 && PLACEMENTS.includes(v.centerpieceAt as string) && fields.every((f) => f.options.some((o) => o.value === v[f.key]));
+	return Object.keys(v).length === keys.length && keys.every((key) => key in v) && validCustom(v.custom) && validCenterpiece(v.centerpiece) && typeof v.centerpieceY === 'number' && v.centerpieceY >= -1 && v.centerpieceY <= 1 && PLACEMENTS.includes(v.centerpieceAt as string) && fields.every((f) => f.options.some((o) => o.value === v[f.key]));
 }
 
 /** A design as text for a link, so a sweater can be opened in the designer exactly as it was. */

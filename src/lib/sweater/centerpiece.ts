@@ -205,7 +205,21 @@ export function fitSize(srcW: number, srcH: number, maxW: number, maxH: number, 
 
 // ── Where it goes ───────────────────────────────────────────────────────
 /** What a centerpiece needs to know about the sweater: stitch and row density, and the plain body below the underarm. */
-export type BodyBox = { stPerCm: number; rowPerCm: number; chest: number; ya: number; hemH: number; slitH: number; rolled: number };
+export type BodyBox = {
+	stPerCm: number;
+	rowPerCm: number;
+	chest: number;
+	ya: number;
+	hemH: number;
+	slitH: number;
+	rolled: number;
+	/**
+	 * Front stitches on each row above the underarm where the front is one plain piece, nearest the
+	 * underarm first: the round that joins the body at the underarm, then the yoke rows above it, up to
+	 * where the neck shaping ends. Empty when the picture cannot rise into the yoke.
+	 */
+	yoke?: number[];
+};
 
 /** Where across the front the picture goes: the middle, or over the wearer's left or right chest. */
 export const PLACEMENTS = ['Centre', 'Left chest', 'Right chest'];
@@ -228,19 +242,35 @@ export function room(b: BodyBox, at = 'Centre') {
 }
 
 /**
- * How far down the picture sits: `y` runs from 0 (as high as it can go, right under the arms) to 1
- * (as low as it can go before the hem or slits). The row count is rows of the body below the underarm.
+ * How many rows above the underarm the top of the picture can go: up into the yoke while the front
+ * there is wide enough for it (with a couple of stitches spare each side), and never into the neckline.
  */
-export function dropRows(c: Centerpiece, y: number, b: BodyBox) {
-	const spare = Math.max(0, room(b).rows - c.h);
-	return Math.round(clamp(y, 0, 1) * spare);
+export function riseRows(c: { w: number }, b: BodyBox, at = 'Centre') {
+	const yoke = b.yoke ?? [];
+	const need = c.w + 2 * Math.abs(offsetSts(at, b)) + 4;
+	const usable = Math.max(0, yoke.length - Math.round(2.5 * b.rowPerCm));
+	let n = 0;
+	while (n < usable && yoke[n] >= need) n++;
+	return n;
+}
+
+/**
+ * How far below the underarm the top of the picture sits, in rows; negative when it is up in the yoke.
+ * `y` runs from -1 (as high as it can go, up on the chest) through 0 (right under the arms) to 1 (as
+ * low as it can go before the hem or slits).
+ */
+export function dropRows(c: Centerpiece, y: number, b: BodyBox, at = 'Centre') {
+	const lo = -riseRows(c, b, at);
+	const hi = Math.max(lo, room(b).rows - c.h);
+	const raw = y < 0 ? clamp(y, -1, 0) * -lo : clamp(y, 0, 1) * Math.max(0, hi);
+	return Math.round(clamp(raw, lo, hi));
 }
 
 /** Whether the picture fits the sweater at its gauge, and what is in the way if not. */
 export function fitProblem(c: Centerpiece, b: BodyBox, at = 'Centre'): 'wide' | 'tall' | undefined {
 	const r = room(b, at);
 	if (c.w > r.sts) return 'wide';
-	if (c.h > r.rows) return 'tall';
+	if (c.h > r.rows + riseRows(c, b, at)) return 'tall';
 	return undefined;
 }
 

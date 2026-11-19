@@ -9,6 +9,9 @@ import {
 	bandsSection,
 	bodySection,
 	cap,
+	centerpieceAtJoin,
+	centerpiecePlan,
+	centerpieceYokeStart,
 	chartOf,
 	colourSection,
 	edgeSteps,
@@ -35,6 +38,7 @@ import {
 	type Tally
 } from './patternKit';
 import { writeSetIn } from './setin';
+import { bodyBoxOf, type BodyBox } from './centerpiece';
 
 export { estimate, isColourwork, len, patternText } from './patternKit';
 export type { Counts, Pattern, PatternSection, SetInCounts, Step, Tally } from './patternKit';
@@ -48,6 +52,14 @@ export function writePattern(d: Design): Pattern {
 	const m = measure(d);
 	// A slipover has no sleeves for a raglan to feed, so it is always worked with the set-in shoulders.
 	return m.raglan ? writeRaglan(d, m) : writeSetIn(d, m);
+}
+
+/**
+ * The body a centerpiece is placed on, including how far up the yoke it can rise, which depends on
+ * how the yoke is knitted. The 3D view and the designer place the picture with this, as the pattern does.
+ */
+export function centerpieceBox(d: Design, p: Pattern = writePattern({ ...d, centerpiece: '' })): BodyBox {
+	return { ...bodyBoxOf(d, measure(d)), yoke: p.ok ? p.yokeFront : [] };
 }
 
 // ── The raglan pattern ──────────────────────────────────────────────────
@@ -150,6 +162,31 @@ function writeRaglan(d: Design, m: Measures): Pattern {
 		neckCo = neckPerSide - incs;
 		if (cardigan && neckCo) rows[neckRows - 2].co = rows[neckRows - 1].co = neckCo;
 	}
+
+	// ── Where a centerpiece can rise into the yoke ──
+	// The front's width before each row, and on the divide round; only the rows worked in the round, below the neck shaping, count.
+	const firstRound = cardigan ? Ry : vNeck ? neckRows : srRows;
+	const frontBefore: number[] = [];
+	{
+		let f = F0;
+		for (let i = 0; i < Ry; i++) {
+			if (vNeck && i === neckRows) f += 2 * neckCo;
+			frontBefore.push(f);
+			const r = rows[i];
+			if (r.kind === 'all' || r.kind === 'body') f += 2;
+			if (r.neck) f += 2;
+			f += r.co;
+		}
+		frontBefore.push(f);
+	}
+	const yokeFront = frontBefore.slice(firstRound).reverse();
+	const plan = centerpiecePlan(d, m, cardigan ? [] : yokeFront);
+	// The yoke row that has chart row 1 (Ry is the divide round), or -1 when the picture starts in the body.
+	const cpStart = plan.cp && plan.up ? Ry - plan.up + 1 : -1;
+	const cpStep = () => centerpieceYokeStart(d, plan.cp!, plan.box, frontBefore[cpStart], plan.up, false, 'raglan increases');
+	/** The yoke rows from `from` to `to`, with the centerpiece's start between them if it falls there. */
+	const scheduleWith = (from: number, to: number, numberFrom = from): Step[] =>
+		cpStart > from && cpStart < to ? [...schedule(from, cpStart, false, numberFrom), cpStep(), ...schedule(cpStart, to, false, numberFrom)] : [...(cpStart === from ? [cpStep()] : []), ...schedule(from, to, false, numberFrom)];
 
 	// ── Walk the yoke, tracking counts ──
 	let back = B0;
@@ -275,12 +312,13 @@ function writeRaglan(d: Design, m: Measures): Pattern {
 			tip: `From here on you knit in circles instead of back and forth, so every round is knit: no more purl rows. Check that the work is not twisted before you join.`
 		});
 		yoke.push({ text: `Continue in the round:`, note: true });
-		yoke.push(...schedule(neckRows, Ry, false));
-	} else yoke.push(...schedule(srRows, Ry, false));
+		yoke.push(...scheduleWith(neckRows, Ry));
+	} else yoke.push(...scheduleWith(srRows, Ry));
 	if (Ry > yokeRowsPlanned)
 		yoke.push({ note: true, text: `The yoke needs a few extra ${R}s to fit all the increases, so it measures about ${len(Ry / rowPerCm)} at centre back instead of ${len(yokeRowsPlanned / rowPerCm)}.` });
+	if (cpStart === Ry) yoke.push(cpStep());
 	yoke.push({
-		text: `Divide ${cardigan ? 'row (RS)' : 'round'}: *knit to the next sleeve marker, remove it, slip the ${sts(sleeve)} of the sleeve to waste yarn, remove the next marker, cast on ${sts(u / 2)}, pm (side), cast on ${sts(u / 2)}; rep from * once more, knit to end.`,
+		text: `Divide ${cardigan ? 'row (RS)' : 'round'}: *knit to the next sleeve marker, remove it, slip the ${sts(sleeve)} of the sleeve to waste yarn, remove the next marker, cast on ${sts(u / 2)}, pm (side), cast on ${sts(u / 2)}; rep from * once more, knit to end.${centerpieceAtJoin(plan.cp, plan.up)}`,
 		count: sts(front + back + 2 * u),
 		tip: `This is where it starts to look like a sweater. Thread waste yarn onto the tapestry needle, run it through the sleeve stitches and slide them off the needle; they wait there until you knit the sleeves. Cast on the underarm stitches with a backward loop. Then try it on: the yoke should reach your underarms comfortably.`
 	});
@@ -295,7 +333,7 @@ function writeRaglan(d: Design, m: Measures): Pattern {
 
 	// ── Body ──
 	const bodySts = front + back + 2 * u;
-	sections.push(bodySection(d, m, bodySts, `The sleeve stitches wait on waste yarn while you knit the body ${cardigan ? 'straight down' : 'as one plain tube'} to the hem. No shaping, no counting.`));
+	sections.push(bodySection(d, m, bodySts, `The sleeve stitches wait on waste yarn while you knit the body ${cardigan ? 'straight down' : 'as one plain tube'} to the hem. No shaping, no counting.`, undefined, plan.drop));
 
 	// ── Sleeves ──
 	const sl: Step[] = [];
@@ -387,6 +425,7 @@ function writeRaglan(d: Design, m: Measures): Pattern {
 		ok: true,
 		construction: 'Raglan',
 		sleeveless: false,
+		yokeFront: cardigan ? [] : yokeFront,
 		title: `${wearer}${d.neckline} raglan ${d.garment.toLowerCase()}, ${custom ? 'custom fit' : `size ${d.size}`}`,
 		level: est.level,
 		materials: materialsOf(d, m, notions),

@@ -9,8 +9,6 @@
 	import { goto } from '$app/navigation';
 	import PatternChoice from '$lib/sweater/PatternChoice.svelte';
 	import CenterpiecePicker from '$lib/sweater/CenterpiecePicker.svelte';
-	import { bodyBoxOf } from '$lib/sweater/centerpiece';
-	import { measure } from '$lib/sweater/garment';
 	import Choice from '$lib/sweater/Choice.svelte';
 	import Stage from '$lib/sweater/Stage.svelte';
 	import Stepper from '$lib/sweater/Stepper.svelte';
@@ -22,7 +20,7 @@
 		import Needles from '$lib/sweater/Needles.svelte';
 	import Measurements from '$lib/sweater/Measurements.svelte';
 	import { labelOf, sections, summary, visible } from '$lib/sweater/options';
-	import { estimate, writePattern } from '$lib/sweater/pattern';
+	import { centerpieceBox, estimate, writePattern } from '$lib/sweater/pattern';
 	import PatternView from '$lib/sweater/PatternView.svelte';
 	import { readMotifHash, wantsChart } from '$lib/sweater/library';
 	import { saveDesign, type SavedDesign } from '$lib/sweater/designs';
@@ -65,8 +63,8 @@
 
 	let est = $derived(estimate(knit));
 	/** The body as it will be knitted, which says how much room a centerpiece has. */
-	let box = $derived(bodyBoxOf(knit, measure(knit)));
 	let pattern = $derived(writePattern(knit));
+	let box = $derived(centerpieceBox(knit, pattern));
 
 	// ── Reading and tracking the pattern ──
 	let mode = $state<Mode>('beginner');

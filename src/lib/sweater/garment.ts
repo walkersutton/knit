@@ -32,7 +32,7 @@ export type Design = {
 	motif: string;
 	/** A picture or word worked once on the front of the body, as `"<w>x<h>:<cells>"` (see `centerpiece.ts`); '' for none. */
 	centerpiece: string;
-	/** How far down the body the centerpiece sits: 0 right under the arms, 1 as low as it can go. */
+	/** Where the centerpiece sits up and down: -1 as high up the chest as it can go, 0 with its top right under the arms, 1 as low as it can go. */
 	centerpieceY: number;
 	/** Where across the front it sits: 'Centre', 'Left chest' or 'Right chest' (the wearer's). */
 	centerpieceAt: string;
