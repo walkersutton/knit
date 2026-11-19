@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { openSignIn } from '$lib/signin.svelte';
+	import SignInPill from '$lib/SignInPill.svelte';
 
 	type Member = { username: string; photo: string | null };
 
@@ -29,7 +29,7 @@
 
 {#if members.length}
 	<section class="members" aria-labelledby="members-h">
-		<h2 id="members-h">{total === 1 ? '1 knitter has' : `${total} knitters have`} joined with Ravelry</h2>
+		<h2 id="members-h">{total === 1 ? 'The first knitter in the club' : `${total} knitters in the club`}</h2>
 		<ul>
 			{#each members as m (m.username)}
 				<li>
@@ -49,7 +49,10 @@
 			{/each}
 			{#if more}<li class="more" aria-label="and {more} more">+{more}</li>{/if}
 		</ul>
-		<p><button type="button" class="signin" onclick={openSignIn}>Sign in with Ravelry</button> to save your designs and join them.</p>
+		<div class="join">
+			<p>Keep your designs on every device, and add your face to the circle.</p>
+			<SignInPill label="Sign in with Ravelry" />
+		</div>
 	</section>
 {/if}
 
@@ -122,19 +125,17 @@
 			transition: none;
 		}
 	}
+	.join {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 12px;
+		margin-top: 24px;
+	}
 	p {
-		margin: 20px 0 0;
+		margin: 0;
 		color: #5d6385;
 		font-size: 14px;
-	}
-	.signin {
-		padding: 0;
-		border: 0;
-		background: none;
-		font: inherit;
-		text-decoration: underline;
-		cursor: pointer;
-		color: #26335f;
-		font-weight: 500;
+		text-wrap: balance;
 	}
 </style>
