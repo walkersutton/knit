@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { flipH, flipV, invert, isOn, lineCells, mirror, paint, shift } from './chartEdit';
-import { designLink, editLink, freshName, parseLibrary, readMotifHash, wantsChart } from './library';
+import { centerpieceDesignLink, centerpieceEditLink, chartSize, designLink, editLink, freshName, isCenterpieceChart, parseLibrary, readCenterpieceHash, readMotifHash, wantsCenterpiece, wantsChart } from './library';
 import { blankMotif, FINE_TILE, starterMotif, TILE_ROWS, TILE_ST, validMotif } from './motifs';
 
 const one = (i: number, j: number) => paint(blankMotif(), [[i, j]], true);
@@ -38,6 +38,30 @@ describe('chart editing', () => {
 		expect(isOn(flipV(one(4, 0)), 4, TILE_ROWS - 1)).toBe(true);
 		expect(invert(blankMotif())).toBe('1'.repeat(TILE_ST * TILE_ROWS));
 		expect(flipH(flipH(starterMotif()))).toBe(starterMotif());
+	});
+});
+
+describe('centerpieces in the library', () => {
+	const heart = '5x4:01010111110111000100';
+	it('keeps valid centerpieces and drops broken ones', () => {
+		const lib = parseLibrary({ centerpieces: [{ id: 'a', name: 'Heart', centerpiece: heart }, { id: 'b', name: 'Bad', centerpiece: '5x4:0101' }, { id: 'c', name: 'No grid' }] });
+		expect(lib.centerpieces).toEqual([{ id: 'a', name: 'Heart', centerpiece: heart }]);
+		expect(parseLibrary(null).centerpieces).toEqual([]);
+	});
+	it('travels in links to the sweater designer and the centerpiece designer', () => {
+		const use = centerpieceDesignLink(heart, '#465e9d', '#faf3dc');
+		expect(readCenterpieceHash(use.slice(use.indexOf('#')))).toEqual({ centerpiece: heart, color: '#465e9d', contrast: '#faf3dc' });
+		expect(readCenterpieceHash('#centerpiece=3x3:01')).toBeUndefined();
+		const edit = centerpieceEditLink(heart);
+		expect(wantsCenterpiece(edit.slice(edit.indexOf('#')))).toBe(true);
+		expect(wantsChart(edit.slice(edit.indexOf('#')))).toBe(false);
+	});
+	it('is told apart from a repeating chart when shared', () => {
+		expect(isCenterpieceChart(heart)).toBe(true);
+		expect(isCenterpieceChart(starterMotif())).toBe(false);
+		expect(chartSize(heart)).toBe('5 × 4 centerpiece');
+		expect(chartSize(starterMotif())).toBe(`${TILE_ST} × ${TILE_ROWS}`);
+		expect(chartSize(blankMotif(FINE_TILE))).toBe('24 × 32 · fine');
 	});
 });
 

@@ -2,6 +2,7 @@ import { database } from './db';
 import { cleanPhoto } from './members';
 import { isPaletteColor } from '$lib/sweater/library';
 import { tileOfMotif, validMotif } from '$lib/sweater/motifs';
+import { parseCenterpiece } from '$lib/sweater/centerpiece';
 
 export const PAGE_SIZE = 24;
 /** What one knitter can have shared at once. */
@@ -9,16 +10,17 @@ export const MAX_SHARED = 100;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type SharedChart = { id: string; name: string; motif: string; color: string; contrast: string; author: string; authorPhoto: string | null; createdAt: string };
-/** What a knitter sends to share a chart. */
+/** What a knitter sends to share a chart. `motif` is a repeating chart's cells, or a centerpiece's text ("20x11:…"). */
 export type ChartInput = { motif: string; color: string; contrast: string };
 
 export const isId = (value: string) => UUID.test(value);
-export const sizeOf = (motif: string) => (tileOfMotif(motif).fine ? 'fine' : 'standard');
+/** What the library files a chart under: its repeat size, or 'centerpiece' for a picture worked once. */
+export const sizeOf = (motif: string) => (parseCenterpiece(motif) ? 'centerpiece' : tileOfMotif(motif).fine ? 'fine' : 'standard');
 
-/** A chart is only shared if it is a whole one the designer can draw, in colours its palette offers. */
+/** A chart (or centerpiece) is only shared if it is a whole one the designer can draw, in colours its palette offers. */
 export function shareable(value: unknown): value is ChartInput {
 	const v = value as Record<string, unknown> | null;
-	return !!v && validMotif(v.motif) && isPaletteColor(v.color) && isPaletteColor(v.contrast);
+	return !!v && (validMotif(v.motif) || parseCenterpiece(v.motif) !== null) && isPaletteColor(v.color) && isPaletteColor(v.contrast);
 }
 
 export const cleanName = (value: unknown) => (typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, 40) : '');

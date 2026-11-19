@@ -1,19 +1,19 @@
 <script lang="ts">
 	import Author from '$lib/Author.svelte';
 	import MotifSwatch from './MotifSwatch.svelte';
-	import { previewLink } from './library';
-	import { tileOfMotif } from './motifs';
+	import { chartSize, isCenterpieceChart, previewLink } from './library';
 
 	/** One shared chart in a list: the title opens it, the author's name opens their page. */
 	let { chart: c }: { chart: { id: string; name: string; motif: string; color: string; contrast: string; author: string; authorPhoto: string | null } } = $props();
-	let tile = $derived(tileOfMotif(c.motif));
+	// A centerpiece has no 3D preview of its own, so it opens on its page.
+	let href = $derived(isCenterpieceChart(c.motif) ? `/chart/${c.id}` : previewLink(c.motif, c.color, c.contrast, undefined, c.id));
 </script>
 
 <li>
 	<span class="thumb"><MotifSwatch motif={c.motif} color={c.color} contrast={c.contrast} across={2} down={1} /></span>
 	<span class="text">
-		<a class="open" href={previewLink(c.motif, c.color, c.contrast, undefined, c.id)}>{c.name}</a>
-		<span>{tile.st} × {tile.rows}{tile.fine ? ' · fine' : ''}</span>
+		<a class="open" {href}>{c.name}</a>
+		<span>{chartSize(c.motif)}</span>
 		<span class="by">by <Author name={c.author} photo={c.authorPhoto} /></span>
 	</span>
 </li>

@@ -29,6 +29,11 @@ describe('preview images', () => {
 		const response = await chartCard('Diamonds', '12 × 16 two-colour chart', 'someone', starterMotif(), '#faf3dc', '#c8543e');
 		expect([...(await png(response, 'chart')).slice(1, 4)]).toEqual([80, 78, 71]);
 	});
+	it('renders a centerpiece as a PNG', async () => {
+		const heart = '5x4:0101011111011100010' + '0';
+		const response = await chartCard('Heart', '5 × 4 picture, worked once on the front', 'someone', heart, '#465e9d', '#faf3dc');
+		expect([...(await png(response, 'centerpiece')).slice(1, 4)]).toEqual([80, 78, 71]);
+	});
 	it('renders the site-wide image', async () => {
 		expect([...(await png(await siteCard(), 'site')).slice(1, 4)]).toEqual([80, 78, 71]);
 	});

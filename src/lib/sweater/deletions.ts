@@ -9,7 +9,7 @@ export function loadDeletions(): string[] {
 	}
 }
 
-export function markDeleted(kind: 'chart' | 'design', id: string) {
+export function markDeleted(kind: 'chart' | 'centerpiece' | 'design', id: string) {
 	try {
 		const values = new Set(loadDeletions());
 		values.add(`${kind}:${id}`);

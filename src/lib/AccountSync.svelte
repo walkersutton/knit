@@ -57,7 +57,14 @@
 		]) {
 			if (pattern && typeof pattern.id === 'string' && !deleted.has(`chart:${pattern.id}`)) patterns.set(pattern.id, pattern);
 		}
-		const library = { ...remoteLibrary, ...localLibrary, patterns: [...patterns.values()] };
+		const centerpieces = new Map<string, unknown>();
+		for (const item of [
+			...(Array.isArray(remoteLibrary.centerpieces) ? remoteLibrary.centerpieces : []),
+			...(Array.isArray(localLibrary.centerpieces) ? localLibrary.centerpieces : [])
+		]) {
+			if (item && typeof item.id === 'string' && !deleted.has(`centerpiece:${item.id}`)) centerpieces.set(item.id, item);
+		}
+		const library = { ...remoteLibrary, ...localLibrary, patterns: [...patterns.values()], centerpieces: [...centerpieces.values()] };
 		const designs = new Map<string, unknown>();
 		for (const item of [
 			...(Array.isArray(remote?.designs) ? remote.designs : []),

@@ -5,16 +5,19 @@
 	import Seo from '$lib/Seo.svelte';
 	import MotifSwatch from '$lib/sweater/MotifSwatch.svelte';
 	import { chartToText } from '$lib/sweater/chartText';
-	import { designLink, freshName, loadLibrary, newId, previewLink, saveLibrary } from '$lib/sweater/library';
-	import { contrastShare, longestFloat, tileOfMotif } from '$lib/sweater/motifs';
+	import { centerpieceDesignLink, centerpieceEditLink, chartSize, designLink, freshName, loadLibrary, newId, previewLink, saveLibrary } from '$lib/sweater/library';
+	import { countOn, longestStrand, parseCenterpiece } from '$lib/sweater/centerpiece';
+	import { contrastShare, longestFloat } from '$lib/sweater/motifs';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
 	let chart = $derived(data.chart);
-	let tile = $derived(tileOfMotif(chart.motif));
-	let share = $derived(Math.round(contrastShare('Custom', chart.motif) * 100));
-	let float = $derived(longestFloat('Custom', chart.motif));
+	/** A centerpiece is worked once on the front; any other chart repeats all over. */
+	let cp = $derived(parseCenterpiece(chart.motif));
+	let size = $derived(chartSize(chart.motif));
+	let share = $derived(Math.round((cp ? countOn(cp) / (cp.w * cp.h) : contrastShare('Custom', chart.motif)) * 100));
+	let float = $derived(cp ? longestStrand(cp) : longestFloat('Custom', chart.motif));
 
 	let status = $state<'idle' | 'saved' | 'linked' | 'texted'>('idle');
 	function flash(next: typeof status) {
@@ -27,7 +30,9 @@
 	function save() {
 		const lib = loadLibrary();
 		// Saving the same chart twice does not add a copy.
-		if (!lib.patterns.some((p) => p.motif === chart.motif)) {
+		if (cp) {
+			if (!lib.centerpieces.some((c) => c.centerpiece === chart.motif)) lib.centerpieces.push({ id: newId(), name: freshName(chart.name, lib.centerpieces.map((c) => c.name)), centerpiece: chart.motif });
+		} else if (!lib.patterns.some((p) => p.motif === chart.motif)) {
 			lib.patterns.push({ id: newId(), name: freshName(chart.name, lib.patterns.map((p) => p.name)), motif: chart.motif });
 		}
 		lib.color = chart.color;
@@ -53,29 +58,44 @@
 	}
 </script>
 
-<Seo title="{chart.name} — knit" description="A {tile.st} × {tile.rows} two-colour knitting chart shared by {chart.author}. Put it on a sweater and get a free written pattern." path="/chart/{chart.id}" type="article" image="/og/chart/{chart.id}.png" imageAlt="{chart.name}, a colourwork chart by {chart.author}" />
+<Seo
+	title="{chart.name} — knit"
+	description={cp ? `A ${cp.w} × ${cp.h} two-colour centerpiece shared by ${chart.author}, worked once on the front of a sweater. Put it on yours and get a free written pattern.` : `A ${size} two-colour knitting chart shared by ${chart.author}. Put it on a sweater and get a free written pattern.`}
+	path="/chart/{chart.id}"
+	type="article"
+	image="/og/chart/{chart.id}.png"
+	imageAlt="{chart.name}, a {cp ? 'centerpiece' : 'colourwork chart'} by {chart.author}"
+/>
 
 <main>
 	<p class="eyebrow">Shared by <Author name={chart.author} photo={chart.authorPhoto} /></p>
 	<h1>{chart.name}</h1>
 	<div class="layout">
 		<div class="art">
-			<div class="tile"><MotifSwatch motif={chart.motif} color={chart.color} contrast={chart.contrast} label="{chart.name}, one repeat of the chart" /></div>
-			<div class="fabric"><MotifSwatch motif={chart.motif} color={chart.color} contrast={chart.contrast} across={4} down={2} label="{chart.name}, repeated 4 times across and twice down" /></div>
+			{#if cp}
+				<div class="tile"><MotifSwatch motif={chart.motif} color={chart.color} contrast={chart.contrast} label="{chart.name}, a centerpiece worked once on the front" /></div>
+			{:else}
+				<div class="tile"><MotifSwatch motif={chart.motif} color={chart.color} contrast={chart.contrast} label="{chart.name}, one repeat of the chart" /></div>
+				<div class="fabric"><MotifSwatch motif={chart.motif} color={chart.color} contrast={chart.contrast} across={4} down={2} label="{chart.name}, repeated 4 times across and twice down" /></div>
+			{/if}
 		</div>
 		<aside>
-			<p class="meta">{tile.st} × {tile.rows}{tile.fine ? ' · fine' : ''} · {share}% pattern colour</p>
+			<p class="meta">{size} · {share}% pattern colour{cp ? ' · worked once on the front' : ''}</p>
 			{#if float > 5}<p class="warn">Floats of {float} stitches can snag; the written pattern says where to catch them.</p>{/if}
 			<LikeButton kind="chart" id={chart.id} likes={data.likes} liked={data.liked} signedIn={data.signedIn} />
-			<a class="use" href={designLink(chart.motif, chart.color, chart.contrast)}>Use on my sweater</a>
-			<a class="btn" href={previewLink(chart.motif, chart.color, chart.contrast)}>Preview in 3D</a>
+			{#if cp}
+				<a class="use" href={centerpieceDesignLink(chart.motif, chart.color, chart.contrast)}>Use on my sweater</a>
+			{:else}
+				<a class="use" href={designLink(chart.motif, chart.color, chart.contrast)}>Use on my sweater</a>
+				<a class="btn" href={previewLink(chart.motif, chart.color, chart.contrast)}>Preview in 3D</a>
+			{/if}
 			<div class="row">
-				<button type="button" onclick={save}>{status === 'saved' ? 'Saved ✓' : 'Save to my charts'}</button>
-				<a class="btn" href="/design#{new URLSearchParams({ tool: 'chart', motif: chart.motif })}">Edit</a>
+				<button type="button" onclick={save}>{status === 'saved' ? 'Saved ✓' : cp ? 'Save to my centerpieces' : 'Save to my charts'}</button>
+				<a class="btn" href={cp ? centerpieceEditLink(chart.motif) : `/design#${new URLSearchParams({ tool: 'chart', motif: chart.motif })}`}>Edit</a>
 			</div>
 			<div class="row">
 				<button type="button" onclick={() => copy(location.href, 'linked')}>{status === 'linked' ? 'Link copied' : 'Copy link'}</button>
-				<button type="button" onclick={() => copy(chartToText(chart.name, chart.motif, chart.color, chart.contrast), 'texted')}>{status === 'texted' ? 'Copied ✓' : 'Copy text'}</button>
+				{#if !cp}<button type="button" onclick={() => copy(chartToText(chart.name, chart.motif, chart.color, chart.contrast), 'texted')}>{status === 'texted' ? 'Copied ✓' : 'Copy text'}</button>{/if}
 			</div>
 			{#if shareError}<textarea readonly rows="6" onfocus={(e) => e.currentTarget.select()}>{shareError}</textarea>{/if}
 			{#if data.mine}<button type="button" class="danger" onclick={unshare}>Unshare</button>{/if}

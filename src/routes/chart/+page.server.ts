@@ -6,7 +6,8 @@ export const prerender = false;
 
 const SIZES = [
 	{ value: 'standard', label: 'Standard (12 × 16)' },
-	{ value: 'fine', label: 'Fine (24 × 32)' }
+	{ value: 'fine', label: 'Fine (24 × 32)' },
+	{ value: 'centerpiece', label: 'Centerpieces' }
 ];
 
 export const load: PageServerLoad = async ({ url, setHeaders }) => {

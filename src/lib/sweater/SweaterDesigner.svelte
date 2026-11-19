@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import type { Design } from '$lib/sweater/garment';
 	/** What the library sidebar or the chart designer hands over: a saved sweater to open, or a chart to put on this one. */
-	export type Incoming = { design?: Design; chart?: { motif: string; color?: string; contrast?: string } };
+	export type Incoming = { design?: Design; chart?: { motif: string; color?: string; contrast?: string }; centerpiece?: { centerpiece: string; color?: string; contrast?: string } };
 </script>
 
 <script lang="ts">
@@ -22,7 +22,7 @@
 	import { labelOf, sections, summary, visible } from '$lib/sweater/options';
 	import { centerpieceBox, estimate, writePattern } from '$lib/sweater/pattern';
 	import PatternView from '$lib/sweater/PatternView.svelte';
-	import { readMotifHash, wantsChart } from '$lib/sweater/library';
+	import { readCenterpieceHash, readMotifHash, wantsCenterpiece, wantsChart } from '$lib/sweater/library';
 	import { saveDesign, type SavedDesign } from '$lib/sweater/designs';
 	import { CUSTOM_PATTERN } from '$lib/sweater/motifs';
 	import { decodeDesign, encodeDesign, load, save, signature, type Mode, type Progress } from '$lib/sweater/progress';
@@ -84,7 +84,7 @@
 		if (item) onsaved?.(item.id);
 	}
 
-	function apply({ design: next, chart }: Incoming) {
+	function apply({ design: next, chart, centerpiece }: Incoming) {
 		if (next) {
 			design = next;
 		}
@@ -93,6 +93,12 @@
 			design.motif = chart.motif;
 			if (chart.color) design.color = chart.color;
 			if (chart.contrast) design.contrast = chart.contrast;
+			tab = 'yarn';
+		}
+		if (centerpiece) {
+			design.centerpiece = centerpiece.centerpiece;
+			if (centerpiece.color) design.color = centerpiece.color;
+			if (centerpiece.contrast) design.contrast = centerpiece.contrast;
 			tab = 'yarn';
 		}
 	}
@@ -114,6 +120,12 @@
 		const chartLink = wantsChart(location.hash) ? undefined : readMotifHash(location.hash);
 		if (chartLink) {
 			apply({ chart: chartLink });
+			history.replaceState(null, '', location.pathname);
+		}
+		// So does a centerpiece.
+		const centerpieceLink = wantsCenterpiece(location.hash) ? undefined : readCenterpieceHash(location.hash);
+		if (centerpieceLink) {
+			apply({ centerpiece: centerpieceLink });
 			history.replaceState(null, '', location.pathname);
 		}
 		if (saved.mode) mode = saved.mode;

@@ -4,6 +4,7 @@ import medium from '@fontsource/fredoka/files/fredoka-latin-500-normal.woff?inli
 import bold from '@fontsource/fredoka/files/fredoka-latin-700-normal.woff?inline';
 import type { Design } from '$lib/sweater/garment';
 import { tileOfMotif } from '$lib/sweater/motifs';
+import { parseCenterpiece } from '$lib/sweater/centerpiece';
 import { SITE } from '$lib/site';
 
 const DENIM = '#465e9d';
@@ -55,6 +56,22 @@ function chartSvg(motif: string, color: string, contrast: string, width: number)
 				rects += `<rect x="${(tx * st + (k % st)) * cell}" y="${(ty * rows + Math.floor(k / st)) * cell}" width="${cell}" height="${cell}"/>`;
 			});
 	return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${hgt}" viewBox="0 0 ${w} ${hgt}" shape-rendering="crispEdges"><rect width="${w}" height="${hgt}" fill="${color}"/><g fill="${contrast}">${rects}</g></svg>`, width: w, height: hgt };
+}
+
+/** A centerpiece drawn once on a square of the main colour, rows a little shorter than stitches are wide, as it knits. */
+function centerpieceSvg(cells: string, color: string, contrast: string, size: number): string | null {
+	const cp = parseCenterpiece(cells);
+	if (!cp) return null;
+	const ROW = 0.8;
+	const span = Math.max(cp.w, cp.h * ROW) * 1.3;
+	const cell = size / span;
+	const x0 = (size - cp.w * cell) / 2;
+	const y0 = (size - cp.h * ROW * cell) / 2;
+	let rects = '';
+	for (let j = 0; j < cp.h; j++)
+		for (let i = 0; i < cp.w; i++)
+			if (cp.cells[j * cp.w + i] === '1') rects += `<rect x="${(x0 + i * cell).toFixed(2)}" y="${(y0 + j * ROW * cell).toFixed(2)}" width="${(cell + 0.5).toFixed(2)}" height="${(ROW * cell + 0.5).toFixed(2)}"/>`;
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${color}"/><g fill="${contrast}">${rects}</g></svg>`;
 }
 
 /** A flat sweater drawn in the design's colours: stripes for Stripes, dots for any colourwork. */
@@ -129,7 +146,9 @@ export const patternCard = (name: string, detail: string, author: string, design
 	render({ eyebrow: 'Free knitting pattern', title: name, subtitle: detail, byline: `Shared by ${author}`, art: modelArt(design, photo) });
 
 export const chartCard = (name: string, detail: string, author: string, motif: string, color: string, contrast: string) =>
-	render({ eyebrow: 'Colourwork chart', title: name, subtitle: detail, byline: `Shared by ${author}`, art: (() => {
+	render({ eyebrow: parseCenterpiece(motif) ? 'Knitted centerpiece' : 'Colourwork chart', title: name, subtitle: detail, byline: `Shared by ${author}`, art: (() => {
+			const picture = centerpieceSvg(motif, color, contrast, 440);
+			if (picture) return h('div', { width: 440, height: 440 }, img(picture, 440, 440));
 			const c = chartSvg(motif, color, contrast, 440);
 			return h('div', { width: c.width, height: 440, overflow: 'hidden' }, img(c.svg, c.width, c.height));
 		})()

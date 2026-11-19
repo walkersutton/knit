@@ -30,7 +30,7 @@
 	<form role="search" method="get">
 		<input type="search" name="q" value={data.q} placeholder="Search by name or knitter" aria-label="Search charts" />
 		<select name="size" aria-label="Chart size">
-			<option value="">All sizes</option>
+			<option value="">All charts</option>
 			{#each data.sizes as s (s.value)}<option value={s.value} selected={s.value === data.size}>{s.label}</option>{/each}
 		</select>
 		<button type="submit">Search</button>

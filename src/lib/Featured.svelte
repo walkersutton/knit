@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import Author from '$lib/Author.svelte';
 	import MotifSwatch from '$lib/sweater/MotifSwatch.svelte';
-	import { tileOfMotif } from '$lib/sweater/motifs';
+	import { chartSize, isCenterpieceChart } from '$lib/sweater/library';
 	import { designDetail } from '$lib/sweater/random';
 	import type { Featured } from '$lib/server/likes';
 
@@ -26,12 +26,11 @@
 		<div class="cards">
 			{#if picks.chart}
 				{@const chart = picks.chart}
-				{@const tile = tileOfMotif(chart.motif)}
 				<div class="card chart">
-					<div class="art"><MotifSwatch motif={chart.motif} color={chart.color} contrast={chart.contrast} across={3} down={2} label="{chart.name}, repeated across a swatch" /></div>
-					<p class="kind">Favourite chart</p>
+					<div class="art"><MotifSwatch motif={chart.motif} color={chart.color} contrast={chart.contrast} across={3} down={2} label={isCenterpieceChart(chart.motif) ? `${chart.name}, a centerpiece` : `${chart.name}, repeated across a swatch`} /></div>
+					<p class="kind">Favourite {isCenterpieceChart(chart.motif) ? 'centerpiece' : 'chart'}</p>
 					<h3><a class="open" href="/chart/{chart.id}">{chart.name}</a></h3>
-					<p class="meta">{tile.st} × {tile.rows} · by <span class="by"><Author name={chart.author} photo={chart.authorPhoto} /></span> · {hearts(chart.likes)}</p>
+					<p class="meta">{chartSize(chart.motif)} · by <span class="by"><Author name={chart.author} photo={chart.authorPhoto} /></span> · {hearts(chart.likes)}</p>
 				</div>
 			{/if}
 			{#if picks.pattern}

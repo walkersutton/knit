@@ -1,28 +1,35 @@
 <script lang="ts">
 	import MotifSwatch from './MotifSwatch.svelte';
-	import type { SavedPattern } from './library';
+	import type { SavedCenterpiece, SavedPattern } from './library';
 	import type { SavedDesign } from './designs';
 
 	/**
-	 * The designer's left sidebar, shown beside both designers: the knitter's colourwork charts and their sweater
-	 * patterns. Choosing a chart opens the chart designer; choosing a pattern opens the sweater designer.
+	 * The designer's left sidebar, shown beside every designer: the knitter's colourwork charts, centerpieces and
+	 * sweater patterns. Choosing a chart opens the chart designer, a centerpiece the centerpiece designer, and a
+	 * pattern the sweater designer.
 	 */
 	let {
 		tool,
 		charts,
 		selected,
+		centerpieces,
+		selectedCenterpiece,
 		color,
 		contrast,
 		designs,
 		active,
 		onchart,
 		onnewchart,
+		oncenterpiece,
+		onnewcenterpiece,
 		onnewpattern,
 		onopen
 	}: {
-		tool: 'chart' | 'sweater';
+		tool: 'chart' | 'centerpiece' | 'sweater';
 		charts: SavedPattern[];
 		selected: string;
+		centerpieces: SavedCenterpiece[];
+		selectedCenterpiece?: string;
 		color: string;
 		contrast: string;
 		designs: SavedDesign[];
@@ -30,12 +37,14 @@
 		active?: string;
 		onchart: (id: string) => void;
 		onnewchart: () => void;
+		oncenterpiece: (id: string) => void;
+		onnewcenterpiece: () => void;
 		onnewpattern: () => void;
 		onopen: (design: SavedDesign) => void;
 	} = $props();
 </script>
 
-<nav class="library" aria-label="Your charts and patterns">
+<nav class="library" aria-label="Your charts, centerpieces and patterns">
 	<section aria-labelledby="lib-charts">
 		<h2 id="lib-charts">Charts</h2>
 		<ul>
@@ -49,6 +58,21 @@
 			{/each}
 		</ul>
 		<button type="button" class="new" onclick={onnewchart}><span aria-hidden="true">+</span> New chart</button>
+	</section>
+
+	<section aria-labelledby="lib-centerpieces">
+		<h2 id="lib-centerpieces">Centerpieces</h2>
+		<ul>
+			{#each centerpieces as c (c.id)}
+				<li>
+					<button type="button" class="item" aria-current={tool === 'centerpiece' && c.id === selectedCenterpiece ? 'true' : undefined} onclick={() => oncenterpiece(c.id)}>
+						<span class="thumb"><MotifSwatch motif={c.centerpiece} {color} {contrast} /></span>
+						<span class="name">{c.name}</span>
+					</button>
+				</li>
+			{/each}
+		</ul>
+		<button type="button" class="new" onclick={onnewcenterpiece}><span aria-hidden="true">+</span> New centerpiece</button>
 	</section>
 
 	<section aria-labelledby="lib-patterns">

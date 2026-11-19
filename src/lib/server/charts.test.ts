@@ -14,6 +14,12 @@ describe('shareable', () => {
 		expect(shareable({ motif: starterMotif(), color: a, contrast: b })).toBe(true);
 		expect(shareable({ motif: blankMotif(FINE_TILE), color: a, contrast: b })).toBe(true);
 	});
+	it('accepts a centerpiece, and files it under its own size', () => {
+		const cp = '3x3:010111010';
+		expect(shareable({ motif: cp, color: a, contrast: b })).toBe(true);
+		expect(sizeOf(cp)).toBe('centerpiece');
+		expect(shareable({ motif: '3x3:0101', color: a, contrast: b })).toBe(false);
+	});
 	it('rejects malformed charts and colours outside the palette', () => {
 		expect(shareable(null)).toBe(false);
 		expect(shareable({ motif: '0101', color: a, contrast: b })).toBe(false);
