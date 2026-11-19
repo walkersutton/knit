@@ -325,8 +325,7 @@
 		line-height: 1.3;
 	}
 	.interactive h1 {
-		font-size: 22px;
-		letter-spacing: -0.01em;
+		font: 600 24px/1.2 var(--display, inherit);
 	}
 	.meta {
 		margin: 2px 0 0;
@@ -348,7 +347,12 @@
 		font-weight: 600;
 	}
 	.interactive h2 {
-		font-size: 17px;
+		font: 600 19px/1.3 var(--display, inherit);
+	}
+	.interactive h3 {
+		font-family: var(--display, inherit);
+		font-size: 16px;
+		font-weight: 500;
 	}
 	.head {
 		display: flex;

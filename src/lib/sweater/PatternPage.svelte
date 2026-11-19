@@ -201,9 +201,44 @@
 		height: 414px;
 		pointer-events: none;
 	}
+	/* The same cream-and-navy palette as the home page and the designer. */
 	.page {
+		--ink: #26335f;
+		--ink-hover: #36457a;
+		--on-ink: #faf3dc;
+		--muted: #5d6385;
+		--line: #e6dcc0;
+		--line-strong: #c9bb92;
+		--surface: #fbf5e4;
+		--wash: #f3e9c9;
+		--here: #e9efe0;
+		--good: #4f7a58;
+		--link: #3d5aa8;
+		--radius: 7px;
+		--hairline: rgb(38 51 95 / 0.12);
+		--chrome: color-mix(in srgb, var(--surface) 82%, transparent);
+		--accent: #c8543e;
+		--accent-deep: #8f3a2a;
+		--stage-a: #fdf9ec;
+		--stage-b: #f4e9c8;
+		--stage-c: #e8d9ab;
 		height: calc(100dvh - var(--bar));
 		overflow-y: auto;
+		color: var(--ink);
+	}
+	.fab,
+	.sheet {
+		--ink: #26335f;
+		--muted: #5d6385;
+		--line-strong: #c9bb92;
+		--surface: #fbf5e4;
+		--hairline: rgb(38 51 95 / 0.12);
+		--chrome: color-mix(in srgb, var(--surface) 82%, transparent);
+		--accent: #c8543e;
+		--accent-deep: #8f3a2a;
+		--stage-a: #fdf9ec;
+		--stage-b: #f4e9c8;
+		--stage-c: #e8d9ab;
 	}
 	/* ── Cover ── */
 	.cover {
