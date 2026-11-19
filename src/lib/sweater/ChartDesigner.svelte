@@ -5,8 +5,9 @@
 	import MotifEditor from '$lib/sweater/MotifEditor.svelte';
 	import Pop from '$lib/sweater/Pop.svelte';
 	import MotifSwatch from '$lib/sweater/MotifSwatch.svelte';
+	import Notes from '$lib/sweater/Notes.svelte';
 	import { chartToText, parseChartText } from '$lib/sweater/chartText';
-	import type { Library } from '$lib/sweater/library';
+	import { cleanNotes, type Library } from '$lib/sweater/library';
 	import { contrastShare, FINE_GAUGE, longestFloat, tileOfMotif } from '$lib/sweater/motifs';
 	import { colors } from '$lib/sweater/options';
 
@@ -23,6 +24,15 @@
 	let share = $derived(Math.round(contrastShare('Custom', current.motif) * 100));
 	let tile = $derived(tileOfMotif(current.motif));
 	let editor = $state<MotifEditor>();
+
+	/** Keep notes on this chart (by id, so a note typed just before switching charts stays on the right one). */
+	const notesFor = (id: string) => (text: string) => {
+		const p = lib.patterns.find((q) => q.id === id);
+		if (!p) return;
+		const notes = cleanNotes(text);
+		if (notes) p.notes = notes;
+		else delete p.notes;
+	};
 
 	const MOVES = [
 		['left', '←', 'Move left'],
@@ -47,7 +57,7 @@
 		if (name === null) return;
 		published = 'busy';
 		try {
-			const response = await fetch('/api/charts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, motif: current.motif, color: lib.color, contrast: lib.contrast }) });
+			const response = await fetch('/api/charts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, motif: current.motif, color: lib.color, contrast: lib.contrast, notes: current.notes ?? '' }) });
 			if (!response.ok) throw new Error(response.status === 401 ? 'Sign in with Ravelry (top right) to share a chart.' : ((await response.json().catch(() => null))?.message ?? 'Could not share it. Try again.'));
 			const url = new URL(`/chart/${(await response.json()).id}`, location.origin).toString();
 			try {
@@ -211,6 +221,11 @@
 						<button type="button" class="swatch" role="radio" aria-checked={lib.contrast === c.value} aria-label={c.label} title={c.label} style:--c={String(c.value)} onclick={() => (lib.contrast = String(c.value))}></button>
 					{/each}
 				</div>
+			</section>
+			<section>
+				{#key current.id}
+					<Notes value={current.notes ?? ''} onsave={notesFor(current.id)} placeholder="Yarn, ideas, where it came from…" hint="Shown on the chart's page when you share it." />
+				{/key}
 			</section>
 			<section class="actions">
 				<button type="button" class="use" onclick={onuse}>Use on my sweater</button>

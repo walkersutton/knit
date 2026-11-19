@@ -5,6 +5,7 @@
 	import LikeButton from '$lib/LikeButton.svelte';
 	import Stage from './Stage.svelte';
 	import PatternView from './PatternView.svelte';
+	import Notes from './Notes.svelte';
 	import { needleLabel } from './needles';
 	import { knittedOf, progressAt, tasksOf, type Mode, type Progress } from './progress';
 	import type { Design } from './garment';
@@ -25,7 +26,10 @@
 		author,
 		authorPhoto,
 		onunshare,
-		likes
+		likes,
+		notes = '',
+		onnotes,
+		notesHint
 	}: {
 		design: Design;
 		pattern: Pattern;
@@ -46,6 +50,11 @@
 		onunshare?: () => void;
 		/** The like button for a shared pattern. */
 		likes?: { count: number; liked: boolean; signedIn: boolean };
+		/** The words kept with the design, shown under its name. */
+		notes?: string;
+		/** Given when the notes may be edited here. */
+		onnotes?: (text: string) => void | Promise<void>;
+		notesHint?: string;
 	} = $props();
 
 	let made = $state('');
@@ -98,7 +107,7 @@
 			if (name === null) return;
 			shareState = 'busy';
 			try {
-				const response = await fetch('/api/patterns', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, design, image: await photo() }) });
+				const response = await fetch('/api/patterns', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, design, notes, image: await photo() }) });
 				if (!response.ok) throw new Error(response.status === 401 ? 'Sign in with Ravelry (top right) to share a pattern.' : ((await response.json().catch(() => null))?.message ?? 'Could not share it. Try again.'));
 				made = `/pattern/${(await response.json()).id}`;
 			} catch (e) {
@@ -154,6 +163,7 @@
 				<div><dt>Gauge</dt><dd>{est.gauge} sts / 4 in</dd></div>
 				<div><dt>Skill</dt><dd>{est.level}</dd></div>
 			</dl>
+			{#if onnotes || notes.trim()}<div class="notes"><Notes value={notes} onsave={onnotes} label={author ? 'From the designer' : 'Notes'} hint={notesHint} /></div>{/if}
 			<div class="actions">
 				<button class="primary" type="button" onclick={() => reader?.scrollIntoView({ behavior: 'smooth' })}>Start knitting ↓</button>
 				<button class="ghost" type="button" onclick={onedit}>{author ? 'Adapt in designer' : '← Edit design'}</button>
@@ -290,6 +300,9 @@
 		font-size: 15px;
 		font-weight: 500;
 		font-variant-numeric: tabular-nums;
+	}
+	.notes {
+		margin: 0 0 24px;
 	}
 	.actions {
 		display: flex;

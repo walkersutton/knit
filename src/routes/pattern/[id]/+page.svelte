@@ -21,6 +21,11 @@
 		if (value > 0) progress[key] = value;
 		else delete progress[key];
 	}
+	/** The author edits the notes on their own page; they are saved to the shared pattern. */
+	async function saveNotes(notes: string) {
+		const response = await fetch(`/api/patterns/${data.pattern.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ notes }) });
+		if (!response.ok) throw new Error((await response.json().catch(() => null))?.message ?? 'Could not save the notes.');
+	}
 	async function unshare() {
 		if (!confirm(`Remove “${data.pattern.name}” from the catalogue? Its link will stop working.`)) return;
 		const response = await fetch(`/api/patterns/${data.pattern.id}`, { method: 'DELETE' });
@@ -45,7 +50,10 @@
 		onstep={setStep}
 		onreset={() => (progress = {})}
 		onedit={() => goto(`/design#d=${encodeDesign(design)}`)}
-		onsave={() => saveDesign(design, data.pattern.name)}
+		onsave={() => saveDesign(design, data.pattern.name, undefined, data.pattern.notes)}
+		notes={data.pattern.notes}
+		onnotes={data.mine ? saveNotes : undefined}
+		notesHint={data.mine ? 'Everyone who opens this pattern sees these notes.' : undefined}
 		onunshare={data.mine ? unshare : undefined}
 		likes={{ count: data.likes, liked: data.liked, signedIn: data.signedIn }}
 	/>

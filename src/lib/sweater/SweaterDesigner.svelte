@@ -22,6 +22,7 @@
 	import { labelOf, sections, summary, visible } from '$lib/sweater/options';
 	import { centerpieceBox, estimate, writePattern } from '$lib/sweater/pattern';
 	import PatternView from '$lib/sweater/PatternView.svelte';
+	import Notes from '$lib/sweater/Notes.svelte';
 	import { readCenterpieceHash, readMotifHash, wantsCenterpiece, wantsChart } from '$lib/sweater/library';
 	import { saveDesign, type SavedDesign } from '$lib/sweater/designs';
 	import { CUSTOM_PATTERN } from '$lib/sweater/motifs';
@@ -77,12 +78,22 @@
 	function saveCurrentDesign() {
 		const name = prompt('Name this sweater design:', active?.name ?? summary(design));
 		if (name === null) return;
-		const item = saveDesign(knit, name, active?.id);
+		const item = saveDesign(knit, name, active?.id, active ? undefined : draftNotes);
 		saveNote = item ? (item.id === active?.id ? 'Renamed' : 'Saved to your patterns') : 'Could not save: this browser is out of storage';
 		clearTimeout(saveTimer);
 		saveTimer = setTimeout(() => (saveNote = ''), 4000);
-		if (item) onsaved?.(item.id);
+		if (item) {
+			draftNotes = '';
+			onsaved?.(item.id);
+		}
 	}
+
+	/** Notes typed before the design is saved; saving it keeps them. */
+	let draftNotes = $state('');
+	const notesFor = (saved?: SavedDesign) => (text: string) => {
+		if (!saved) draftNotes = text;
+		else if (!saveDesign($state.snapshot(design), saved.name, saved.id, text)) throw new Error('This browser is out of storage.');
+	};
 
 	function apply({ design: next, chart, centerpiece }: Incoming) {
 		if (next) {
@@ -210,6 +221,13 @@
 							</section>
 						{/if}
 					{/each}
+					{#if section.id === 'design'}
+						<section>
+							{#key active?.id}
+								<Notes value={active?.notes ?? draftNotes} onsave={notesFor(active)} placeholder="Yarn, fit, who it is for…" hint={active ? 'Kept with this design, and shown on its page when you share it.' : 'Kept when you save the design.'} />
+							{/key}
+						</section>
+					{/if}
 					{#if section.id === 'yarn'}
 						{#if design.garment !== 'Cardigan'}
 							<section>

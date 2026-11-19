@@ -79,3 +79,7 @@ CREATE INDEX IF NOT EXISTS pattern_likes_pattern_id_idx ON pattern_likes(pattern
 
 -- A few public fields from the Ravelry profile (location, about me, favourite colours), refreshed at each sign-in. Shown on the knitter's page at /people/<username>.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS bio jsonb;
+
+-- The author's own words about a shared chart or pattern (yarn, ideas, fit), shown on its page. Plain text, at most 1000 characters.
+ALTER TABLE shared_charts ADD COLUMN IF NOT EXISTS notes text NOT NULL DEFAULT '';
+ALTER TABLE shared_patterns ADD COLUMN IF NOT EXISTS notes text NOT NULL DEFAULT '';

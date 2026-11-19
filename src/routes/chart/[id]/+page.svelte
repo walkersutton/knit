@@ -4,6 +4,7 @@
 	import LikeButton from '$lib/LikeButton.svelte';
 	import Seo from '$lib/Seo.svelte';
 	import MotifSwatch from '$lib/sweater/MotifSwatch.svelte';
+	import Notes from '$lib/sweater/Notes.svelte';
 	import { chartToText } from '$lib/sweater/chartText';
 	import { centerpieceDesignLink, centerpieceEditLink, chartSize, designLink, freshName, loadLibrary, newId, previewLink, saveLibrary } from '$lib/sweater/library';
 	import { countOn, longestStrand, parseCenterpiece } from '$lib/sweater/centerpiece';
@@ -33,7 +34,7 @@
 		if (cp) {
 			if (!lib.centerpieces.some((c) => c.centerpiece === chart.motif)) lib.centerpieces.push({ id: newId(), name: freshName(chart.name, lib.centerpieces.map((c) => c.name)), centerpiece: chart.motif });
 		} else if (!lib.patterns.some((p) => p.motif === chart.motif)) {
-			lib.patterns.push({ id: newId(), name: freshName(chart.name, lib.patterns.map((p) => p.name)), motif: chart.motif });
+			lib.patterns.push({ id: newId(), name: freshName(chart.name, lib.patterns.map((p) => p.name)), motif: chart.motif, ...(chart.notes && { notes: chart.notes }) });
 		}
 		lib.color = chart.color;
 		lib.contrast = chart.contrast;
@@ -49,6 +50,11 @@
 			// No clipboard access: show it to copy by hand.
 			shareError = text;
 		}
+	}
+	/** The author edits the notes on their own chart's page; they are saved to the shared chart. */
+	async function saveNotes(notes: string) {
+		const response = await fetch(`/api/charts/${chart.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ notes }) });
+		if (!response.ok) throw new Error((await response.json().catch(() => null))?.message ?? 'Could not save the notes.');
 	}
 	async function unshare() {
 		if (!confirm(`Remove “${chart.name}” from the library? Its link will stop working.`)) return;
@@ -81,13 +87,14 @@
 		</div>
 		<aside>
 			<p class="meta">{size} · {share}% pattern colour{cp ? ' · worked once on the front' : ''}</p>
+			<div class="notes"><Notes value={chart.notes ?? ''} onsave={data.mine ? saveNotes : undefined} label={data.mine ? 'Notes' : 'From the designer'} hint={data.mine ? 'Everyone who opens this chart sees these notes.' : undefined} /></div>
 			{#if float > 5}<p class="warn">Floats of {float} stitches can snag; the written pattern says where to catch them.</p>{/if}
 			<LikeButton kind="chart" id={chart.id} likes={data.likes} liked={data.liked} signedIn={data.signedIn} />
 			{#if cp}
 				<a class="use" href={centerpieceDesignLink(chart.motif, chart.color, chart.contrast)}>Use on my sweater</a>
 			{:else}
 				<a class="use" href={designLink(chart.motif, chart.color, chart.contrast)}>Use on my sweater</a>
-				<a class="btn" href={previewLink(chart.motif, chart.color, chart.contrast)}>Preview in 3D</a>
+				<a class="btn" href={previewLink(chart.motif, chart.color, chart.contrast, undefined, chart.id)}>Preview in 3D</a>
 			{/if}
 			<div class="row">
 				<button type="button" onclick={save}>{status === 'saved' ? 'Saved ✓' : cp ? 'Save to my centerpieces' : 'Save to my charts'}</button>
@@ -166,6 +173,12 @@
 	}
 	.warn {
 		color: var(--accent-deep);
+	}
+	.notes:empty {
+		display: none;
+	}
+	.notes {
+		margin: 4px 0;
 	}
 	.row {
 		display: flex;

@@ -10,7 +10,8 @@ import { DEFAULT_DESIGN } from './defaults';
 import type { Design } from './garment';
 import { choose, colors } from './options';
 
-export type SavedPattern = { id: string; name: string; motif: string };
+/** `notes` is the knitter's own words about a chart: yarn, ideas, where it came from. */
+export type SavedPattern = { id: string; name: string; motif: string; notes?: string };
 /** A centerpiece the knitter has drawn, kept beside their charts. `centerpiece` is its text (see `centerpiece.ts`). */
 export type SavedCenterpiece = { id: string; name: string; centerpiece: string };
 export type Library = { patterns: SavedPattern[]; centerpieces: SavedCenterpiece[]; color: string; contrast: string };
@@ -21,6 +22,11 @@ const DESIGN_KEY = 'knit-it:v1';
 const PALETTE = new Set(colors.map((c) => String(c.value)));
 const DEFAULT_COLORS = { color: '#465e9d', contrast: '#faf3dc' };
 
+/** The longest note a chart or a pattern keeps. */
+export const NOTES_MAX = 1000;
+/** Notes as they are stored and shared: plain text, Unix line ends, no blank edges, at most NOTES_MAX characters. */
+export const cleanNotes = (value: unknown) => (typeof value === 'string' ? value.replace(/\r\n?/g, '\n').trim().slice(0, NOTES_MAX) : '');
+
 export const newId = () => Math.random().toString(36).slice(2, 10);
 export const isPaletteColor = (c: unknown): c is string => typeof c === 'string' && PALETTE.has(c);
 
@@ -30,7 +36,10 @@ export function parseLibrary(raw: unknown, design?: unknown): Library {
 	const d = design && typeof design === 'object' ? (design as Record<string, unknown>) : {};
 	const patterns: SavedPattern[] = [];
 	for (const p of Array.isArray(r.patterns) ? r.patterns : []) {
-		if (p && typeof p.id === 'string' && typeof p.name === 'string' && validMotif(p.motif)) patterns.push({ id: p.id, name: p.name.slice(0, 40), motif: p.motif });
+		if (p && typeof p.id === 'string' && typeof p.name === 'string' && validMotif(p.motif)) {
+			const notes = cleanNotes(p.notes);
+			patterns.push({ id: p.id, name: p.name.slice(0, 40), motif: p.motif, ...(notes && { notes }) });
+		}
 	}
 	if (!patterns.length) patterns.push({ id: newId(), name: 'My pattern', motif: starterMotif() });
 	const centerpieces: SavedCenterpiece[] = [];
