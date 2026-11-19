@@ -83,3 +83,11 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS bio jsonb;
 -- The author's own words about a shared chart or pattern (yarn, ideas, fit), shown on its page. Plain text, at most 1000 characters.
 ALTER TABLE shared_charts ADD COLUMN IF NOT EXISTS notes text NOT NULL DEFAULT '';
 ALTER TABLE shared_patterns ADD COLUMN IF NOT EXISTS notes text NOT NULL DEFAULT '';
+
+-- The community favourites drawn as 3D sweaters, as base64 JPEG. The first visitor's browser draws one and the home page shows it from then on.
+-- The key is the viewer's look version and a hash of the design (see src/lib/server/renders.ts).
+CREATE TABLE IF NOT EXISTS renders (
+	key text PRIMARY KEY,
+	image text NOT NULL,
+	created_at timestamptz NOT NULL DEFAULT now()
+);

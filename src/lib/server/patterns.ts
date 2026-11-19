@@ -28,11 +28,13 @@ export function shareable(value: unknown): value is Design {
 
 export const cleanName = (value: unknown) => (typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, 60) : '');
 
+/** A hash of a design. Keys are sorted so it does not depend on the order the browser wrote the fields in. */
+export const designKey = (design: Design) => digest(JSON.stringify(Object.fromEntries(Object.entries(design).sort(([a], [b]) => (a < b ? -1 : 1)))));
+
 /** Share a design, or return the link it already has: sharing the same design twice is the same pattern. */
 export async function sharePattern(userId: string, name: string, design: Design, notes = ''): Promise<{ id: string } | 'limit'> {
 	const sql = database();
-	// Keys are sorted so the hash does not depend on the order the browser wrote the fields in.
-	const key = digest(JSON.stringify(Object.fromEntries(Object.entries(design).sort(([a], [b]) => (a < b ? -1 : 1)))));
+	const key = designKey(design);
 	const existing = await sql`UPDATE shared_patterns SET name = ${name}, notes = ${notes} WHERE user_id = ${userId} AND design_key = ${key} RETURNING id`;
 	if (existing.length) return { id: existing[0].id };
 	const count = await sql`SELECT count(*)::int AS n FROM shared_patterns WHERE user_id = ${userId}`;

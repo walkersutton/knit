@@ -7,6 +7,7 @@
 	import PatternView from './PatternView.svelte';
 	import Notes from './Notes.svelte';
 	import { needleLabel } from './needles';
+	import { jpegStill } from './still';
 	import { knittedOf, progressAt, tasksOf, type Mode, type Progress } from './progress';
 	import type { Design } from './garment';
 	import type { Pattern } from './pattern';
@@ -70,27 +71,8 @@
 			await tick();
 			const blob = await Promise.race([camera?.still(design) ?? null, new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000))]);
 			if (!blob) throw new Error('the viewer made no picture');
-			// A full-resolution transparent PNG of knitted fabric is far too big to store, so set it on the card's own cream as a small JPEG.
-			const bitmap = await createImageBitmap(blob);
-			const W = 660;
-			const H = 750;
-			const canvas = document.createElement('canvas');
-			canvas.width = W;
-			canvas.height = H;
-			const ctx = canvas.getContext('2d')!;
-			ctx.fillStyle = '#faf3dc';
-			ctx.fillRect(0, 0, W, H);
-			const scale = Math.min((W * 0.94) / bitmap.width, (H * 0.94) / bitmap.height);
-			ctx.drawImage(bitmap, (W - bitmap.width * scale) / 2, (H - bitmap.height * scale) / 2, bitmap.width * scale, bitmap.height * scale);
-			const jpeg = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
-			if (!jpeg) throw new Error('could not encode the picture');
-			const url = await new Promise<string>((resolve, reject) => {
-				const reader = new FileReader();
-				reader.onload = () => resolve(String(reader.result));
-				reader.onerror = reject;
-				reader.readAsDataURL(jpeg);
-			});
-			return url.slice(url.indexOf(',') + 1);
+			// Set on the link preview card's own cream.
+			return await jpegStill(blob, { width: 660, height: 750, background: '#faf3dc' });
 		} catch (e) {
 			// Sharing goes ahead without a picture; the preview falls back to a drawn sweater.
 			console.warn('Could not capture the pattern preview:', e);
