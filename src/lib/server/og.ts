@@ -119,21 +119,9 @@ async function render(card: Card): Promise<Response> {
 	return new Response(new Uint8Array(png), { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800' } });
 }
 
-/** The 3D model the author's browser captured (base64 PNG), sized to fit the card; otherwise a drawn sweater. */
+/** The 3D model the author's browser captured (a base64 JPEG, always 660 × 750 on the card's cream); otherwise a drawn sweater. */
 function modelArt(design: Design, photo: string | null): Node {
-	if (photo) {
-		const size = Buffer.from(photo.slice(0, 40), 'base64');
-		const w = size.readUInt32BE(16);
-		const hgt = size.readUInt32BE(20);
-		if (w > 0 && hgt > 0 && w < 5000 && hgt < 5000) {
-			const height = 500;
-			const width = Math.min(440, Math.round((w / hgt) * height));
-			return h('div', { width: 440, height, background: CREAM, alignItems: 'center', justifyContent: 'center' }, {
-				type: 'img',
-				props: { src: `data:image/png;base64,${photo}`, width, height: Math.round(width * (hgt / w)) }
-			});
-		}
-	}
+	if (photo) return h('div', { width: 440, height: 500 }, { type: 'img', props: { src: `data:image/jpeg;base64,${photo}`, width: 440, height: 500 } });
 	return h('div', { width: 440, height: 500, background: CREAM, alignItems: 'center', justifyContent: 'center' }, img(sweaterSvg(design), 440, 440));
 }
 

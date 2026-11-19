@@ -43,13 +43,13 @@ export async function sharePattern(userId: string, name: string, design: Design)
 	return { id: rows[0].id };
 }
 
-/** The biggest preview image kept, as base64 text (about 600 KB of PNG). */
-const MAX_IMAGE = 800_000;
-const PNG_SIGNATURE = 'iVBORw0KGgo';
+/** The biggest preview image kept, as base64 text (about 450 KB of JPEG; a real one is nearer 60 KB). */
+const MAX_IMAGE = 600_000;
+const JPEG_SIGNATURE = '/9j/';
 
-/** A preview image is only kept if it is a PNG of a sensible size. */
+/** A preview image is only kept if it is a JPEG of a sensible size. The browser always makes it 660 × 750. */
 export function cleanImage(value: unknown): string | null {
-	if (typeof value !== 'string' || value.length > MAX_IMAGE || !value.startsWith(PNG_SIGNATURE) || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) return null;
+	if (typeof value !== 'string' || value.length > MAX_IMAGE || !value.startsWith(JPEG_SIGNATURE) || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) return null;
 	return value;
 }
 
@@ -62,7 +62,7 @@ export async function setImage(userId: string, id: string, image: string) {
 	}
 }
 
-/** The stored preview picture as base64 PNG, if there is one. */
+/** The stored preview picture as base64 JPEG, if there is one. */
 export async function getImage(id: string): Promise<string | null> {
 	if (!isId(id)) return null;
 	try {
