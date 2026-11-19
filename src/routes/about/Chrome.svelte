@@ -1,8 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import HeaderSlot from '$lib/HeaderSlot.svelte';
-	import { SITE } from '$lib/site';
-
 	let { children, wide = false }: { children: Snippet; wide?: boolean } = $props();
 </script>
 
@@ -11,7 +9,6 @@
 
 <div class="page">
 	<main class:wide>{@render children()}</main>
-	<footer>knit is open source. <a href={SITE.source} target="_blank" rel="noopener">View the code on GitHub</a>.</footer>
 </div>
 
 <style>
@@ -58,16 +55,5 @@
 		.cta:hover {
 			background: #d0604a;
 		}
-	}
-	footer {
-		max-width: 720px;
-		margin: 0 auto;
-		padding: 16px 16px 32px;
-		border-top: 1px solid var(--line);
-		color: var(--muted);
-		font-size: 13px;
-	}
-	footer a {
-		color: inherit;
 	}
 </style>
