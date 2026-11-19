@@ -122,6 +122,8 @@
 		<p class="actions"><a class="cta" href="/design">Start designing</a><a class="link" href="/about">How knit works</a></p>
 	</main>
 
+	<Featured />
+
 	<Roll />
 
 	<section class="steps" aria-label="How it works">
@@ -135,8 +137,6 @@
 			{/each}
 		</ol>
 	</section>
-
-	<Featured />
 
 	<Members />
 </div>

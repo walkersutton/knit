@@ -37,6 +37,13 @@
 			{#if picks.pattern}
 				{@const pattern = picks.pattern}
 				<div class="card pattern">
+					<div class="art sweater">
+						<svg viewBox="0 0 120 90" role="img" aria-label="{pattern.name}, a sweater in {pattern.design.color} with {pattern.design.contrast} trim">
+							<path d="M40 10 Q60 22 80 10 L104 22 L116 66 L98 70 L90 40 L90 80 L30 80 L30 40 L22 70 L4 66 L16 22 Z" fill={pattern.design.color} />
+							<path d="M30 74h60v6H30zM4 66l18 4-2 8-18-4zM116 66l-18 4 2 8 18-4z" fill={pattern.design.contrast} />
+							<path d="M40 10 Q60 22 80 10 L76 8 Q60 17 44 8 Z" fill={pattern.design.contrast} />
+						</svg>
+					</div>
 					<p class="kind">Favourite pattern</p>
 					<h3><a class="open" href="/pattern/{pattern.id}">{pattern.name}</a></h3>
 					<p class="detail">{designDetail(pattern.design)}</p>
@@ -90,6 +97,16 @@
 		margin-bottom: 8px;
 		border-radius: 10px;
 		box-shadow: 0 0 0 1px rgb(38 51 95 / 0.15);
+	}
+	.sweater {
+		background: #f6edd5;
+		padding: 8px;
+	}
+	.sweater svg {
+		display: block;
+		width: 100%;
+		height: auto;
+		max-height: 150px;
 	}
 	.kind {
 		margin: 0;
