@@ -1,3 +1,6 @@
+/** Where a shared pattern lives: /pattern/ and the URL form of its name. */
+export const patternPath = (p: { slug: string }) => `/pattern/${p.slug}`;
+
 /** Site-wide facts used for meta tags and structured data. */
 export const SITE = {
 	name: 'knit',

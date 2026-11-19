@@ -1,6 +1,6 @@
 import type { RequestHandler } from './$types';
 import { database } from '$lib/server/db';
-import { SITE } from '$lib/site';
+import { patternPath, SITE } from '$lib/site';
 
 export const prerender = false;
 
@@ -20,13 +20,13 @@ export const GET: RequestHandler = async () => {
 	try {
 		const sql = database();
 		const [patterns, charts, people] = await Promise.all([
-			sql`SELECT id, created_at FROM shared_patterns ORDER BY created_at DESC LIMIT ${LIMIT}`,
+			sql`SELECT slug, created_at FROM shared_patterns ORDER BY created_at DESC LIMIT ${LIMIT}`,
 			sql`SELECT id, created_at FROM shared_charts ORDER BY created_at DESC LIMIT ${LIMIT}`,
 			sql`SELECT ravelry_username AS username, created_at FROM users ORDER BY created_at DESC LIMIT ${LIMIT}`
 		]);
 		urls = [
 			...urls,
-			...patterns.map((r) => entry(`/pattern/${r.id}`, r.created_at)),
+			...patterns.map((r) => entry(patternPath({ slug: String(r.slug) }), r.created_at)),
 			...charts.map((r) => entry(`/chart/${r.id}`, r.created_at)),
 			...people.map((r) => entry(`/people/${encodeURIComponent(String(r.username))}`, r.created_at))
 		];

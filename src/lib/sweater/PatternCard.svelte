@@ -1,16 +1,17 @@
 <script lang="ts">
 	import Author from '$lib/Author.svelte';
+	import { patternPath } from '$lib/site';
 	import type { Design } from './garment';
 	import { designDetail } from './random';
 
 	/** One shared pattern in a list: the title opens it, the author's name opens their page. */
-	let { pattern: p }: { pattern: { id: string; name: string; design: Design; author: string; authorPhoto: string | null } } = $props();
+	let { pattern: p }: { pattern: { id: string; slug: string; name: string; design: Design; author: string; authorPhoto: string | null } } = $props();
 </script>
 
 <li>
 	<span class="swatch" aria-hidden="true"><i style:background={p.design.color}></i><i style:background={p.design.contrast}></i></span>
 	<span class="text">
-		<a class="open" href="/pattern/{p.id}">{p.name}</a>
+		<a class="open" href={patternPath(p)}>{p.name}</a>
 		<span>{designDetail(p.design)}</span>
 		<span class="by">by <Author name={p.author} photo={p.authorPhoto} /></span>
 	</span>

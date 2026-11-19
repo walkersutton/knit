@@ -91,3 +91,30 @@ CREATE TABLE IF NOT EXISTS renders (
 	image text NOT NULL,
 	created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- The pattern's name in its URL, /pattern/<slug> (see slugify in src/lib/server/patterns.ts). Set when it is first shared and kept if it is renamed.
+ALTER TABLE shared_patterns ADD COLUMN IF NOT EXISTS slug text;
+-- Name the patterns shared before there were slugs, oldest first. Each takes the first of base, base-2, base-3… that no pattern has, so this never clashes and is safe to run again.
+DO $$
+DECLARE
+	r record;
+	base text;
+	candidate text;
+	n int;
+BEGIN
+	FOR r IN SELECT id, name FROM shared_patterns WHERE slug IS NULL ORDER BY created_at, id LOOP
+		base := lower(r.name);
+		base := translate(base, 'àáâãäåāăąçćčďèéêëēĕėęěìíîïīĭįıñńňòóôõöøōŏőùúûüūŭůűųýÿžźżšśłđ', 'aaaaaaaaacccdeeeeeeeeeiiiiiiiinnnooooooooouuuuuuuuuyyzzzssld');
+		base := trim(BOTH '-' FROM left(regexp_replace(base, '[^a-z0-9]+', '-', 'g'), 50));
+		IF base = '' THEN base := 'pattern'; END IF;
+		candidate := base;
+		n := 1;
+		WHILE candidate = 'view' OR EXISTS (SELECT 1 FROM shared_patterns WHERE slug = candidate) LOOP
+			n := n + 1;
+			candidate := base || '-' || n;
+		END LOOP;
+		UPDATE shared_patterns SET slug = candidate WHERE id = r.id;
+	END LOOP;
+END $$;
+ALTER TABLE shared_patterns ALTER COLUMN slug SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS shared_patterns_slug_idx ON shared_patterns(slug);

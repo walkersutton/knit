@@ -15,7 +15,7 @@ import type { Featured } from './likes';
 import { featuredDesigns, RENDER_LOOK, renderKey } from './renders';
 
 const chart = { id: 'c', name: 'Chart', motif: starterMotif(), color: DEFAULT_DESIGN.color, contrast: DEFAULT_DESIGN.contrast, author: 'a', authorPhoto: null, createdAt: '', likes: 1 };
-const pattern = { id: 'p', name: 'Pattern', design: { ...DEFAULT_DESIGN }, author: 'a', authorPhoto: null, createdAt: '', likes: 2 };
+const pattern = { id: 'p', slug: 'pattern', name: 'Pattern', design: { ...DEFAULT_DESIGN }, author: 'a', authorPhoto: null, createdAt: '', likes: 2 };
 
 describe('renderKey', () => {
 	it('does not depend on the order of the design’s fields', () => {

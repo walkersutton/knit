@@ -5,7 +5,7 @@ import { cleanImage, cleanName, cleanNotes, setImage, shareable, sharePattern } 
 
 export const prerender = false;
 
-/** Share a design: it gets a public page at /pattern/<id> and a place in the catalogue. */
+/** Share a design: it gets a public page at /pattern/<slug> (made from its name) and a place in the catalogue. */
 export const POST: RequestHandler = async ({ cookies, request }) => {
 	const account = await getAccount(cookies);
 	if (!account) error(401, 'Sign in with Ravelry to share a pattern.');
@@ -15,5 +15,5 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 	if (shared === 'limit') error(409, 'You have shared as many patterns as you can. Remove one to share another.');
 	const image = cleanImage(body.image);
 	if (image) await setImage(account.id, shared.id, image);
-	return json({ id: shared.id });
+	return json({ id: shared.id, slug: shared.slug });
 };

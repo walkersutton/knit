@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import Author from '$lib/Author.svelte';
+	import { patternPath } from '$lib/site';
 	import Viewer from '$lib/sweater/Viewer.svelte';
 	import { chartDesign, chartSize, isCenterpieceChart } from '$lib/sweater/library';
 	import { designDetail } from '$lib/sweater/random';
@@ -113,7 +114,7 @@
 						{/if}
 					</div>
 					<p class="kind">Favourite pattern</p>
-					<h3><a class="open" href="/pattern/{pattern.id}">{pattern.name}</a></h3>
+					<h3><a class="open" href={patternPath(pattern)}>{pattern.name}</a></h3>
 					<p class="detail">{designDetail(pattern.design)}</p>
 					<p class="meta">by <span class="by"><Author name={pattern.author} photo={pattern.authorPhoto} /></span> · {hearts(pattern.likes)}</p>
 				</div>

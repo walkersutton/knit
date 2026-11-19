@@ -15,9 +15,46 @@ export const PAGE_SIZE = 24;
 export const MAX_SHARED = 100;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export type SharedPattern = { id: string; name: string; design: Design; author: string; authorPhoto: string | null; createdAt: string; notes?: string };
+export type SharedPattern = { id: string; slug: string; name: string; design: Design; author: string; authorPhoto: string | null; createdAt: string; notes?: string };
 
 export const isId = (value: string) => UUID.test(value);
+
+/** Paths under /pattern/ that are pages of their own, so no pattern can take them. */
+const RESERVED = new Set(['view']);
+const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const isSlug = (value: string) => value.length <= 60 && SLUG.test(value);
+
+/** The URL form of a pattern's name: "Cosy Fair Isle!" becomes "cosy-fair-isle". Accents are dropped; a name with no letters or digits becomes "pattern". */
+export function slugify(name: string) {
+	const slug = name
+		.normalize('NFKD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.slice(0, 50)
+		.replace(/^-+|-+$/g, '');
+	return slug || 'pattern';
+}
+
+/** The first of base, base-2, base-3… that is not in taken and not reserved. */
+export function nextSlug(base: string, taken: Iterable<string>) {
+	const used = new Set(taken);
+	const free = (s: string) => !used.has(s) && !RESERVED.has(s);
+	if (free(base)) return base;
+	for (let n = 2; ; n++) if (free(`${base}-${n}`)) return `${base}-${n}`;
+}
+
+type Sql = ReturnType<typeof database>;
+
+/** A slug for a new pattern called name that no other pattern has. */
+async function freeSlug(sql: Sql, name: string) {
+	const base = slugify(name);
+	// The base is only letters, digits and hyphens, so it has no LIKE wildcards in it.
+	const rows = await sql`SELECT slug FROM shared_patterns WHERE slug = ${base} OR slug LIKE ${base + '-%'}`;
+	return nextSlug(base, rows.map((r) => String(r.slug)));
+}
+
+const slugClash = (e: unknown) => (e as { code?: string; constraint?: string })?.code === '23505' && String((e as { constraint?: string }).constraint ?? '').includes('slug');
 
 /** A design is only shared if it is a whole one the designer offers and a pattern can be written for it. */
 export function shareable(value: unknown): value is Design {
@@ -31,21 +68,29 @@ export const cleanName = (value: unknown) => (typeof value === 'string' ? value.
 /** A hash of a design. Keys are sorted so it does not depend on the order the browser wrote the fields in. */
 export const designKey = (design: Design) => digest(JSON.stringify(Object.fromEntries(Object.entries(design).sort(([a], [b]) => (a < b ? -1 : 1)))));
 
-/** Share a design, or return the link it already has: sharing the same design twice is the same pattern. */
-export async function sharePattern(userId: string, name: string, design: Design, notes = ''): Promise<{ id: string } | 'limit'> {
+/** Share a design, or return the link it already has: sharing the same design twice is the same pattern. Its URL comes from the name it is first shared under and stays put if it is renamed, so links keep working. */
+export async function sharePattern(userId: string, name: string, design: Design, notes = ''): Promise<{ id: string; slug: string } | 'limit'> {
 	const sql = database();
 	const key = designKey(design);
-	const existing = await sql`UPDATE shared_patterns SET name = ${name}, notes = ${notes} WHERE user_id = ${userId} AND design_key = ${key} RETURNING id`;
-	if (existing.length) return { id: existing[0].id };
+	const existing = await sql`UPDATE shared_patterns SET name = ${name}, notes = ${notes} WHERE user_id = ${userId} AND design_key = ${key} RETURNING id, slug`;
+	if (existing.length) return { id: existing[0].id, slug: existing[0].slug };
 	const count = await sql`SELECT count(*)::int AS n FROM shared_patterns WHERE user_id = ${userId}`;
 	if (count[0].n >= MAX_SHARED) return 'limit';
-	const rows = await sql`
-		INSERT INTO shared_patterns (user_id, name, design, design_key, garment, notes)
-		VALUES (${userId}, ${name}, ${JSON.stringify(design)}::jsonb, ${key}, ${design.garment}, ${notes})
-		ON CONFLICT (user_id, design_key) DO UPDATE SET name = EXCLUDED.name, notes = EXCLUDED.notes
-		RETURNING id
-	`;
-	return { id: rows[0].id };
+	// Two knitters may pick the same name at once. The loser of that race looks again and takes the next free number, so naming never fails.
+	for (;;) {
+		const slug = await freeSlug(sql, name);
+		try {
+			const rows = await sql`
+				INSERT INTO shared_patterns (user_id, name, design, design_key, garment, notes, slug)
+				VALUES (${userId}, ${name}, ${JSON.stringify(design)}::jsonb, ${key}, ${design.garment}, ${notes}, ${slug})
+				ON CONFLICT (user_id, design_key) DO UPDATE SET name = EXCLUDED.name, notes = EXCLUDED.notes
+				RETURNING id, slug
+			`;
+			return { id: rows[0].id, slug: rows[0].slug };
+		} catch (e) {
+			if (!slugClash(e)) throw e;
+		}
+	}
 }
 
 /** The biggest preview image kept, as base64 text (about 450 KB of JPEG; a real one is nearer 60 KB). */
@@ -90,14 +135,15 @@ export async function unsharePattern(userId: string, id: string) {
 	return rows.length > 0;
 }
 
-const toPattern = (row: Record<string, any>): SharedPattern => ({ id: row.id, name: row.name, design: { ...DEFAULT_DESIGN, ...row.design }, author: row.author, authorPhoto: cleanPhoto(row.author_photo), createdAt: row.created_at, notes: cleanNotes(row.notes) });
+export const toPattern = (row: Record<string, any>): SharedPattern => ({ id: row.id, slug: row.slug, name: row.name, design: { ...DEFAULT_DESIGN, ...row.design }, author: row.author, authorPhoto: cleanPhoto(row.author_photo), createdAt: row.created_at, notes: cleanNotes(row.notes) });
 
-export async function getShared(id: string): Promise<(SharedPattern & { userId: string }) | null> {
-	if (!isId(id)) return null;
+/** A shared pattern by the name in its URL. */
+export async function getShared(slug: string): Promise<(SharedPattern & { userId: string }) | null> {
+	if (!isSlug(slug)) return null;
 	const rows = await database()`
-		SELECT p.id, p.name, p.design, p.notes, p.created_at, p.user_id, u.ravelry_username AS author, u.photo_url AS author_photo
+		SELECT p.id, p.slug, p.name, p.design, p.notes, p.created_at, p.user_id, u.ravelry_username AS author, u.photo_url AS author_photo
 		FROM shared_patterns p JOIN users u ON u.id = p.user_id
-		WHERE p.id = ${id} LIMIT 1
+		WHERE p.slug = ${slug} LIMIT 1
 	`;
 	return rows[0] ? { ...toPattern(rows[0]), userId: rows[0].user_id } : null;
 }
@@ -106,7 +152,7 @@ export async function getShared(id: string): Promise<(SharedPattern & { userId: 
 export async function listShared(query: string, garment: string, page: number) {
 	const words = query.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6);
 	const rows = await database()`
-		SELECT p.id, p.name, p.design, p.created_at, u.ravelry_username AS author, u.photo_url AS author_photo
+		SELECT p.id, p.slug, p.name, p.design, p.created_at, u.ravelry_username AS author, u.photo_url AS author_photo
 		FROM shared_patterns p JOIN users u ON u.id = p.user_id
 		WHERE (${garment} = '' OR p.garment = ${garment})
 			AND NOT EXISTS (

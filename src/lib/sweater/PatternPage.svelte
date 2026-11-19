@@ -2,6 +2,7 @@
 	import { onMount, tick } from 'svelte';
 	import Viewer from './Viewer.svelte';
 	import Author from '$lib/Author.svelte';
+	import { patternPath } from '$lib/site';
 	import LikeButton from '$lib/LikeButton.svelte';
 	import Stage from './Stage.svelte';
 	import PatternView from './PatternView.svelte';
@@ -24,6 +25,7 @@
 		onedit,
 		onsave,
 		sharedId,
+		sharedSlug,
 		author,
 		authorPhoto,
 		onunshare,
@@ -42,8 +44,10 @@
 		onreset: () => void;
 		onedit: () => void;
 		onsave: () => void;
-		/** Set once the pattern has a public page: the id in /pattern/<id>. */
+		/** Set once the pattern has a public page: its id, for likes. */
 		sharedId?: string;
+		/** The name in its public URL, /pattern/<slug>. */
+		sharedSlug?: string;
 		/** Who shared it, when it is someone else's page. */
 		author?: string;
 		authorPhoto?: string | null;
@@ -59,7 +63,7 @@
 	} = $props();
 
 	let made = $state('');
-	let link = $derived(made || (sharedId ? `/pattern/${sharedId}` : ''));
+	let link = $derived(made || (sharedSlug ? patternPath({ slug: sharedSlug }) : ''));
 	let shareState = $state<'idle' | 'busy' | 'copied' | 'error'>('idle');
 	let shareError = $state('');
 	let cameraOn = $state(false);
@@ -85,13 +89,13 @@
 	async function share() {
 		shareError = '';
 		if (!link) {
-			const name = prompt('Share this pattern. Anyone with the link can read it, and it will appear in the catalogue.\n\nName it:', label);
+			const name = prompt('Share this pattern. Anyone with the link can read it, and it will appear in the catalogue.\n\nName it (the name becomes its link):', label);
 			if (name === null) return;
 			shareState = 'busy';
 			try {
 				const response = await fetch('/api/patterns', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, design, notes, image: await photo() }) });
 				if (!response.ok) throw new Error(response.status === 401 ? 'Sign in with Ravelry (top right) to share a pattern.' : ((await response.json().catch(() => null))?.message ?? 'Could not share it. Try again.'));
-				made = `/pattern/${(await response.json()).id}`;
+				made = patternPath(await response.json());
 			} catch (e) {
 				shareState = 'error';
 				shareError = e instanceof Error ? e.message : 'Could not share it. Try again.';

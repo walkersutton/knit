@@ -7,7 +7,7 @@ import { getShared } from '$lib/server/patterns';
 export const prerender = false;
 
 export const load: PageServerLoad = async ({ params, cookies, setHeaders }) => {
-	const shared = await getShared(params.id).catch(() => error(503, 'Shared patterns are not available right now.'));
+	const shared = await getShared(params.slug).catch(() => error(503, 'Shared patterns are not available right now.'));
 	if (!shared) error(404, 'That pattern is not shared, or its author has taken it down.');
 	// Whether it is yours depends on who is looking, so only the anonymous copy may be cached.
 	const account = cookies.get('knit_session') ? await getAccount(cookies).catch(() => null) : null;

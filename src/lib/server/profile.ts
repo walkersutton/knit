@@ -19,7 +19,7 @@ export type Profile = {
 const CAP = 100;
 
 const chart = (r: Record<string, any>): SharedChart => ({ id: r.id, name: r.name, motif: r.motif, color: r.color, contrast: r.contrast, author: r.author, authorPhoto: cleanPhoto(r.author_photo), createdAt: r.created_at });
-const pattern = (r: Record<string, any>): SharedPattern => ({ id: r.id, name: r.name, design: r.design, author: r.author, authorPhoto: cleanPhoto(r.author_photo), createdAt: r.created_at });
+const pattern = (r: Record<string, any>): SharedPattern => ({ id: r.id, slug: r.slug, name: r.name, design: r.design, author: r.author, authorPhoto: cleanPhoto(r.author_photo), createdAt: r.created_at });
 
 /** A knitter's public page: who they are on Ravelry, what they have shared, and what they have liked. Null if there is no such knitter. */
 export async function getProfile(username: string): Promise<Profile | null> {
@@ -38,7 +38,7 @@ export async function getProfile(username: string): Promise<Profile | null> {
 			WHERE c.user_id = ${user.id} ORDER BY c.created_at DESC LIMIT ${CAP}
 		`,
 		sql`
-			SELECT p.id, p.name, p.design, p.created_at, u.ravelry_username AS author, u.photo_url AS author_photo
+			SELECT p.id, p.slug, p.name, p.design, p.created_at, u.ravelry_username AS author, u.photo_url AS author_photo
 			FROM shared_patterns p JOIN users u ON u.id = p.user_id
 			WHERE p.user_id = ${user.id} ORDER BY p.created_at DESC LIMIT ${CAP}
 		`,
@@ -48,7 +48,7 @@ export async function getProfile(username: string): Promise<Profile | null> {
 			WHERE l.user_id = ${user.id} ORDER BY l.created_at DESC LIMIT ${CAP}
 		`,
 		sql`
-			SELECT p.id, p.name, p.design, p.created_at, u.ravelry_username AS author, u.photo_url AS author_photo
+			SELECT p.id, p.slug, p.name, p.design, p.created_at, u.ravelry_username AS author, u.photo_url AS author_photo
 			FROM pattern_likes l JOIN shared_patterns p ON p.id = l.pattern_id JOIN users u ON u.id = p.user_id
 			WHERE l.user_id = ${user.id} ORDER BY l.created_at DESC LIMIT ${CAP}
 		`
