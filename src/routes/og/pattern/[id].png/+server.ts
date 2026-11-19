@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getShared } from '$lib/server/patterns';
+import { getImage, getShared } from '$lib/server/patterns';
 import { patternCard } from '$lib/server/og';
 import { designDetail } from '$lib/sweater/random';
 
@@ -10,5 +10,5 @@ export const prerender = false;
 export const GET: RequestHandler = async ({ params }) => {
 	const shared = await getShared(params.id).catch(() => error(503, 'Not available right now.'));
 	if (!shared) error(404, 'No such pattern.');
-	return patternCard(shared.name, designDetail(shared.design), shared.author, shared.design);
+	return patternCard(shared.name, designDetail(shared.design), shared.author, shared.design, await getImage(shared.id));
 };

@@ -1,7 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getAccount } from '$lib/server/auth';
-import { cleanName, shareable, sharePattern } from '$lib/server/patterns';
+import { cleanImage, cleanName, setImage, shareable, sharePattern } from '$lib/server/patterns';
 
 export const prerender = false;
 
@@ -13,5 +13,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 	if (!shareable(body?.design)) error(400, 'That design cannot be shared.');
 	const shared = await sharePattern(account.id, cleanName(body.name) || 'My sweater', body.design);
 	if (shared === 'limit') error(409, 'You have shared as many patterns as you can. Remove one to share another.');
+	const image = cleanImage(body.image);
+	if (image) await setImage(account.id, shared.id, image);
 	return json({ id: shared.id });
 };

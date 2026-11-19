@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS shared_patterns (
 	created_at timestamptz NOT NULL DEFAULT now(),
 	UNIQUE (user_id, design_key)
 );
+-- The 3D model as a PNG (base64), captured in the author's browser when they share, for link previews. Optional: older patterns have none.
+ALTER TABLE shared_patterns ADD COLUMN IF NOT EXISTS og_image text;
 CREATE INDEX IF NOT EXISTS shared_patterns_created_at_idx ON shared_patterns(created_at DESC);
 
 -- Colourwork charts their authors have shared. Anyone can read them at /chart/<id>; only the author can remove one.

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
+	import Viewer from './Viewer.svelte';
 	import Author from '$lib/Author.svelte';
 	import LikeButton from '$lib/LikeButton.svelte';
 	import Stage from './Stage.svelte';
@@ -51,6 +52,28 @@
 	let link = $derived(made || (sharedId ? `/pattern/${sharedId}` : ''));
 	let shareState = $state<'idle' | 'busy' | 'copied' | 'error'>('idle');
 	let shareError = $state('');
+	let cameraOn = $state(false);
+	let camera = $state<Viewer>();
+	/** The 3D model as a base64 PNG, for the link preview. Taken by an off-screen viewer; never holds up sharing for long. */
+	async function photo(): Promise<string | undefined> {
+		cameraOn = true;
+		try {
+			await tick();
+			const blob = await Promise.race([camera?.still(design) ?? null, new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000))]);
+			if (!blob || blob.type !== 'image/png') return undefined;
+			const url = await new Promise<string>((resolve, reject) => {
+				const reader = new FileReader();
+				reader.onload = () => resolve(String(reader.result));
+				reader.onerror = reject;
+				reader.readAsDataURL(blob);
+			});
+			return url.slice(url.indexOf(',') + 1);
+		} catch {
+			return undefined;
+		} finally {
+			cameraOn = false;
+		}
+	}
 	/** Share the pattern: publish it if it is not yet, then put its link on the clipboard. */
 	async function share() {
 		shareError = '';
@@ -59,7 +82,7 @@
 			if (name === null) return;
 			shareState = 'busy';
 			try {
-				const response = await fetch('/api/patterns', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, design }) });
+				const response = await fetch('/api/patterns', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, design, image: await photo() }) });
 				if (!response.ok) throw new Error(response.status === 401 ? 'Sign in with Ravelry (top right) to share a pattern.' : ((await response.json().catch(() => null))?.message ?? 'Could not share it. Try again.'));
 				made = `/pattern/${(await response.json()).id}`;
 			} catch (e) {
@@ -97,6 +120,11 @@
 		return () => document.removeEventListener('keydown', k);
 	});
 </script>
+
+{#if cameraOn}
+	<!-- An off-screen camera that takes the link-preview picture; never shown, and gone as soon as it has. -->
+	<div class="camera" aria-hidden="true"><Viewer bind:this={camera} onview={() => {}} intro={false} /></div>
+{/if}
 
 <div class="page">
 	<section class="cover">
@@ -149,6 +177,14 @@
 {/if}
 
 <style>
+	.camera {
+		position: absolute;
+		left: -10000px;
+		top: 0;
+		width: 360px;
+		height: 414px;
+		pointer-events: none;
+	}
 	.page {
 		height: calc(100dvh - var(--bar));
 		overflow-y: auto;

@@ -34,6 +34,14 @@
 		const frames = await handle.spin(size.frames, size.width, size.height, size.background);
 		return still && { still, frames };
 	}
+	/** The finished garment as a transparent PNG, for a link preview. Null if the browser cannot make one. */
+	export async function still(next: Design) {
+		if (!handle) return null;
+		await handle.prefetch({ ...next });
+		handle.setDesign({ ...next });
+		handle.setKnitted(null);
+		return handle.snapshot('image/png');
+	}
 	/** Get a design ready in idle time, so showing it later is quick. */
 	export function prefetch(next: Design) {
 		return handle?.prefetch({ ...next }) ?? Promise.resolve();

@@ -11,7 +11,14 @@ async function png(response: Response, name: string) {
 	return body;
 }
 
+// A 2×3 red PNG, standing in for the picture a browser takes of the 3D model.
+const PHOTO = 'iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAYAAAC56t6BAAAAEklEQVR4nGP8z8Dwn4GBgQEAFAUCAJhY7a8AAAAASUVORK5CYII=';
+
 describe('preview images', () => {
+	it('uses the captured 3D picture when there is one', async () => {
+		const response = await patternCard('Photo', 'detail', 'someone', DEFAULT_DESIGN, PHOTO);
+		expect([...(await png(response, 'photo')).slice(1, 4)]).toEqual([80, 78, 71]);
+	});
 	it('renders a pattern as a PNG', async () => {
 		const response = await patternCard('Brick Striped Cardigan', 'Adult M · Raglan cardigan · Worsted', 'someone', { ...DEFAULT_DESIGN, pattern: 'Stripes' });
 		expect(response.headers.get('content-type')).toBe('image/png');

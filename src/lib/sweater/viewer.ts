@@ -15,7 +15,7 @@ export type ViewerHandle = {
 	/** Does the slow work for a design in idle time, so `setDesign` with it later is quick. */
 	prefetch(design: Design): Promise<void>;
 	/** The garment as it stands, front on, as a small image; null if the browser cannot encode one. */
-	snapshot(): Promise<Blob | null>;
+	snapshot(type?: 'image/webp' | 'image/png'): Promise<Blob | null>;
 	/** One slow-down-to-front turn of the garment as `count + 1` frames (the last is the first again), over `background`. */
 	spin(count: number, width: number, height: number, background: string): Promise<ImageData[]>;
 	dispose(): void;
@@ -538,12 +538,12 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 			}
 			invalidate();
 		},
-		snapshot() {
+		snapshot(type = 'image/webp') {
 			// Draw now, in this task, so the canvas still holds the frame when it is read.
 			pivot.rotation.set(pitch, yaw, 0);
 			camera.position.set(panX, panY, baseDist / zoom);
 			renderer.render(scene, camera);
-			return new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', 0.88));
+			return new Promise((resolve) => canvas.toBlob(resolve, type, 0.88));
 		},
 		async spin(count, width, height, background) {
 			const out = document.createElement('canvas');

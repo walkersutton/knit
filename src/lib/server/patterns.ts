@@ -43,6 +43,36 @@ export async function sharePattern(userId: string, name: string, design: Design)
 	return { id: rows[0].id };
 }
 
+/** The biggest preview image kept, as base64 text (about 600 KB of PNG). */
+const MAX_IMAGE = 800_000;
+const PNG_SIGNATURE = 'iVBORw0KGgo';
+
+/** A preview image is only kept if it is a PNG of a sensible size. */
+export function cleanImage(value: unknown): string | null {
+	if (typeof value !== 'string' || value.length > MAX_IMAGE || !value.startsWith(PNG_SIGNATURE) || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) return null;
+	return value;
+}
+
+/** Keep the 3D picture the author's browser took. It is a nicety, so a failure (such as the column not existing yet) never stops a share. */
+export async function setImage(userId: string, id: string, image: string) {
+	try {
+		await database()`UPDATE shared_patterns SET og_image = ${image} WHERE id = ${id} AND user_id = ${userId}`;
+	} catch {
+		// Sharing still worked; the preview falls back to the drawn sweater.
+	}
+}
+
+/** The stored preview picture as base64 PNG, if there is one. */
+export async function getImage(id: string): Promise<string | null> {
+	if (!isId(id)) return null;
+	try {
+		const rows = await database()`SELECT og_image FROM shared_patterns WHERE id = ${id} LIMIT 1`;
+		return cleanImage(rows[0]?.og_image);
+	} catch {
+		return null;
+	}
+}
+
 /** Remove a pattern from the catalogue. Returns whether the caller owned it. */
 export async function unsharePattern(userId: string, id: string) {
 	const rows = await database()`DELETE FROM shared_patterns WHERE id = ${id} AND user_id = ${userId} RETURNING id`;
