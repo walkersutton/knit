@@ -3,10 +3,7 @@
 	import Author from '$lib/Author.svelte';
 	import MotifSwatch from '$lib/sweater/MotifSwatch.svelte';
 	import Viewer from '$lib/sweater/Viewer.svelte';
-	import { DEFAULT_DESIGN } from '$lib/sweater/defaults';
-	import type { Design } from '$lib/sweater/garment';
-	import { chartSize, isCenterpieceChart } from '$lib/sweater/library';
-	import { CUSTOM_PATTERN } from '$lib/sweater/motifs';
+	import { chartDesign, chartSize, isCenterpieceChart } from '$lib/sweater/library';
 	import { designDetail } from '$lib/sweater/random';
 	import type { Featured } from '$lib/server/likes';
 
@@ -19,16 +16,11 @@
 	let section = $state<HTMLElement>();
 	let alive = true;
 
-	/** The chart on a sweater: a centerpiece worked once on the front, any other chart all over. */
-	const chartDesign = (c: NonNullable<Featured['chart']>): Design =>
-		isCenterpieceChart(c.motif)
-			? { ...DEFAULT_DESIGN, centerpiece: c.motif, color: c.color, contrast: c.contrast }
-			: { ...DEFAULT_DESIGN, pattern: CUSTOM_PATTERN, motif: c.motif, color: c.color, contrast: c.contrast };
 
 	async function draw() {
 		const jobs = [
 			picks.pattern && (['pattern', picks.pattern.design] as const),
-			picks.chart && (['chart', chartDesign(picks.chart)] as const)
+			picks.chart && (['chart', chartDesign(picks.chart.motif, picks.chart.color, picks.chart.contrast)] as const)
 		].filter((j) => !!j);
 		if (!jobs.length) return;
 		cameraOn = true;

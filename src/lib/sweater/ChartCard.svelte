@@ -3,14 +3,28 @@
 	import MotifSwatch from './MotifSwatch.svelte';
 	import { chartSize, isCenterpieceChart, previewLink } from './library';
 
-	/** One shared chart in a list: the title opens it, the author's name opens their page. */
-	let { chart: c }: { chart: { id: string; name: string; motif: string; color: string; contrast: string; author: string; authorPhoto: string | null } } = $props();
+	/**
+	 * One shared chart in a list: the title opens it, the author's name opens their page. With a `garment`, the
+	 * picture is the chart knitted into that garment once `picture` is drawn; the flat chart stands in until then.
+	 */
+	let {
+		chart: c,
+		garment,
+		picture
+	}: { chart: { id: string; name: string; motif: string; color: string; contrast: string; author: string; authorPhoto: string | null }; garment?: string; picture?: string } = $props();
+	let cp = $derived(isCenterpieceChart(c.motif));
 	// A centerpiece has no 3D preview of its own, so it opens on its page.
-	let href = $derived(isCenterpieceChart(c.motif) ? `/chart/${c.id}` : previewLink(c.motif, c.color, c.contrast, undefined, c.id));
+	let href = $derived(cp ? `/chart/${c.id}` : previewLink(c.motif, c.color, c.contrast, garment, c.id));
 </script>
 
 <li>
-	<span class="thumb"><MotifSwatch motif={c.motif} color={c.color} contrast={c.contrast} across={2} down={1} /></span>
+	<span class="thumb" class:worn={garment}>
+		{#if garment && picture}
+			<img src={picture} alt={cp ? `${c.name} on the front of a ${garment.toLowerCase()}` : `A ${garment.toLowerCase()} knitted all over in ${c.name}`} />
+		{:else}
+			<MotifSwatch motif={c.motif} color={c.color} contrast={c.contrast} across={2} down={1} />
+		{/if}
+	</span>
 	<span class="text">
 		<a class="open" {href}>{c.name}</a>
 		<span>{chartSize(c.motif)}</span>
@@ -26,6 +40,37 @@
 		overflow: hidden;
 		border-radius: 6px;
 		box-shadow: 0 0 0 1px rgb(38 51 95 / 0.15);
+	}
+	/* On a garment: a taller frame with the garment on paper, the flat chart centred in it until the picture is drawn. */
+	.thumb.worn {
+		display: grid;
+		place-items: center;
+		width: 96px;
+		height: 110px;
+		background: #fffdf6;
+	}
+	.thumb.worn > :global(:not(img)) {
+		width: 72px;
+		border-radius: 4px;
+		overflow: hidden;
+		opacity: 0.7;
+	}
+	.thumb img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		animation: in 200ms ease-out;
+	}
+	@keyframes in {
+		from {
+			opacity: 0;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.thumb img {
+			animation: none;
+		}
 	}
 	li {
 		position: relative;

@@ -5,18 +5,17 @@
 	import Stage from '$lib/sweater/Stage.svelte';
 	import { DEFAULT_DESIGN } from '$lib/sweater/defaults';
 	import type { Design } from '$lib/sweater/garment';
-	import { designLink, editLink, previewLink, readMotifHash } from '$lib/sweater/library';
-	import { CUSTOM_PATTERN, tileOfMotif } from '$lib/sweater/motifs';
+	import { chartDesign, designLink, editLink, GARMENTS, previewLink, readMotifHash } from '$lib/sweater/library';
+	import { tileOfMotif } from '$lib/sweater/motifs';
 
 	/** A chart that is not shared: it travels in the link's hash (#motif=…&color=…&contrast=…), so nothing is stored. */
-	const GARMENTS = ['Sweater', 'T-shirt', 'Slipover', 'Cardigan'];
 
 	let chart = $state<{ motif: string; color: string; contrast: string }>();
 	let garment = $state(GARMENTS[0]);
 	let sharedId = $state<string>();
 	let ready = $state(false);
 
-	let design = $derived<Design | undefined>(chart && { ...DEFAULT_DESIGN, garment, pattern: CUSTOM_PATTERN, ...chart });
+	let design = $derived<Design | undefined>(chart && chartDesign(chart.motif, chart.color, chart.contrast, garment));
 	let tile = $derived(tileOfMotif(chart?.motif));
 
 	function read() {

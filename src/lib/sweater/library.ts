@@ -4,9 +4,11 @@
  * designer picks one for its Custom pattern. A chart travels in a link: /design#motif=…&color=…&contrast=…
  * opens the sweater designer with it, and adding tool=chart opens the chart designer on it instead.
  */
-import { starterMotif, tileOfMotif, validMotif } from './motifs';
+import { CUSTOM_PATTERN, starterMotif, tileOfMotif, validMotif } from './motifs';
 import { parseCenterpiece } from './centerpiece';
-import { colors } from './options';
+import { DEFAULT_DESIGN } from './defaults';
+import type { Design } from './garment';
+import { choose, colors } from './options';
 
 export type SavedPattern = { id: string; name: string; motif: string };
 /** A centerpiece the knitter has drawn, kept beside their charts. `centerpiece` is its text (see `centerpiece.ts`). */
@@ -129,6 +131,19 @@ export function readCenterpieceHash(hash: string): { centerpiece: string; color?
  * starts with its size ("20x11:…"), a chart is only cells.
  */
 export const isCenterpieceChart = (motif: string) => parseCenterpiece(motif) !== null;
+
+/** The garments a chart can be shown on. */
+export const GARMENTS = ['Sweater', 'T-shirt', 'Slipover', 'Cardigan'];
+
+/** A chart on a garment: a centerpiece worked once on the front, any other chart all over. */
+export function chartDesign(motif: string, color: string, contrast: string, garment = 'Sweater'): Design {
+	const d: Design = isCenterpieceChart(motif)
+		? { ...DEFAULT_DESIGN, centerpiece: motif, color, contrast }
+		: { ...DEFAULT_DESIGN, pattern: CUSTOM_PATTERN, motif, color, contrast };
+	// Through `choose`, so a T-shirt gets its short sleeves.
+	choose(d, 'garment', GARMENTS.includes(garment) ? garment : 'Sweater');
+	return d;
+}
 
 /** A shared chart's size in words: "12 × 16", "24 × 32 · fine" or "20 × 11 centerpiece". */
 export function chartSize(motif: string) {

@@ -1,10 +1,70 @@
 <script lang="ts">
 	import Seo from '$lib/Seo.svelte';
 	import YourWork from '$lib/sweater/YourWork.svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import ChartCard from '$lib/sweater/ChartCard.svelte';
+	import Viewer from '$lib/sweater/Viewer.svelte';
+	import { chartDesign, GARMENTS } from '$lib/sweater/library';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+
+	// ── Each chart knitted into the garment the knitter picks ──
+	const GARMENT_KEY = 'knit-it:chart-garment:v1';
+	let garment = $state('Sweater');
+	/** Drawn pictures, by garment and chart; a chart keeps its picture while it is on the page. */
+	let pictures = $state<Record<string, string>>({});
+	const key = (g: string, id: string) => `${g}|${id}`;
+	/** The off-screen 3D scene, alive only while there are pictures to draw. */
+	let cameraOn = $state(false);
+	let camera = $state<Viewer>();
+	let mounted = $state(false);
+	let alive = true;
+	let run = 0;
+
+	onMount(() => {
+		try {
+			const saved = localStorage.getItem(GARMENT_KEY);
+			if (saved && GARMENTS.includes(saved)) garment = saved;
+		} catch {
+			// No storage: the sweater it is.
+		}
+		mounted = true;
+		return () => {
+			alive = false;
+			Object.values(pictures).forEach((u) => URL.revokeObjectURL(u));
+		};
+	});
+
+	function pick(next: string) {
+		garment = next;
+		try {
+			localStorage.setItem(GARMENT_KEY, next);
+		} catch {
+			// The choice just isn't remembered.
+		}
+	}
+
+	/** Draw, one at a time, every chart on the page not yet drawn on this garment. A newer call takes over. */
+	async function draw(g: string, charts: typeof data.charts) {
+		const mine = ++run;
+		const todo = charts.filter((c) => !pictures[key(g, c.id)]);
+		if (!todo.length) return;
+		cameraOn = true;
+		await tick();
+		for (const c of todo) {
+			if (!alive || mine !== run) return;
+			const blob = await camera?.still(chartDesign(c.motif, c.color, c.contrast, g)).catch(() => null);
+			if (!alive) return;
+			if (blob) pictures[key(g, c.id)] = URL.createObjectURL(blob);
+		}
+		if (mine === run) cameraOn = false;
+	}
+	$effect(() => {
+		const [g, charts] = [garment, data.charts];
+		// Only a new garment or a new page of charts starts drawing again, not each picture as it lands.
+		if (mounted) untrack(() => draw(g, charts));
+	});
 
 	/** The same search, a page along. */
 	const href = (page: number) => {
@@ -27,6 +87,14 @@
 		<a class="new" href="/design#tool=chart">Design a new chart</a>
 	</div>
 	<YourWork kind="chart" />
+	<div class="shown">
+		<span id="shown-on">Show on</span>
+		<div class="seg" role="radiogroup" aria-labelledby="shown-on">
+			{#each GARMENTS as g (g)}
+				<button type="button" role="radio" aria-checked={garment === g} onclick={() => pick(g)}>{g}</button>
+			{/each}
+		</div>
+	</div>
 	<form role="search" method="get">
 		<input type="search" name="q" value={data.q} placeholder="Search by name or knitter" aria-label="Search charts" />
 		<select name="size" aria-label="Chart size">
@@ -45,13 +113,17 @@
 	{:else}
 		<ul>
 			{#each data.charts as c (c.id)}
-				<ChartCard chart={c} />
+				<ChartCard chart={c} garment={mounted ? garment : undefined} picture={pictures[key(garment, c.id)]} />
 			{/each}
 		</ul>
 		<nav class="pages" aria-label="More charts">
 			{#if data.page > 0}<a href={href(data.page - 1)} rel="prev">← Newer</a>{/if}
 			{#if data.more}<a href={href(data.page + 1)} rel="next">Older →</a>{/if}
 		</nav>
+	{/if}
+	{#if cameraOn}
+		<!-- An off-screen camera that draws the garments; never shown, and gone once they are drawn. -->
+		<div class="camera" aria-hidden="true"><Viewer bind:this={camera} onview={() => {}} intro={false} /></div>
 	{/if}
 </main>
 
@@ -111,6 +183,46 @@
 		font-family: var(--display);
 		font-size: 36px;
 		font-weight: 600;
+	}
+	.shown {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px 12px;
+		margin-bottom: 12px;
+		color: var(--muted);
+		font-size: 13px;
+		font-weight: 500;
+	}
+	.seg {
+		display: flex;
+		flex-wrap: wrap;
+		padding: 2px;
+		border: 1px solid var(--line-strong);
+		border-radius: 9px;
+		background: var(--wash);
+	}
+	.seg button {
+		height: 32px;
+		padding: 0 12px;
+		border: 0;
+		border-radius: 7px;
+		background: none;
+		color: var(--ink);
+		font-weight: 500;
+		transition: background-color 120ms ease-out;
+	}
+	.seg button[aria-checked='true'] {
+		background: #fffdf6;
+		box-shadow: 0 1px 2px rgb(38 51 95 / 0.2);
+	}
+	.camera {
+		position: absolute;
+		left: -10000px;
+		top: 0;
+		width: 240px;
+		height: 276px;
+		pointer-events: none;
 	}
 	form {
 		display: flex;
@@ -174,5 +286,8 @@
 		margin-top: 24px;
 	}
 	@media (hover: hover) and (pointer: fine) {
+		.seg button[aria-checked='false']:hover {
+			background: rgb(255 253 246 / 0.6);
+		}
 	}
 </style>
