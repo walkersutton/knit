@@ -8,12 +8,20 @@ const fair = { ...baseDesign, pattern: 'Fair isle' };
 const fingering = { ...fair, gauge: 28 };
 
 describe('tileFor', () => {
-	it('gives only Fair Isle on fine yarn the detailed chart', () => {
-		expect(tileFor('Fair isle', 28)).toBe(FINE_TILE);
-		expect(tileFor('Fair isle', 22)).toBe(STANDARD_TILE);
-		expect(tileFor('Fair isle', 18)).toBe(STANDARD_TILE);
-		expect(tileFor('Stripes', 28)).toBe(STANDARD_TILE);
-		expect(tileFor('Solid', 28)).toBe(STANDARD_TILE);
+	it('gives motifs on fine yarn the detailed chart, unless a size is chosen', () => {
+		expect(tileFor({ pattern: 'Fair isle' }, 28)).toBe(FINE_TILE);
+		expect(tileFor({ pattern: 'Hearts' }, 28)).toBe(FINE_TILE);
+		expect(tileFor({ pattern: 'Fair isle' }, 22)).toBe(STANDARD_TILE);
+		expect(tileFor({ pattern: 'Fair isle' }, 18)).toBe(STANDARD_TILE);
+		expect(tileFor({ pattern: 'Diamonds', motifScale: 'Large' }, 13)).toBe(FINE_TILE);
+		expect(tileFor({ pattern: 'Diamonds', motifScale: 'Small' }, 28)).toBe(STANDARD_TILE);
+		expect(tileFor({ pattern: 'Solid', motifScale: 'Large' }, 28)).toBe(STANDARD_TILE);
+	});
+
+	it('sizes stripes by their width, never by the yarn', () => {
+		expect(tileFor({ pattern: 'Stripes' }, 28)).toMatchObject({ st: 12, rows: 16, fine: false, stripe: [5, 16] });
+		expect(tileFor({ pattern: 'Stripes', stripeWidth: 'Pinstripe' }, 18).stripe).toEqual([1, 4]);
+		expect(tileFor({ pattern: 'Stripes', stripeWidth: 'Bold' }, 18)).toMatchObject({ rows: 32, stripe: [16, 32] });
 	});
 
 	it('fine chart divides by every rib repeat', () => {

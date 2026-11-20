@@ -94,6 +94,8 @@ export const defaultDesign: Design = {
 	cuffLength: 'Regular',
 	pattern: 'Solid',
 	motif: '',
+	motifScale: 'Auto',
+	stripeWidth: 'Regular',
 	centerpiece: '',
 	centerpieceY: 0.25,
 	centerpieceAt: 'Centre',

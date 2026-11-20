@@ -10,6 +10,7 @@ import {
 	len,
 	materialsOf,
 	ribOf,
+	stripeRepeat,
 	sts,
 	toMult,
 	type Pattern,
@@ -32,10 +33,10 @@ function chartNote(d: Design, m: Measurements, part: string): Step[] {
 		return [
 			{
 				note: true,
-				text: `Stripes: in every stockinette section (${part}) work a 16-${unit} repeat of 11 ${unit}s main colour, then 5 ${unit}s contrast colour.${flat ? '' : ' Join each colour in a jogless join at the start of the round.'} Start the stripes once the rib is done.`
+				text: `Stripes: in every stockinette section (${part}) work ${stripeRepeat(d, unit)}.${flat ? '' : ' Join each colour in a jogless join at the start of the round.'} Start the stripes once the rib is done.`
 			}
 		];
-	const tile = tileFor(d.pattern, m.gauge, d.motif);
+	const tile = tileFor(d, m.gauge);
 	const name = d.pattern === 'Fair isle' ? 'Fair Isle' : d.pattern === 'Custom' ? 'your own chart' : d.pattern.toLowerCase();
 	return [
 		{

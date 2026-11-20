@@ -1,7 +1,7 @@
 import { measure, type Design } from './garment';
 import { familyOf, type GarmentFamily } from './family';
 import { needleLabel, needlesOf, weightOf } from './needles';
-import { contrastShare, longestFloat, tileFor, tileOf, TILE_ROWS } from './motifs';
+import { contrastShare, longestFloat, stripeOf, tileFor, tileOf } from './motifs';
 import { bodyBoxOf, centerpieceOf, countOn, dropRows, longestStrand, offsetSts, rowsOf, type BodyBox, type Centerpiece } from './centerpiece';
 
 /**
@@ -160,6 +160,13 @@ export function evenly(from: number, to: number) {
 	return `decrease ${sts(-d)} evenly (k2tog about every ${Math.max(2, Math.floor(from / -d))} sts)`;
 }
 
+/** The stripe repeat in words, e.g. "a 16-round repeat of 11 rounds main colour, then 5 rounds contrast colour". */
+export function stripeRepeat(d: Design, unit: string) {
+	const [on, period] = stripeOf(d.stripeWidth);
+	const n = (k: number) => `${k} ${unit}${k === 1 ? '' : 's'}`;
+	return `a ${period}-${unit} repeat of ${n(period - on)} main colour, then ${n(on)} contrast colour`;
+}
+
 /** Patterns worked as stranded colourwork from a chart (everything except plain and stripes). */
 export const isColourwork = (pattern: string) => pattern !== 'Solid' && pattern !== 'Stripes';
 
@@ -168,7 +175,7 @@ export function chartOf(d: Design, gauge: number) {
 	const cp = centerpieceOf(d);
 	const centerpiece = cp ? rowsOf(cp) : null;
 	if (!isColourwork(d.pattern)) return { chart: null, chartName: '', centerpiece };
-	return { chart: tileOf(d.pattern, d.motif, tileFor(d.pattern, gauge, d.motif)), chartName: d.pattern === 'Fair isle' ? 'Fair Isle' : d.pattern, centerpiece };
+	return { chart: tileOf(d.pattern, d.motif, tileFor(d, gauge)), chartName: d.pattern === 'Fair isle' ? 'Fair Isle' : d.pattern, centerpiece };
 }
 
 // ── Materials (also used by the bottom bar) ─────────────────────────────
@@ -193,8 +200,8 @@ export function estimate(d: Design) {
 	// yarn, or the same yarn knitted tighter on a thinner needle, takes proportionally more. Stranded colourwork carries the unused colour behind the work.
 	const yards = Math.round(area * 0.125 * (m.gauge / 18) * (fairIsle ? 1.2 : 1));
 	let share = 0;
-	if (d.pattern === 'Stripes') share = 5 / TILE_ROWS;
-	if (fairIsle) share = contrastShare(d.pattern, d.motif, tileFor(d.pattern, m.gauge, d.motif));
+	if (d.pattern === 'Stripes') share = stripeOf(d.stripeWidth)[0] / stripeOf(d.stripeWidth)[1];
+	if (fairIsle) share = contrastShare(d.pattern, d.motif, tileFor(d, m.gauge));
 	// A centerpiece is stranded colourwork over a patch of the front: yarn for the stitches it paints, and a little more for carrying it.
 	const cp = centerpieceOf(d);
 	const patchYards = cp ? Math.round((countOn(cp) / (m.stPerCm * m.rowPerCm)) * 0.125 * (m.gauge / 18) * 1.3) : 0;
@@ -275,13 +282,13 @@ export function colourSection(d: Design, m: Measures, how: { flat: boolean; star
 	const stripes = d.pattern === 'Stripes';
 	const fairIsle = isColourwork(d.pattern);
 	if (!stripes && !fairIsle) return null;
-	const tile = tileFor(d.pattern, m.gauge, d.motif);
+	const tile = tileFor(d, m.gauge);
 	const R = how.flat ? 'row' : 'round';
 	const steps: Step[] = [];
 	if (stripes)
 		steps.push({
 			note: true,
-			text: `Stripes: in every stockinette section (${how.yoke}, body${m.hasSleeves ? ', sleeves' : ''}) work a 16-${R} repeat of 11 ${R}s main colour, then 5 ${R}s contrast colour. Carry the unused colour up the inside at the start of the ${R}${how.flat ? '' : ' and use a jogless join'}. Start the stripes once ${how.start}.`
+			text: `Stripes: in every stockinette section (${how.yoke}, body${m.hasSleeves ? ', sleeves' : ''}) work ${stripeRepeat(d, R)}. Carry the unused colour up the inside at the start of the ${R}${how.flat ? '' : ' and use a jogless join'}. Start the stripes once ${how.start}.`
 		});
 	const chartName = d.pattern === 'Fair isle' ? 'Fair Isle' : `Colourwork (${d.pattern === 'Custom' ? 'your own chart' : d.pattern.toLowerCase()})`;
 	const floatMax = fairIsle ? longestFloat(d.pattern, d.motif, tile) : 0;

@@ -6,7 +6,7 @@ import type { Design, Garment, Measurements } from '../garment';
 
 /** Chart tiles round a tube, and rows down it: the same layout the tops use. */
 export function fabricScale(d: Design, m: Measurements) {
-	const unit = tileFor(d.pattern, m.gauge || stitchGauge(d) || 18, d.motif).fine ? 2 : 1;
+	const unit = tileFor(d, m.gauge || stitchGauge(d) || 18).st / TILE_ST;
 	const wraps = (circumference: number) => unit * Math.max(1, Math.round((circumference * m.stPerCm) / (TILE_ST * unit)));
 	const vOf = (cm: number) => (cm * m.rowPerCm) / TILE_ROWS;
 	return { wraps, vOf, k: m.k };

@@ -1,7 +1,7 @@
 import { CUSTOM, standardBody } from './fit';
 import { familyOf, isTop } from './family';
 import type { Design } from './garment';
-import { PATTERNS, starterMotif, validMotif } from './motifs';
+import { CUSTOM_PATTERN, PATTERNS, starterMotif, validMotif } from './motifs';
 import { footFromShoe, SHOE_SIZES } from './shoes';
 
 /** `hint` says what the choice means, behind the field's "?"; `group` heads it in a drop-down list. */
@@ -244,6 +244,38 @@ export const sections: Section[] = [
 					},
 					{ key: 'color', label: 'Color', kind: 'color', options: colors },
 					{ key: 'pattern', label: 'Pattern', kind: 'choice', options: opts(...PATTERNS) },
+					{
+						key: 'stripeWidth',
+						label: 'Stripe width',
+						kind: 'choice',
+						show: (d) => d.pattern === 'Stripes',
+						options: [
+							{ label: 'Pinstripe', value: 'Pinstripe', hint: 'One row of the pattern colour every 4 rows: fine lines.' },
+							{ label: 'Narrow', value: 'Narrow', hint: 'Two rows of each colour: even, closely spaced stripes.' },
+							{ label: 'Regular', value: 'Regular', hint: '5 rows of the pattern colour, then 11 of the main colour.' },
+							{ label: 'Wide', value: 'Wide', hint: '8 rows of each colour: even, broad stripes.' },
+							{ label: 'Bold', value: 'Bold', hint: '16 rows of each colour: big blocks of colour. Bolder still on thick yarn.' }
+						]
+					},
+					{
+						key: 'motifScale',
+						label: 'Motif size',
+						kind: 'choice',
+						show: (d) => d.pattern !== 'Solid' && d.pattern !== 'Stripes' && d.pattern !== CUSTOM_PATTERN,
+						options: [
+							{ label: 'Auto', value: 'Auto', hint: 'Small on bulky, worsted and DK yarn; Large on fingering, where small motifs would come out tiny.' },
+							{
+								label: 'Small',
+								value: 'Small',
+								hint: 'Each motif on the standard 12 × 16 chart: small, closely packed repeats with blocky shapes. Bold on thick yarn, tiny on thin yarn.'
+							},
+							{
+								label: 'Large',
+								value: 'Large',
+								hint: 'Each motif redrawn on a 24 × 32 chart: twice the stitches each way, with rounder curves and thinner lines. Looks best on DK or fingering; very big on bulky yarn.'
+							}
+						]
+					},
 					{ key: 'contrast', label: 'Pattern color', kind: 'color', options: colors, show: (d) => d.pattern !== 'Solid' }
 				]
 			}

@@ -36,6 +36,10 @@ export type Design = {
 	pattern: string;
 	/** The knitter's own chart (TILE_ST × TILE_ROWS cells of 0/1, rows top to bottom), used while `pattern` is Custom. */
 	motif: string;
+	/** Size of Fair Isle and the named motifs: 'Small' (standard chart), 'Large' (fine chart, redrawn in more detail) or 'Auto' (Large on thin yarn). See `MOTIF_SCALES`. */
+	motifScale: string;
+	/** Stripe width while `pattern` is Stripes: a key of `STRIPE_WIDTHS`. */
+	stripeWidth: string;
 	/** A picture or word worked once on the front of the body, as `"<w>x<h>:<cells>"` (see `centerpiece.ts`); '' for none. */
 	centerpiece: string;
 	/** Where the centerpiece sits up and down: -1 as high up the chest as it can go, 0 with its top right under the arms, 1 as low as it can go. */
@@ -110,9 +114,9 @@ export type Garment = {
 
 /** Everything that changes the mesh (colour and pattern only change the textures). */
 export const shapeKey = (d: Design) => {
-	const { color: _c, contrast: _x, pattern: _p, motif: _m, centerpiece: _cp, centerpieceY: _cy, centerpieceAt: _ca, ribNeedle: _r, ...shape } = d;
-	// A finer colourwork chart repeats half as often, which changes the UVs but nothing else.
-	return JSON.stringify({ ...shape, fine: tileFor(d.pattern, stitchGauge(d) || 18, d.motif).fine });
+	const { color: _c, contrast: _x, pattern: _p, motif: _m, motifScale: _ms, stripeWidth: _sw, centerpiece: _cp, centerpieceY: _cy, centerpieceAt: _ca, ribNeedle: _r, ...shape } = d;
+	// A wider chart repeats fewer times round, which changes the UVs but nothing else.
+	return JSON.stringify({ ...shape, chartSt: tileFor(d, stitchGauge(d) || 18).st });
 };
 
 /** Rib depth in cm (adult) for the 'Rib length' choice. */
@@ -346,7 +350,7 @@ export function buildTop(d: Design): Garment {
 	const iCordNeck = d.neckline === 'I-cord';
 
 	// Whole chart repeats round every tube, so the texture meets at the seam. The UVs count standard tiles; a fine chart is two of them wide.
-	const unit = tileFor(d.pattern, gauge, d.motif).fine ? 2 : 1;
+	const unit = tileFor(d, gauge).st / TILE_ST;
 	const wraps = (circ: number, stretch = 1) => unit * Math.max(1, Math.round((circ * stPerCm * stretch) / (TILE_ST * unit)));
 	const vOf = (cm: number) => (cm * rowPerCm) / TILE_ROWS;
 

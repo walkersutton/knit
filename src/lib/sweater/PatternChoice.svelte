@@ -3,16 +3,18 @@
 	import type { Design } from './garment';
 	import { loadLibrary, type SavedPattern } from './library';
 	import { choose } from './options';
-	import { chart, chartFit, CUSTOM_PATTERN, FINE_GAUGE, FINE_TILE, PATTERNS, resizeMotif, STANDARD_TILE, TILE_ROWS, TILE_ST } from './motifs';
+	import { chart, chartFit, CUSTOM_PATTERN, FINE_GAUGE, FINE_TILE, PATTERNS, resizeMotif, STANDARD_TILE, TILE_ROWS, TILE_ST, tileFor } from './motifs';
 	import { stitchGauge } from './needles';
 	import MotifSwatch from './MotifSwatch.svelte';
 
 	let { design = $bindable(), onedit }: { design: Design; onedit: (motif: string) => void } = $props();
 
-	const cells = (pattern: string, motif: string) => {
+	/** A standard chart's worth of stitches, so a large motif shows bigger than a small one. Stripes keep their regular look. */
+	const cells = (pattern: string, motif: string, motifScale: string, gauge: number) => {
 		const out: [number, number][] = [];
+		const tile = pattern === 'Stripes' ? undefined : tileFor({ pattern, motif, motifScale }, gauge);
 		if (pattern !== 'Solid')
-			for (let j = 0; j < TILE_ROWS; j++) for (let i = 0; i < TILE_ST; i++) if (chart(pattern, i, j, motif)) out.push([i, j]);
+			for (let j = 0; j < TILE_ROWS; j++) for (let i = 0; i < TILE_ST; i++) if (chart(pattern, i, j, motif, tile)) out.push([i, j]);
 		return out;
 	};
 
@@ -30,7 +32,7 @@
 		<button type="button" class="opt" role="radio" aria-checked={design.pattern === p} onclick={() => choose(design, 'pattern', p)}>
 			<svg viewBox="0 0 {TILE_ST} {TILE_ROWS}" width="36" height="48" shape-rendering="crispEdges" aria-hidden="true">
 				<rect width={TILE_ST} height={TILE_ROWS} fill={design.color} />
-				{#each cells(p, design.motif) as [x, y] (`${x}-${y}`)}<rect {x} {y} width="1" height="1" fill={design.contrast} />{/each}
+				{#each cells(p, design.motif, design.motifScale, gauge) as [x, y] (`${x}-${y}`)}<rect {x} {y} width="1" height="1" fill={design.contrast} />{/each}
 				{#if p === CUSTOM_PATTERN && !design.motif}<text x="6" y="10" text-anchor="middle" font-size="9" fill={design.contrast}>+</text>{/if}
 			</svg>
 			<span>{p}</span>

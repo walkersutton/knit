@@ -12,20 +12,53 @@ export const CUSTOM_PATTERN = 'Custom';
 
 const mod = (n: number, m: number) => ((n % m) + m) % m;
 
-/** A colourwork chart's size. Both sizes cover about the same area of fabric at their own gauge. */
-export type Tile = { st: number; rows: number; fine: boolean };
+/**
+ * A chart's size. `fine` charts draw every motif on a grid twice as fine, so it comes out twice as big
+ * in stitches with rounder curves and thinner lines. `stripe` is a stripe repeat: contrast rows, out of `period`.
+ */
+export type Tile = { st: number; rows: number; fine: boolean; stripe?: [on: number, period: number] };
 export const STANDARD_TILE: Tile = { st: TILE_ST, rows: TILE_ROWS, fine: false };
 /** Twice the stitches and rows, so a motif can have rounded curves. 24 still divides by every rib repeat. */
 export const FINE_TILE: Tile = { st: 2 * TILE_ST, rows: 2 * TILE_ROWS, fine: true };
 /** From this gauge (stitches per 4 in) up, Fair Isle gets the detailed chart: DK is 22, fingering 28. */
 export const FINE_GAUGE = 25;
 
+/** The parts of a design that decide its chart. */
+export type ChartSpec = { pattern: string; motif?: string; motifScale?: string; stripeWidth?: string };
+
 /**
- * The chart size for a pattern at a stitch gauge. Fair Isle has detail to gain from a finer yarn.
- * A custom chart is whatever size its knitter drew it (see `tileOfMotif`), at any gauge.
+ * Motif sizes a knitter can pick. 'Small' works each motif on the standard chart; 'Large' on the fine
+ * one, twice the stitches each way, with the shapes redrawn rather than blown up. 'Auto' picks Large
+ * from FINE_GAUGE up, where small motifs would be tiny.
  */
-export const tileFor = (pattern: string, gauge: number, custom?: string): Tile =>
-	pattern === CUSTOM_PATTERN ? tileOfMotif(custom) : pattern === 'Fair isle' && gauge >= FINE_GAUGE ? FINE_TILE : STANDARD_TILE;
+export const MOTIF_SCALES = ['Auto', 'Small', 'Large'];
+
+/** Stripe widths: rows of contrast colour, out of a repeat of rows. Every repeat divides the tile's rows. */
+export const STRIPE_WIDTHS: Record<string, [on: number, period: number]> = {
+	Pinstripe: [1, 4],
+	Narrow: [2, 4],
+	Regular: [5, 16],
+	Wide: [8, 16],
+	Bold: [16, 32]
+};
+export const stripeOf = (width?: string): [on: number, period: number] => STRIPE_WIDTHS[width ?? ''] ?? STRIPE_WIDTHS.Regular;
+
+/** Whether a design's motifs are worked on the fine chart, at a stitch gauge. */
+export const isLarge = (spec: ChartSpec, gauge: number) => (spec.motifScale === 'Large' ? true : spec.motifScale === 'Small' ? false : gauge >= FINE_GAUGE);
+
+/**
+ * The chart a design is knitted from, at a stitch gauge. A custom chart is whatever size its knitter
+ * drew it (see `tileOfMotif`), at any gauge; stripes are as tall as their repeat needs.
+ */
+export function tileFor(spec: ChartSpec, gauge: number): Tile {
+	if (spec.pattern === CUSTOM_PATTERN) return tileOfMotif(spec.motif);
+	if (spec.pattern === 'Stripes') {
+		const stripe = stripeOf(spec.stripeWidth);
+		return { st: TILE_ST, rows: Math.max(TILE_ROWS, stripe[1]), fine: false, stripe };
+	}
+	if (spec.pattern === 'Solid') return STANDARD_TILE;
+	return isLarge(spec, gauge) ? FINE_TILE : STANDARD_TILE;
+}
 
 /**
  * Whether a custom chart suits the yarn: a fine chart wants a gauge of FINE_GAUGE or more, a standard
@@ -82,6 +115,52 @@ const MOTIFS: Record<string, Motif> = {
 	Chevron: motif(6, 8, '#....#', '##..##', '.####.', '..##..'),
 	Hearts: motif(6, 8, '.#.#..', '#####.', '#####.', '.###..', '..#...'),
 	Snowflakes: motif(6, 8, '#.#.#.', '.###..', '##.##.', '.###..', '#.#.#.')
+};
+
+/**
+ * The same motifs for the fine chart, twice the stitches each way, so a curve can be rounded and a line
+ * one stitch thin. Each still divides FINE_TILE exactly.
+ */
+const FINE_MOTIFS: Record<string, Motif> = {
+	Checks: motif(8, 8, '####....', '####....', '####....', '####....', '....####', '....####', '....####', '....####'),
+	Dots: motif(8, 16, '.#......', '###.....', '.#......', '', '', '', '', '', '.....#..', '....###.', '.....#..'),
+	Diamonds: motif(
+		12,
+		16,
+		'.....##.....',
+		'....#..#....',
+		'....#..#....',
+		'...#....#...',
+		'..#......#..',
+		'..#..##..#..',
+		'.#..#..#..#.',
+		'#..#....#..#',
+		'#..#....#..#',
+		'.#..#..#..#.',
+		'..#..##..#..',
+		'..#......#..',
+		'...#....#...',
+		'....#..#....',
+		'....#..#....',
+		'.....##.....'
+	),
+	Chevron: motif(12, 16, '##........##', '###......###', '.###....###.', '..###..###..', '...######...', '....####....', '.....##.....'),
+	Hearts: motif(12, 16, '.###...###..', '#####.#####.', '###########.', '###########.', '.#########..', '..#######...', '...#####....', '....###.....', '.....#......'),
+	Snowflakes: motif(
+		12,
+		16,
+		'.....#......',
+		'....###.....',
+		'..#..#..#...',
+		'...#.#.#....',
+		'.#..#.#..#..',
+		'####...####.',
+		'.#..#.#..#..',
+		'...#.#.#....',
+		'..#..#..#...',
+		'....###.....',
+		'.....#......'
+	)
 };
 
 /** Patterns a knitter can pick, in the order the designer shows them. */
@@ -142,24 +221,30 @@ function fairIsle(i: number, j: number) {
 	return j === 13 && i % 4 === 2;
 }
 
-/** true = this stitch is worked in the contrast colour. `custom` is the knitter's own chart; `tile` picks the fine Fair Isle chart. */
-export function chart(pattern: string, i: number, j: number, custom?: string, tile: Tile = tileFor(pattern, 0, custom)): boolean {
-	if (pattern === 'Stripes') return j < 5;
+/** The chart for a pattern with nothing else chosen: standard size, regular stripes. */
+const plainTile = (pattern: string, custom?: string) => tileFor({ pattern, motif: custom, motifScale: 'Small' }, 0);
+
+/** true = this stitch is worked in the contrast colour. `custom` is the knitter's own chart; `tile` (see `tileFor`) picks the fine motifs and the stripe width. */
+export function chart(pattern: string, i: number, j: number, custom?: string, tile: Tile = plainTile(pattern, custom)): boolean {
+	if (pattern === 'Stripes') {
+		const [on, period] = tile.stripe ?? stripeOf();
+		return mod(j, period) < on;
+	}
 	if (pattern === 'Fair isle') return tile.fine ? FINE_CHART[mod(j, tile.rows)][mod(i, tile.st)] : fairIsle(i, j);
 	if (pattern === CUSTOM_PATTERN) {
 		const t = tileOfMotif(custom); // the chart's own size, whatever `tile` says
 		return validMotif(custom) && custom[mod(j, t.rows) * t.st + mod(i, t.st)] === '1';
 	}
-	const m = MOTIFS[pattern];
+	const m = (tile.fine && FINE_MOTIFS[pattern]) || MOTIFS[pattern];
 	return m ? m.rows[mod(j, m.h)]?.[mod(i, m.w)] === '#' : false;
 }
 
 /** Whole tile as rows of booleans, top to bottom. */
-export const tileOf = (pattern: string, custom?: string, tile: Tile = tileFor(pattern, 0, custom)) =>
+export const tileOf = (pattern: string, custom?: string, tile: Tile = plainTile(pattern, custom)) =>
 	Array.from({ length: tile.rows }, (_, j) => Array.from({ length: tile.st }, (_, i) => chart(pattern, i, j, custom, tile)));
 
 /** Share of stitches in the contrast colour. */
-export function contrastShare(pattern: string, custom?: string, tile: Tile = tileFor(pattern, 0, custom)) {
+export function contrastShare(pattern: string, custom?: string, tile: Tile = plainTile(pattern, custom)) {
 	let on = 0;
 	for (const row of tileOf(pattern, custom, tile)) for (const c of row) on += +c;
 	return on / (tile.st * tile.rows);
@@ -169,7 +254,7 @@ export function contrastShare(pattern: string, custom?: string, tile: Tile = til
  * The longest strand carried behind the work, in stitches: the longest run of one colour in a round
  * that also uses the other. Floats past about 5 stitches snag, so the pattern says to catch them.
  */
-export function longestFloat(pattern: string, custom?: string, tile: Tile = tileFor(pattern, 0, custom)) {
+export function longestFloat(pattern: string, custom?: string, tile: Tile = plainTile(pattern, custom)) {
 	let best = 0;
 	for (const row of tileOf(pattern, custom, tile)) {
 		const n0 = row.length;

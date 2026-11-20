@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { paint } from './chartEdit';
-import { blankMotif, chart, chartFit, contrastShare, FINE_TILE, longestFloat, PATTERNS, resizeMotif, starterMotif, STANDARD_TILE, tileFor, tileOf, tileOfMotif, TILE_ROWS, TILE_ST, validMotif } from './motifs';
+import { blankMotif, chart, chartFit, contrastShare, FINE_TILE, longestFloat, PATTERNS, resizeMotif, starterMotif, STANDARD_TILE, STRIPE_WIDTHS, tileFor, tileOf, tileOfMotif, TILE_ROWS, TILE_ST, validMotif } from './motifs';
 import { estimate, isColourwork, writePattern } from './pattern';
 import { baseDesign } from './testDesigns';
 
@@ -62,8 +62,8 @@ describe('fine custom charts', () => {
 		expect(fine).toHaveLength(FINE_TILE.st * FINE_TILE.rows);
 		expect(tileOfMotif(fine)).toBe(FINE_TILE);
 		expect(tileOfMotif(starterMotif())).toBe(STANDARD_TILE);
-		expect(tileFor('Custom', 18, fine)).toBe(FINE_TILE);
-		expect(tileFor('Custom', 28, starterMotif())).toBe(STANDARD_TILE);
+		expect(tileFor({ pattern: 'Custom', motif: fine }, 18)).toBe(FINE_TILE);
+		expect(tileFor({ pattern: 'Custom', motif: starterMotif(), motifScale: 'Large' }, 28)).toBe(STANDARD_TILE);
 		expect(tileOf('Custom', fine)).toHaveLength(FINE_TILE.rows);
 		expect(validMotif('1'.repeat(100))).toBe(false);
 	});
@@ -110,5 +110,35 @@ describe('chart and yarn fit', () => {
 		expect(chartFit(starterMotif(), 28)).toBe('too-coarse');
 		expect(chartFit(starterMotif(), 22)).toBeUndefined();
 		expect(chartFit('', 28)).toBeUndefined();
+	});
+});
+
+describe('motif sizes and stripe widths', () => {
+	it('redraws every named motif for the fine chart, not just repeats the small one', () => {
+		for (const p of ['Checks', 'Dots', 'Diamonds', 'Chevron', 'Hearts', 'Snowflakes']) {
+			const small = tileOf(p, undefined, STANDARD_TILE);
+			const large = tileOf(p, undefined, FINE_TILE);
+			expect(large).toHaveLength(FINE_TILE.rows);
+			expect(large.flat().some(Boolean)).toBe(true);
+			// The fine chart's top-left 12 × 16 is not the small chart: each motif is bigger.
+			expect(large.slice(0, STANDARD_TILE.rows).map((r) => r.slice(0, STANDARD_TILE.st))).not.toEqual(small);
+		}
+	});
+
+	it('keeps every large motif seamless across the fine chart', () => {
+		// Each motif must divide the tile, so a repeat never stops part way.
+		for (const p of ['Checks', 'Dots', 'Diamonds', 'Chevron', 'Hearts', 'Snowflakes']) {
+			const t = tileOf(p, undefined, FINE_TILE);
+			expect(t.slice(0, 16)).toEqual(t.slice(16));
+		}
+	});
+
+	it('works stripes to the chosen width', () => {
+		for (const [width, [on, period]] of Object.entries(STRIPE_WIDTHS)) {
+			const tile = tileFor({ pattern: 'Stripes', stripeWidth: width }, 18);
+			const rows = tileOf('Stripes', undefined, tile).map((r) => r[0]);
+			expect(rows).toHaveLength(tile.rows);
+			expect(rows.filter(Boolean).length).toBe((on * tile.rows) / period);
+		}
 	});
 });
