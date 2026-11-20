@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { lerp } from '../mesh';
 import { stitchGauge } from '../needles';
 import { TILE_ROWS, TILE_ST, tileFor } from '../motifs';
 import type { Design, Garment, Measurements } from '../garment';
@@ -13,10 +12,6 @@ export function fabricScale(d: Design, m: Measurements) {
 	return { wraps, vOf, k: m.k };
 }
 
-export function accessoryScale(m: Measurements) {
-	return lerp(1, m.k, 0.6);
-}
-
 export type GarmentParts = {
 	fabric: THREE.BufferGeometry[];
 	ribs: { kind: string; geometry: THREE.BufferGeometry }[];
@@ -25,12 +20,31 @@ export type GarmentParts = {
 	pieces: string[];
 	whole: number[];
 	bodyWhen: (y: number) => number;
-	scale: number;
 };
+
+/**
+ * Accessories are far smaller than a top, and a scarf far longer. The viewer frames a top of `scale` 1 in about
+ * 90 × 104 world units, so the scale is chosen to make the accessory fill that frame the way a sweater does. The
+ * fuzz follows the same scale, so its fibres stay in proportion on screen.
+ */
+function frameFor(box: THREE.Box3) {
+	const size = box.getSize(new THREE.Vector3());
+	return Math.max(size.y / 70, Math.max(size.x, size.z) / 80, 0.18);
+}
 
 export function finishGarment(parts: GarmentParts): Garment {
 	const pieceIndex: Record<string, number> = {};
 	parts.pieces.forEach((name, i) => (pieceIndex[name] = i));
+	// Stand the accessory over the turntable's axis, so it turns in place and stays in frame.
+	const all = [...parts.fabric, ...parts.ribs.map((r) => r.geometry), ...(parts.trim ?? [])];
+	const bounds = new THREE.Box3();
+	for (const g of all) {
+		g.computeBoundingBox();
+		bounds.union(g.boundingBox!);
+	}
+	const mid = bounds.getCenter(new THREE.Vector3());
+	for (const g of all) g.translate(-mid.x, 0, -mid.z);
+	bounds.translate(new THREE.Vector3(-mid.x, 0, -mid.z));
 	return {
 		fabric: mergeGeometries(parts.fabric)!,
 		ribs: parts.ribs.map(({ kind, geometry }) => ({ kind, geometry })),
@@ -38,7 +52,8 @@ export function finishGarment(parts: GarmentParts): Garment {
 		holes: null,
 		seams: [],
 		bodyWhen: parts.bodyWhen,
-		scale: parts.scale,
+		scale: frameFor(bounds),
+		bounds,
 		bodyWraps: parts.wraps,
 		pieces: parts.pieces,
 		whole: parts.whole,

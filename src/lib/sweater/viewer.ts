@@ -303,7 +303,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 		if (built.holes) children.push(new THREE.Mesh(built.holes, holeMat));
 
 		// Centre the garment on the pivot.
-		const box = new THREE.Box3().setFromBufferAttribute(built.fabric.getAttribute('position') as THREE.BufferAttribute);
+		const box = built.bounds?.clone() ?? new THREE.Box3().setFromBufferAttribute(built.fabric.getAttribute('position') as THREE.BufferAttribute);
 		const mid = box.getCenter(new THREE.Vector3());
 		yield;
 		if (built.seams.length) yield* addSeams(built, solids, children);

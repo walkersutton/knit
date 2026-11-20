@@ -1,7 +1,9 @@
 <script lang="ts">
 	// The feedback form, dressed like the site's other dialogs: a cream patch with a dashed
 	// line of stitching just inside its edge.
+	import { onMount } from 'svelte';
 	import { sendFeedback } from './send';
+	import { ACTION, loadTurnstile, SITEKEY } from './turnstile';
 
 	let { id, onclose }: { id: string; onclose: () => void } = $props();
 
@@ -12,12 +14,45 @@
 	let done = $state(false);
 	let error = $state('');
 
+	// Cloudflare Turnstile: the widget hands back a single-use token, sent along with the note.
+	let challenge = $state<HTMLDivElement>();
+	let token = $state('');
+	let widget: string | undefined;
+	onMount(() => {
+		let gone = false;
+		loadTurnstile()
+			.then((turnstile) => {
+				if (gone || !challenge) return;
+				widget = turnstile.render(challenge, {
+					sitekey: SITEKEY,
+					action: ACTION,
+					theme: 'light',
+					size: 'flexible',
+					callback: (t: string) => (token = t),
+					'expired-callback': () => (token = ''),
+					'error-callback': () => {
+						token = '';
+					}
+				});
+			})
+			.catch(() => (error = "The spam check couldn't load. Please check your connection and try again."));
+		return () => {
+			gone = true;
+			if (widget !== undefined) window.turnstile?.remove(widget);
+		};
+	});
+
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
 		busy = true;
-		error = (await sendFeedback({ name, email, message })) ?? '';
+		error = (await sendFeedback({ name, email, message, turnstile: token })) ?? '';
 		busy = false;
 		done = !error;
+		// A token is good for one try: fetch a fresh one before the next.
+		if (!done && widget !== undefined && token) {
+			token = '';
+			window.turnstile?.reset(widget);
+		}
 	}
 </script>
 
@@ -48,6 +83,7 @@
 					<input type="email" bind:value={email} autocomplete="email" placeholder="If you'd like a reply" />
 				</label>
 			</div>
+			<div class="challenge" bind:this={challenge}></div>
 			{#if error}<p class="err" role="alert">{error}</p>{/if}
 			<div class="actions">
 				<button type="submit" class="send" disabled={busy}>{busy ? 'Sending…' : 'Send feedback'}</button>
@@ -180,6 +216,9 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 0 12px;
+	}
+	.challenge:not(:empty) {
+		margin: 2px 0 14px;
 	}
 	.actions {
 		display: flex;

@@ -93,6 +93,8 @@ export type Garment = {
 	bodyWhen: (y: number) => number;
 	/** Relative size of the wearer, for camera framing. */
 	scale: number;
+	/** The box to centre and frame on, when it is not the fabric's own (accessories, whose ribs and trim stand apart). */
+	bounds?: THREE.Box3;
 	/** Standard chart tiles round the body, so the front centre is at tile `bodyWraps / 2` of the body's UVs. */
 	bodyWraps: number;
 	/** Names of the knitted pieces, in the index order written into the `knit` attribute. */
