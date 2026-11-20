@@ -2,12 +2,15 @@ import { CUSTOM, standardBody } from './fit';
 import { familyOf, isTop } from './family';
 import type { Design } from './garment';
 import { PATTERNS, starterMotif, validMotif } from './motifs';
+import { footFromShoe, SHOE_SIZES } from './shoes';
 
-export type Option = { label: string; value: string | number };
+/** `hint` says what the choice means, behind the field's "?"; `group` heads it in a drop-down list. */
+export type Option = { label: string; value: string | number; hint?: string; group?: string };
 export type Field = {
 	key: keyof Design;
 	label: string;
-	kind: 'choice' | 'color';
+	/** Buttons, colour swatches, or a drop-down list for long lists of options. */
+	kind: 'choice' | 'color' | 'select';
 	options: Option[];
 	show?: (d: Design) => boolean;
 };
@@ -89,8 +92,41 @@ export const sections: Section[] = [
 				show: sock,
 				fields: [
 					{ key: 'sockLength', label: 'Length', kind: 'choice', options: opts('Ankle', 'Crew', 'Knee') },
-					{ key: 'heel', label: 'Heel', kind: 'choice', options: opts('Flap', 'Short row') },
-					{ key: 'toe', label: 'Toe', kind: 'choice', options: opts('Grafted', 'Round') }
+					{ key: 'shoeSize', label: 'Shoe size', kind: 'select', options: SHOE_SIZES },
+					{
+						key: 'heel',
+						label: 'Heel',
+						kind: 'choice',
+						options: [
+							{
+								label: 'Flap',
+								value: 'Flap',
+								hint: 'A flap knitted back and forth up the back of the heel, then turned into a cup, with stitches picked up along its sides. Hard-wearing, and roomy over a high instep. The classic heel.'
+							},
+							{
+								label: 'Short row',
+								value: 'Short row',
+								hint: 'Shaped with German short rows: turning before the end of each row to narrow the heel, then working back out to widen it again. Nothing to pick up. Quicker, with a shallower, rounder cup like a shop-bought sock. Best for lower insteps.'
+							}
+						]
+					},
+					{
+						key: 'toe',
+						label: 'Toe',
+						kind: 'choice',
+						options: [
+							{
+								label: 'Grafted',
+								value: 'Grafted',
+								hint: 'Decreases at both sides make a flat wedge, and the last stitches are grafted together with Kitchener stitch. The join is invisible and smooth against the toes. Grafting takes a little practice.'
+							},
+							{
+								label: 'Round',
+								value: 'Round',
+								hint: 'Decreases spread evenly round the toe, closer together near the end, then the last few stitches are drawn closed with the yarn. A rounded tip, with no grafting to learn.'
+							}
+						]
+					}
 				]
 			},
 			{
@@ -232,10 +268,16 @@ export function choose(d: Design, key: keyof Design, value: string | number) {
 
 export const labelOf = (field: Field, d: Design) => field.options.find((o) => o.value === d[field.key])?.label ?? String(d[field.key]);
 
+/** The bare foot a shoe size fits, as "26.5 cm / 10.4 in", or '' when no size is set. */
+export function footLabel(d: Design) {
+	const cm = footFromShoe(d.shoeSize);
+	return cm === null ? '' : `fits a ${cm} cm / ${Math.round((cm / 2.54) * 10) / 10} in foot`;
+}
+
 export const summary = (d: Design) => {
 	const family = familyOf(d);
 	if (family === 'hat') return `${d.wearer} beanie`;
-	if (family === 'sock') return `${d.wearer} socks`;
+	if (family === 'sock') return d.shoeSize ? `${d.wearer} socks, shoe size ${d.shoeSize}` : `${d.wearer} socks`;
 	if (family === 'scarf') return `${d.wearer} scarf`;
 	const size = d.size === CUSTOM && d.custom ? `Custom ${d.custom.chest} cm chest` : `${d.wearer} ${d.size}`;
 	return `${size} · ${d.construction === 'Raglan' && d.garment !== 'Slipover' ? `Raglan ${d.garment.toLowerCase()}` : d.garment}`;

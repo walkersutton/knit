@@ -66,7 +66,8 @@ describe('writePattern', () => {
 		const pair = writePattern(socks);
 		if (!pair.ok) throw new Error('expected a sock pattern');
 		expect(pair.sections.find((s) => s.id === 'heel')?.steps[0].text).toContain('German short-row heel');
-		expect(pair.sections.find((s) => s.id === 'toe')?.steps.at(-1)?.text).toContain('three-needle bind-off');
+		expect(pair.sections.find((s) => s.id === 'toe')?.steps.at(-1)?.text).toContain('pull tight to close the toe');
+		expect(pair.materials.join(' ')).toContain('stitch markers');
 		const strip = writePattern(scarf);
 		if (!strip.ok) throw new Error('expected a scarf pattern');
 		expect(strip.sections.map((s) => s.id)).toContain('fringe');
@@ -299,5 +300,49 @@ describe('slipover pattern', () => {
 		expect(c.upperSts).toBeGreaterThan(c.underarm);
 		expect(c.frontRows).toBe(c.backRows - 1);
 		if (d.hemFinish === 'Ribbed') expect(c.bodySts % RIB_REP[d.bodyRib]).toBe(0);
+	});
+});
+
+describe('sock heels, toes and legs', () => {
+	const socks = { ...baseDesign, garment: 'Socks' };
+
+	it('widens a short-row heel back out after narrowing it', () => {
+		const p = writePattern({ ...socks, heel: 'Short row' });
+		if (!p.ok) throw new Error('expected a sock pattern');
+		const heel = p.sections.find((s) => s.id === 'heel')!;
+		expect(heel.steps.map((s) => s.text).join(' ')).toMatch(/first half[\s\S]*Second half/);
+		expect(heel.steps.at(-1)?.count).toBe(heel.steps[1].count);
+	});
+
+	it('closes a round toe at four points, down to a drawn-closed tip, for every size and yarn', () => {
+		const n = (count?: string) => Number(count?.match(/\d+/)?.[0]);
+		for (const wearer of ['Adult', 'Junior', 'Kid', 'Baby'])
+			for (const gauge of [28, 22, 18, 13])
+				for (const sockRib of ['1×1', '2×2', '2×1']) {
+					const label = `${wearer} ${gauge} ${sockRib}`;
+					const p = writePattern({ ...socks, toe: 'Round', wearer, gauge, sockRib });
+					if (!p.ok) throw new Error('expected a sock pattern');
+					const steps = p.sections.find((s) => s.id === 'toe')!.steps;
+					const markers = steps.find((s) => s.text.startsWith('Place a marker'));
+					const fast = steps.find((s) => s.text.startsWith('Work the decrease round every round'));
+					const start = n(steps[0].text.startsWith('Knit one round, working k2tog') ? steps[0].count : p.sections.find((s) => s.id === 'foot')!.steps[0].count);
+					expect(start % 4, label).toBe(0);
+					// Each pair of rounds in the first step takes off 4 sts and each round of the second 4 more, down to the tip.
+					let left = start;
+					if (markers) expect(n(markers.count), label).toBe((left -= 4 * (markers.tally!.rows.length / 2)));
+					if (fast) expect(n(fast.count), label).toBe((left -= 4 * fast.tally!.rows.length));
+					expect(left, label).toBe(Math.min(8, start));
+					expect(steps.at(-1)!.text, label).toContain('pull tight to close the toe');
+				}
+	});
+
+	it('never asks for more cuff than leg', () => {
+		const p = writePattern({ ...socks, sockLength: 'Ankle', sockCuff: 'Long' });
+		if (!p.ok) throw new Error('expected a sock pattern');
+		const leg = p.sections.find((s) => s.id === 'leg')!;
+		expect(leg.steps[0].text).toContain('whole leg');
+		const cuffDepth = p.measurements.find(([k]) => k === 'Cuff depth')![1];
+		const legLength = p.measurements.find(([k]) => k === 'Leg length')![1];
+		expect(cuffDepth).toBe(legLength);
 	});
 });

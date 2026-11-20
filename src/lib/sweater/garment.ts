@@ -8,6 +8,7 @@ import { TILE_ROWS, TILE_ST, tileFor } from './motifs';
 import { buildHat } from './accessories/hat';
 import { buildSocks } from './accessories/sock';
 import { buildScarf } from './accessories/scarf';
+import { footFromShoe } from './shoes';
 
 export type Design = {
 	wearer: string;
@@ -61,6 +62,8 @@ export type Design = {
 	brimLength: string;
 	// ── Socks ───────────────────────────────────────────────────────────
 	sockLength: string;
+	/** The wearer's shoe size, e.g. 'EU 42' or 'US W 8.5' (see `shoes.ts`), or '' to size the foot from `wearer`. */
+	shoeSize: string;
 	heel: string;
 	toe: string;
 	sockRib: string;
@@ -258,11 +261,19 @@ function measureHat(d: Design): Measurements {
 	};
 }
 
+/** Socks are knitted about 4% shorter than the foot, so they hug instead of bunching at the toe. */
+const NEGATIVE_EASE = 0.96;
+
 function measureSock(d: Design): Measurements {
 	const base = accessoryBase(d);
 	const { k } = base;
-	const sockCirc = base.upperArm * 0.55;
-	const footLen = base.L * 0.45;
+	// Without a shoe size the foot follows the wearer; with one, it is knitted a little shorter than the bare foot
+	// (about 1 cm on an adult) so it hugs, and the sock is as much wider as the foot is longer.
+	const standardCirc = base.upperArm * 0.55;
+	const standardFoot = base.L * 0.45;
+	const foot = footFromShoe(d.shoeSize);
+	const footLen = foot === null ? standardFoot : foot * NEGATIVE_EASE;
+	const sockCirc = standardCirc * (footLen / standardFoot);
 	const legLen = (d.sockLength === 'Ankle' ? 8 : d.sockLength === 'Knee' ? 30 : 16) * k;
 	return {
 		...base,
@@ -275,7 +286,8 @@ function measureSock(d: Design): Measurements {
 		heelLen: footLen * 0.3,
 		toeLen: footLen * 0.22,
 		sockCirc,
-		cuffLen: ribDepth(d.sockCuff) * k
+		// The cuff is part of the leg: on a short ankle sock a long cuff ribs the whole leg, and no more.
+		cuffLen: Math.min(ribDepth(d.sockCuff) * k, legLen)
 	};
 }
 

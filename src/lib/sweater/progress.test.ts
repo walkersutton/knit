@@ -132,7 +132,8 @@ describe('knittedOf', () => {
 		const first = tasks.filter((t) => t.pass === 0);
 		const firstPass = (n: number) => Object.fromEntries(first.slice(0, n).map((t) => [t.key, t.total]));
 		const beforeFoot = knittedOf(sections, firstPass(first.findIndex((t) => t.section === 'foot')))!;
-		expect(beforeFoot.parts.sock1).toBeGreaterThan(0.5);
+		// Cuff, leg and heel are a little under half a crew sock's length.
+		expect(beforeFoot.parts.sock1).toBeGreaterThan(0.4);
 		expect(beforeFoot.parts.sock1).toBeLessThan(1);
 		expect(beforeFoot.parts.sock2).toBe(-1);
 		const both = knittedOf(sections, upTo(tasks.length))!;
@@ -174,7 +175,7 @@ describe('signature', () => {
 	});
 
 	it('keeps an old top\'s place when accessory fields are added, but follows accessory choices', () => {
-		const accessoryFields = new Set(['hatLength', 'crown', 'pomPom', 'brimFinish', 'brimRib', 'brimLength', 'sockLength', 'heel', 'toe', 'sockRib', 'sockCuff', 'scarfWidth', 'scarfLength', 'scarfEnds', 'fringe']);
+		const accessoryFields = new Set(['hatLength', 'crown', 'pomPom', 'brimFinish', 'brimRib', 'brimLength', 'sockLength', 'shoeSize', 'heel', 'toe', 'sockRib', 'sockCuff', 'scarfWidth', 'scarfLength', 'scarfEnds', 'fringe']);
 		const oldTop = Object.fromEntries(Object.entries(baseDesign).filter(([key]) => !accessoryFields.has(key)));
 		expect(signature(oldTop as typeof baseDesign)).toBe(signature(baseDesign));
 		const hat = { ...baseDesign, garment: 'Beanie' };

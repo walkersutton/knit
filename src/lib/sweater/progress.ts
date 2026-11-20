@@ -133,7 +133,7 @@ export function progressAt(tasks: Task[], key: string, p: Progress = {}): Progre
  * they do not change the steps, so recolouring a sweater keeps your place. The main needle only
  * counts when it is not the standard one, which changes the gauge and every stitch count.
  */
-const ACCESSORY_FIELDS = new Set(['hatLength', 'crown', 'pomPom', 'brimFinish', 'brimRib', 'brimLength', 'sockLength', 'heel', 'toe', 'sockRib', 'sockCuff', 'scarfWidth', 'scarfLength', 'scarfEnds', 'fringe']);
+const ACCESSORY_FIELDS = new Set(['hatLength', 'crown', 'pomPom', 'brimFinish', 'brimRib', 'brimLength', 'sockLength', 'shoeSize', 'heel', 'toe', 'sockRib', 'sockCuff', 'scarfWidth', 'scarfLength', 'scarfEnds', 'fringe']);
 const TOP_FIELDS = new Set(['construction', 'bodyLength', 'sleeveLength', 'neckline', 'sleeveShape', 'hemFinish', 'bodyRib', 'bodyRibLength', 'slits', 'neckRib', 'neckDepth', 'cuffFinish', 'sleeveRib', 'cuffLength', 'centerpiece', 'centerpieceY', 'centerpieceAt']);
 
 export const signature = (d: Design) => {
@@ -141,7 +141,7 @@ export const signature = (d: Design) => {
 	const unrelated = familyOf(d) === 'top' ? ACCESSORY_FIELDS : TOP_FIELDS;
 	return Object.entries(d)
 		// Custom measurements only count while they are in use; switching back to a size leaves them out.
-		.filter(([key, value]) => !unrelated.has(key) && key !== 'color' && key !== 'contrast' && key !== 'ribNeedle' && (key !== 'motif' || d.pattern === 'Custom') && ((key !== 'centerpieceY' && key !== 'centerpieceAt') || d.centerpiece !== '') && (key !== 'needle' || value) && (key !== 'custom' || d.size === 'Custom'))
+		.filter(([key, value]) => !unrelated.has(key) && key !== 'color' && key !== 'contrast' && key !== 'ribNeedle' && (key !== 'motif' || d.pattern === 'Custom') && ((key !== 'centerpieceY' && key !== 'centerpieceAt') || d.centerpiece !== '') && (key !== 'needle' || value) && (key !== 'shoeSize' || value) && (key !== 'custom' || d.size === 'Custom'))
 		.sort(([a], [b]) => a.localeCompare(b))
 		.map(([key, value]) => `${key}=${key === 'custom' ? JSON.stringify(value) : value}`)
 		.join('|');

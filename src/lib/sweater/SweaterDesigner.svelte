@@ -20,7 +20,8 @@
 	import { NEEDLES, mainSizes, needleLabel, pickNeedles } from '$lib/sweater/needles';
 		import Needles from '$lib/sweater/Needles.svelte';
 	import Measurements from '$lib/sweater/Measurements.svelte';
-	import { labelOf, sections, summary, visible } from '$lib/sweater/options';
+	import Help from '$lib/sweater/Help.svelte';
+	import { footLabel, labelOf, sections, summary, visible } from '$lib/sweater/options';
 	import { centerpieceBox, estimate, writePattern } from '$lib/sweater/pattern';
 	import PatternView from '$lib/sweater/PatternView.svelte';
 	import Notes from '$lib/sweater/Notes.svelte';
@@ -98,7 +99,8 @@
 
 	function apply({ design: next, chart, centerpiece }: Incoming) {
 		if (next) {
-			design = next;
+			// Designs saved before a field existed take its default.
+			design = { ...DEFAULT_DESIGN, ...next };
 		}
 		if (chart) {
 			design.pattern = CUSTOM_PATTERN;
@@ -210,7 +212,7 @@
 								<h2>{group.label}</h2>
 								{#each fields as field (field.key)}
 									<div class="field">
-										<div class="label"><span>{field.label}</span>{#if field.kind === 'color'}<em>{labelOf(field, design)}</em>{/if}</div>
+										<div class="label"><span>{field.label}{#if field.options.some((o) => o.hint)}<Help {field} />{/if}</span>{#if field.kind === 'color'}<em>{labelOf(field, design)}</em>{:else if field.key === 'shoeSize'}<em>{footLabel(design)}</em>{/if}</div>
 										{#if field.key === 'pattern'}
 											<PatternChoice bind:design onedit={onEditChart} />
 										{:else}

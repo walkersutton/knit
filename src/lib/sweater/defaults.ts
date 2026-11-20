@@ -38,6 +38,7 @@ export const DEFAULT_DESIGN: Design = {
 	brimRib: '1×1',
 	brimLength: 'Regular',
 	sockLength: 'Crew',
+	shoeSize: '',
 	heel: 'Flap',
 	toe: 'Grafted',
 	sockRib: '1×1',

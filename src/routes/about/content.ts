@@ -20,7 +20,7 @@ export const faq = [
 	},
 	{
 		q: 'What can I design?',
-		a: `Garment types: ${list('garment')}. Made for: ${list('wearer')}. Tops: sizes ${list('size')}, fit ${list('fit')}, body length ${list('bodyLength')}, ${list('neckline')} necklines and ${list('sleeveLength')} sleeves in ${list('sleeveShape')} shapes. Finishes: ${list('hemFinish')}. Beanies: ${list('hatLength')} depth, ${list('crown')} crown and an optional ${list('pomPom')}. Socks: ${list('sockLength')} length, ${list('heel')} heel and ${list('toe')} toe. Scarves: ${list('scarfWidth')} width, ${list('scarfLength')} length, ${list('scarfEnds')} ends and ${list('fringe')} fringe. Fabric: ${list('pattern')}, in ${colors.length} colours.`
+		a: `Garment types: ${list('garment')}. Made for: ${list('wearer')}. Tops: sizes ${list('size')}, fit ${list('fit')}, body length ${list('bodyLength')}, ${list('neckline')} necklines and ${list('sleeveLength')} sleeves in ${list('sleeveShape')} shapes. Finishes: ${list('hemFinish')}. Beanies: ${list('hatLength')} depth, ${list('crown')} crown and an optional ${list('pomPom')}. Socks: ${list('sockLength')} length, ${list('heel')} heel and ${list('toe')} toe, sized from the wearer's shoe size (EU, UK or US) if you give one. Scarves: ${list('scarfWidth')} width, ${list('scarfLength')} length, ${list('scarfEnds')} ends and ${list('fringe')} fringe. Fabric: ${list('pattern')}, in ${colors.length} colours.`
 	},
 	{
 		q: 'Which designs come with a written pattern?',
@@ -109,6 +109,7 @@ export const defaultDesign: Design = {
 	brimRib: '1×1',
 	brimLength: 'Regular',
 	sockLength: 'Crew',
+	shoeSize: '',
 	heel: 'Flap',
 	toe: 'Grafted',
 	sockRib: '1×1',

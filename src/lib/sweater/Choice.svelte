@@ -1,8 +1,19 @@
 <script lang="ts">
 	import type { Design } from './garment';
-	import { choose, type Field } from './options';
+	import { choose, type Field, type Option } from './options';
 
 	let { field, design = $bindable() }: { field: Field; design: Design } = $props();
+
+	/** Options under their group headings, in order; ungrouped options come first. */
+	const grouped = $derived.by(() => {
+		const out: { group?: string; options: Option[] }[] = [];
+		for (const o of field.options) {
+			const last = out.at(-1);
+			if (last && last.group === o.group) last.options.push(o);
+			else out.push({ group: o.group, options: [o] });
+		}
+		return out;
+	});
 </script>
 
 {#if field.kind === 'color'}
@@ -11,6 +22,22 @@
 			<button type="button" class="swatch" role="radio" aria-checked={design[field.key] === o.value} aria-label={o.label} title={o.label} style:--c={String(o.value)} onclick={() => choose(design, field.key, o.value)}></button>
 		{/each}
 	</div>
+{:else if field.kind === 'select'}
+	<select aria-label={field.label} value={design[field.key]} onchange={(e) => choose(design, field.key, e.currentTarget.value)}>
+		{#each grouped as { group, options }}
+			{#if group}
+				<optgroup label={group}>
+					{#each options as o (o.value)}
+						<option value={o.value}>{o.label}</option>
+					{/each}
+				</optgroup>
+			{:else}
+				{#each options as o (o.value)}
+					<option value={o.value}>{o.label}</option>
+				{/each}
+			{/if}
+		{/each}
+	</select>
 {:else}
 	<div class="segment" class:thirds={field.options.length === 6} role="radiogroup" aria-label={field.label}>
 		{#each field.options as o}
@@ -22,6 +49,23 @@
 {/if}
 
 <style>
+	select {
+		width: 100%;
+		height: 38px;
+		padding: 0 10px;
+		border: 1.5px solid var(--line-strong);
+		border-radius: var(--radius);
+		background: var(--surface);
+		color: var(--ink);
+		font: inherit;
+		font-size: 14px;
+		cursor: pointer;
+	}
+	select:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 1px;
+	}
+
 	.segment {
 		display: flex;
 		flex-wrap: wrap;

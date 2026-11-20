@@ -166,7 +166,7 @@ function writeSocks(d: Design, m: Measurements): Pattern {
 	const heelSts = Math.max(8, toMult(Math.round(castOn * 0.5), 2));
 	const toeEnd = Math.max(8, toMult(Math.round(castOn * 0.25), 2));
 	const heelRows = Math.max(4, Math.round(heelLen * m.rowPerCm));
-	const legRows = Math.max(6, Math.round(legLen * m.rowPerCm));
+	const legRows = Math.max(6, Math.round((legLen - cuffLen) * m.rowPerCm));
 	const footRows = Math.max(8, Math.round((footLen - heelLen * 0.4 - toeLen) * m.rowPerCm));
 	const toeRows = Math.max(3, Math.round(toeLen * m.rowPerCm / 2));
 	const twice: [string, string] = ['First sock', 'Second sock'];
@@ -176,41 +176,88 @@ function writeSocks(d: Design, m: Measurements): Pattern {
 		{ text: `Cast on ${sts(castOn)} with the smaller needle. Join to knit in the round, taking care not to twist.`, count: sts(castOn) },
 		{ text: `Work in ${rib.name} (${rib.work}) for ${len(cuffLen)}.`, count: sts(castOn), tally: tally('Round', 1, Math.max(4, Math.round(cuffLen * m.rowPerCm)), 'Rib round'), adds: cuffLen, tip: `This cuff is worked first at the top, so the sock grows down towards the toe.` }
 	];
-	const leg: Step[] = [
-		{ text: `Change to the main needle and knit every round until the leg measures ${len(legLen)} from the cast-on.`, count: sts(castOn), tally: tally('Round', 1, legRows, 'Knit round'), adds: legLen },
-		...note
-	];
+	// When the cuff takes up the whole leg (a long cuff on an ankle sock) there is no plain leg to knit.
+	const plainLeg = legLen - cuffLen;
+	const leg: Step[] =
+		plainLeg >= 1 * m.k
+			? [
+					{ text: `Change to the main needle and knit every round until the leg measures ${len(legLen)} from the cast-on.`, count: sts(castOn), tally: tally('Round', 1, legRows, 'Knit round'), adds: plainLeg },
+					...note
+				]
+			: [{ text: `The rib makes up the whole leg of this sock. Change to the main needle for the heel.`, count: sts(castOn) }, ...note];
+	const heelMid = Math.max(4, toMult(Math.round(heelSts / 3), 2));
+	const heelPairs = Math.max(2, (heelSts - heelMid) / 2);
 	const heel: Step[] =
 		d.heel === 'Short row'
 			? [
 					{
-						text: `Work a German short-row heel over the centre ${sts(heelSts)}: knit to the last st of the heel, turn, bring the yarn over the needle to make a double st, then knit back. Continue working one fewer st each end of the heel until ${sts(Math.ceil(heelSts / 3))} remain in the middle.`,
-						tally: tally('Row', 1, Math.max(4, Math.round(heelSts / 2)), 'Short row'),
-						adds: heelLen,
-						tip: `A double st looks like two legs on one stitch: slip it purlwise with the yarn in front, then pull the yarn over the needle to the back. Treat both legs as one st when you knit it.`
+						text: `German short-row heel, first half. Work back and forth over the centre ${sts(heelSts)} only. Row 1 (RS): knit across the heel sts, turn. Row 2 (WS): MDS, purl to the end of the heel sts, turn. Row 3: MDS, knit to the double st, turn. Row 4: MDS, purl to the double st, turn. Repeat rows 3 and 4 until ${sts(heelMid)} remain between the double sts in the middle, with ${heelPairs} double sts on each side.`,
+						tally: tally('Row', 1, heelPairs * 2, 'Short row'),
+						adds: heelLen / 2,
+						tip: `A double st looks like two legs on one stitch. Treat both legs as one st whenever you knit or purl it.`
 					},
-					{ text: `Knit back across all the heel stitches, picking up the double sts as you come to them.`, count: sts(heelSts) }
+					{ text: `Knit one round over all the sts, knitting each double st as one st.`, count: sts(castOn), tally: tally('Round', 1, 1, 'Knit round') },
+					{
+						text: `Second half, over the heel sts again. Row 1 (RS): knit to the end of the ${sts(heelMid)} in the middle, knit 1 more, turn. Row 2 (WS): MDS, purl to the end of the middle sts, purl 1 more, turn. Row 3: MDS, knit to the double st, knit it as one st, knit 1 more, turn. Row 4: MDS, purl to the double st, purl it as one st, purl 1 more, turn. Repeat rows 3 and 4 until every heel st has been worked again.`,
+						tally: tally('Row', 1, heelPairs * 2, 'Short row'),
+						adds: heelLen / 2,
+						tip: `This half widens the heel again, so the cup it makes fits round the back of the heel.`
+					},
+					{ text: `Go back to knitting in the round, knitting the last double st as one st when you reach it.`, count: sts(castOn) }
 				]
 			: [
-					{ text: `Slip the centre ${sts(heelSts)} onto a holder. Work the heel flap back and forth over these sts in stockinette for ${len(heelLen)}, ending with a WS row.`, count: sts(heelSts), tally: tally('Row', 1, heelRows, 'Heel row'), adds: heelLen },
+					{ text: `Put the instep sts (the other ${sts(castOn - heelSts)}) on a holder. Work the heel flap back and forth over the centre ${sts(heelSts)} at the back in stockinette for ${len(heelLen)}, ending with a WS row.`, count: sts(heelSts), tally: tally('Row', 1, heelRows, 'Heel row'), adds: heelLen },
 					{ text: `Turn the heel: knit to the centre st, then decrease one st at each end of every row until ${sts(Math.ceil(heelSts / 3))} remain.`, count: sts(Math.ceil(heelSts / 3)), tally: tally('Row', 1, Math.max(3, Math.round(heelSts / 4)), 'Heel turn row'), tip: `This makes a little cup that fits around the back of the heel.` }
 				];
 	const foot: Step[] = [
 		{ text: `Pick up ${sts(Math.ceil(heelSts / 2))} sts along one side of the heel. Knit across the instep, pick up the same number on the other side, then knit across the heel.`, count: sts(castOn + Math.ceil(heelSts) - heelSts), tip: `Pick up into the purl bumps along the heel flap edge; that hides the picks on the inside.` },
 		{ text: `Knit every round until the foot measures ${len(footLen - toeLen)} from the back of the heel.`, tally: tally('Round', 1, footRows, 'Knit round'), adds: footLen - toeLen }
 	];
-	const toe: Step[] = [
-		{
-			text: `Toe decreases: *k1, ssk, knit to 3 sts before the end of the round, k2tog, k1; rep from * every other round until ${sts(toeEnd)} remain.`,
-			count: sts(toeEnd),
-			tally: tally('Round', 1, toeRows, 'Decrease round'),
-			adds: toeLen,
-			tip: `Two decreases on each side keep the toe a smooth oval.`
-		},
+	// A round toe decreases at four points evenly round the sock, so the stitches must divide by 4. A very small sock
+	// may already be down to the last few stitches.
+	const roundExtra = castOn % 4;
+	const roundSts = castOn - roundExtra;
+	const tipSts = Math.min(8, roundSts);
+	const roundDecs = (roundSts - tipSts) / 4;
+	const roundHalf = Math.min(roundDecs, Math.max(1, Math.round(roundSts / 8)));
+	const roundEvery = roundDecs - roundHalf;
+	const toe: Step[] =
 		d.toe === 'Grafted'
-			? { text: `Graft the remaining sts together with Kitchener stitch, then weave in the ends.`, tip: `Cut a tail at least 20 cm long for grafting: threading a short one through every stitch is fiddly.` }
-			: { text: `Knit one more round, then use a three-needle bind-off to close the toe. Weave in the ends.` }
-	];
+			? [
+					{
+						text: `Toe decreases: *k1, ssk, knit to 3 sts before the end of the round, k2tog, k1; rep from * every other round until ${sts(toeEnd)} remain.`,
+						count: sts(toeEnd),
+						tally: tally('Round', 1, toeRows, 'Decrease round'),
+						adds: toeLen,
+						tip: `Two decreases on each side make a flat wedge, the shape of the toes.`
+					},
+					{ text: `Graft the remaining sts together with Kitchener stitch, then weave in the ends.`, tip: `Cut a tail at least 20 cm long for grafting: threading a short one through every stitch is fiddly.` }
+				]
+			: [
+					...(roundExtra ? [{ text: `Knit one round, working k2tog ${roundExtra === 1 ? 'once' : `${roundExtra} times, spaced out,`} so ${sts(roundSts)} remain.`, count: sts(roundSts) }] : []),
+					...(roundHalf
+						? [
+								{
+									text: `Place a marker after every ${roundSts / 4} sts (4 markers). Decrease round: *knit to 2 sts before the marker, k2tog; rep from * around (4 sts decreased). Work a decrease round, then a plain knit round, ${roundHalf} times.`,
+									count: sts(roundSts - 4 * roundHalf),
+									tally: tally('Round', 1, roundHalf * 2, 'Toe round'),
+									adds: roundEvery ? toeLen * 0.55 : toeLen
+								}
+							]
+						: []),
+					...(roundEvery
+						? [
+								{
+									text: `Work the decrease round every round until ${sts(tipSts)} remain.`,
+									count: sts(tipSts),
+									tally: tally('Round', 1, roundEvery, 'Decrease round'),
+									adds: toeLen * 0.45,
+									tip: `Decreasing faster at the end rounds the tip off, like a dome.`
+								}
+							]
+						: []),
+					{ text: `Cut the yarn, leaving a 15 cm tail. Thread it through the last ${sts(tipSts)}, pull tight to close the toe, and weave in the end on the inside.` }
+				];
 	const finish = finishing(`Wet block the socks flat, shaping the heels and toes gently, and weave in any loose ends.`);
 
 	return {
@@ -221,9 +268,10 @@ function writeSocks(d: Design, m: Measurements): Pattern {
 		yokeFront: [],
 		title: `${d.sockLength.toLowerCase()} socks, ${d.heel.toLowerCase()} heel and ${d.toe.toLowerCase()} toe`,
 		level: estimate(d).level,
-		materials: materialsOf(d, m, 'Tapestry needle; stitch holder for the heel; a second needle for the three-needle bind-off if needed.'),
+		materials: materialsOf(d, m, ['Tapestry needle', d.toe === 'Round' && 'stitch markers', d.heel === 'Flap' && 'stitch holder for the instep while you work the heel'].filter(Boolean).join('; ') + '.'),
 		gauge: gaugeText(m, false),
 		measurements: [
+			...(d.shoeSize ? [['Shoe size', d.shoeSize] as [string, string]] : []),
 			['Leg circumference', len(circ)],
 			['Leg length', len(legLen)],
 			['Foot length', len(footLen)],

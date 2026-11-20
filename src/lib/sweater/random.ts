@@ -85,6 +85,7 @@ export function randomDesign(rnd: () => number = Math.random): Design {
 		brimRib: rib(),
 		brimLength: length(),
 		sockLength: pick(['Ankle', 'Crew', 'Knee']),
+		shoeSize: '',
 		heel: pick(['Flap', 'Short row']),
 		toe: pick(['Grafted', 'Round']),
 		sockRib: rib(),
