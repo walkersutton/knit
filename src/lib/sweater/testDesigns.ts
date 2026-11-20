@@ -10,7 +10,10 @@ export const baseDesign: Design = {
 	sleeveLength: 'Full', neckline: 'Crew', sleeveShape: 'Straight', hemFinish: 'Ribbed', bodyRib: '1×1',
 	bodyRibLength: 'Regular', slits: 'None', neckRib: '1×1', neckDepth: 'Regular', cuffFinish: 'Ribbed',
 	sleeveRib: '1×1', cuffLength: 'Regular', pattern: 'Solid', motif: '', centerpiece: '', centerpieceY: 0.25, centerpieceAt: 'Centre', color: '#465e9d', contrast: '#faf3dc', gauge: 18,
-	needle: 0, ribNeedle: 0
+	needle: 0, ribNeedle: 0,
+	hatLength: 'Slouchy', crown: 'Spiral', pomPom: 'None', brimFinish: 'Ribbed', brimRib: '1×1', brimLength: 'Regular',
+	sockLength: 'Crew', heel: 'Flap', toe: 'Grafted', sockRib: '1×1', sockCuff: 'Regular',
+	scarfWidth: 'Regular', scarfLength: 'Regular', scarfEnds: 'Plain', fringe: 'None'
 };
 
 const RIBS = ['1×1', '2×2', '2×1', 'Twisted', 'Stockinette'];
@@ -19,7 +22,7 @@ const LENGTHS = ['Short', 'Regular', 'Long'];
 
 export const choices: Partial<Record<keyof Design, (string | number)[]>> = {
 	wearer: ['Adult', 'Junior', 'Kid', 'Baby'],
-	garment: ['Sweater', 'T-shirt', 'Slipover', 'Cardigan'],
+	garment: ['Sweater', 'T-shirt', 'Slipover', 'Cardigan', 'Beanie', 'Socks', 'Scarf'],
 	construction: ['Raglan', 'Set-in'],
 	size: ['XS', 'S', 'M', 'L', 'XL'],
 	fit: ['Fitted', 'Relaxed', 'Oversized'],
@@ -36,6 +39,21 @@ export const choices: Partial<Record<keyof Design, (string | number)[]>> = {
 	cuffFinish: FINISHES,
 	sleeveRib: RIBS,
 	cuffLength: LENGTHS,
+	hatLength: ['Snug', 'Slouchy'],
+	crown: ['Spiral', 'Gathered'],
+	pomPom: ['None', 'Pom-pom'],
+	brimFinish: ['Ribbed', 'Folded', 'Rolled'],
+	brimRib: RIBS,
+	brimLength: LENGTHS,
+	sockLength: ['Ankle', 'Crew', 'Knee'],
+	heel: ['Flap', 'Short row'],
+	toe: ['Grafted', 'Round'],
+	sockRib: RIBS,
+	sockCuff: LENGTHS,
+	scarfWidth: ['Narrow', 'Regular', 'Wide'],
+	scarfLength: ['Short', 'Regular', 'Long'],
+	scarfEnds: ['Plain', 'Ribbed'],
+	fringe: ['None', 'Short', 'Long'],
 	pattern: PATTERNS.filter((p) => p !== 'Custom'),
 	gauge: [28, 22, 18, 13]
 };

@@ -30,5 +30,20 @@ export const DEFAULT_DESIGN: Design = {
 	contrast: '#faf3dc',
 	gauge: 18,
 	needle: 0,
-	ribNeedle: 0
+	ribNeedle: 0,
+	hatLength: 'Slouchy',
+	crown: 'Spiral',
+	pomPom: 'None',
+	brimFinish: 'Ribbed',
+	brimRib: '1×1',
+	brimLength: 'Regular',
+	sockLength: 'Crew',
+	heel: 'Flap',
+	toe: 'Grafted',
+	sockRib: '1×1',
+	sockCuff: 'Regular',
+	scarfWidth: 'Regular',
+	scarfLength: 'Regular',
+	scarfEnds: 'Plain',
+	fringe: 'None'
 };

@@ -1,8 +1,13 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { ARM_SHARE, CUSTOM, sizeStep, wearerScale, type Custom } from './fit';
+import { familyOf } from './family';
+import { lerp, mirrorX, knitAt, roll, se, sheet, smooth, TAU, wob, type PosFn } from './mesh';
 import { stitchGauge } from './needles';
 import { TILE_ROWS, TILE_ST, tileFor } from './motifs';
+import { buildHat } from './accessories/hat';
+import { buildSocks } from './accessories/sock';
+import { buildScarf } from './accessories/scarf';
 
 export type Design = {
 	wearer: string;
@@ -44,6 +49,27 @@ export type Design = {
 	needle: number;
 	/** Ribbing needle in mm when it is not the usual one for the main needle (0). */
 	ribNeedle: number;
+	// ── Beanie ──────────────────────────────────────────────────────────
+	/** Hat depth: a close-fitting beanie or a slouchy one. */
+	hatLength: string;
+	/** Crown shaping: decreases spread evenly, or gathered into a top knot. */
+	crown: string;
+	/** 'Pom-pom' adds a ball of yarn at the top. */
+	pomPom: string;
+	brimFinish: string;
+	brimRib: string;
+	brimLength: string;
+	// ── Socks ───────────────────────────────────────────────────────────
+	sockLength: string;
+	heel: string;
+	toe: string;
+	sockRib: string;
+	sockCuff: string;
+	// ── Scarf ───────────────────────────────────────────────────────────
+	scarfWidth: string;
+	scarfLength: string;
+	scarfEnds: string;
+	fringe: string;
 };
 
 /** The pieces a knitter works one after another; the first value of the `knit` vertex attribute. */
@@ -69,6 +95,12 @@ export type Garment = {
 	scale: number;
 	/** Standard chart tiles round the body, so the front centre is at tile `bodyWraps / 2` of the body's UVs. */
 	bodyWraps: number;
+	/** Names of the knitted pieces, in the index order written into the `knit` attribute. */
+	pieces: string[];
+	/** `when` that shows each piece whole. */
+	whole: number[];
+	/** Index of a named piece in `pieces`, or -1 when the garment has no such piece. */
+	pieceIndex: Record<string, number>;
 };
 
 /** Everything that changes the mesh (colour and pattern only change the textures). */
@@ -81,6 +113,12 @@ export const shapeKey = (d: Design) => {
 /** Rib depth in cm (adult) for the 'Rib length' choice. */
 const ribDepth = (len: string) => (len === 'Short' ? 3 : len === 'Long' ? 10 : 6);
 
+/** How a flat half-chest measurement sits on a body: its share across, and front to back. */
+const WORN_W = 0.7;
+const WORN_D = 0.54;
+/** Sharpness of the blend where sleeve meets body: lower is a softer, wider fillet. */
+const BLEND = 6;
+
 /**
  * Finished measurements (cm) for a design. The 3D model and the written pattern both read from here,
  * so the pattern always describes the garment the viewer shows.
@@ -88,7 +126,7 @@ const ribDepth = (len: string) => (len === 'Short' ? 3 : len === 'Long' ? 10 : 6
  * Heights are measured up from the hem (0) to the back of the neck (L). Body widths and depths are
  * half-measurements: W is half the chest width, D half the chest depth (front to back).
  */
-export function measure(d: Design) {
+export function measureTop(d: Design) {
 	// ── Wearer and size ─────────────────────────────────────────────────
 	// Custom measurements stand in for both: the proportions scale with the chest instead of the wearer.
 	const c = d.size === CUSTOM ? d.custom : null;
@@ -173,116 +211,119 @@ export function measure(d: Design) {
 	};
 }
 
-const TAU = Math.PI * 2;
-/** How a flat half-chest measurement sits on a body: its share across, and front to back. */
-const WORN_W = 0.7;
-const WORN_D = 0.54;
-/** Sharpness of the blend where sleeve meets body: lower is a softer, wider fillet. */
-const BLEND = 6;
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-const smooth = (a: number, b: number, x: number) => {
-	const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-	return t * t * (3 - 2 * t);
+type TopMeasures = ReturnType<typeof measureTop>;
+/** One measurement object for every family. Accessory-only fields are optional so top callers stay simple. */
+export type Measurements = TopMeasures & {
+	head?: number;
+	hatH?: number;
+	brimH?: number;
+	crownH?: number;
+	pom?: boolean;
+	legLen?: number;
+	footLen?: number;
+	heelLen?: number;
+	toeLen?: number;
+	sockCirc?: number;
+	cuffLen?: number;
+	scarfW?: number;
+	scarfL?: number;
+	fringeLen?: number;
 };
-/** Superellipse coordinate: e = 2 is a circle, larger is boxier. */
-const se = (c: number, e: number) => Math.sign(c) * Math.pow(Math.abs(c), 2 / e);
 
-/** Cheap smooth noise in -1..1, for uneven cloth. */
-const wob = (x: number, y: number, z: number) =>
-	(Math.sin(x * 1.7 + y * 0.9 + 1.3) * Math.sin(y * 1.3 - z * 1.1 + 0.4) + Math.sin(x * 0.6 - z * 1.9 + 2.1) * Math.sin(y * 2.3 + x * 0.8) * 0.6) / 1.6;
-
-type PosFn = (i: number, j: number, out: THREE.Vector3) => void;
-
-type TintFn = (i: number, j: number, p: THREE.Vector3) => number;
-
-/** A (cols × rows) quad sheet. `center` gives a point "inside" each vertex so faces can be wound outward; `tint` bakes soft shading into vertex colours. */
-function sheet(cols: number, rows: number, pos: PosFn, uv: (i: number, j: number) => [number, number], center: PosFn, closed = true, tint?: TintFn) {
-	const stride = cols + 1;
-	const P = new Float32Array(stride * (rows + 1) * 3);
-	const U = new Float32Array(stride * (rows + 1) * 2);
-	const C = new Float32Array(stride * (rows + 1) * 3).fill(1);
-	const v = new THREE.Vector3();
-	for (let j = 0; j <= rows; j++)
-		for (let i = 0; i <= cols; i++) {
-			const k = j * stride + i;
-			pos(i, j, v);
-			P.set([v.x, v.y, v.z], k * 3);
-			U.set(uv(i, j), k * 2);
-			if (tint) C.fill(Math.min(1.08, Math.max(0.35, tint(i, j, v))), k * 3, k * 3 + 3);
-		}
-	const idx: number[] = [];
-	for (let j = 0; j < rows; j++)
-		for (let i = 0; i < cols; i++) {
-			const a = j * stride + i;
-			idx.push(a, a + stride, a + 1, a + 1, a + stride, a + stride + 1);
-		}
-	const g = new THREE.BufferGeometry();
-	g.setAttribute('position', new THREE.BufferAttribute(P, 3));
-	g.setAttribute('uv', new THREE.BufferAttribute(U, 2));
-	g.setAttribute('color', new THREE.BufferAttribute(C, 3));
-	g.setIndex(idx);
-	g.computeVertexNormals();
-	const n = g.getAttribute('normal') as THREE.BufferAttribute;
-	if (closed)
-		for (let j = 0; j <= rows; j++) {
-			const a = j * stride;
-			const b = a + cols;
-			v.set(n.getX(a) + n.getX(b), n.getY(a) + n.getY(b), n.getZ(a) + n.getZ(b)).normalize();
-			n.setXYZ(a, v.x, v.y, v.z);
-			n.setXYZ(b, v.x, v.y, v.z);
-		}
-	// Wind faces outward.
-	let facing = 0;
-	const c = new THREE.Vector3();
-	for (let j = 0; j <= rows; j += 2)
-		for (let i = 0; i <= cols; i += 3) {
-			const k = j * stride + i;
-			center(i, j, c);
-			facing += (P[k * 3] - c.x) * n.getX(k) + (P[k * 3 + 1] - c.y) * n.getY(k) + (P[k * 3 + 2] - c.z) * n.getZ(k);
-		}
-	if (facing < 0) flip(g);
-	return g;
+/** The gauge, wearer scale and stitch sizes are the same for every garment; only the shape changes. */
+function accessoryBase(d: Design): TopMeasures {
+	return measureTop({ ...d, garment: 'Sweater' });
 }
 
-/** Tags a geometry with the piece it belongs to and when it is knitted: one value, or one per row of a sheet `cols` wide. */
-function knitAt(g: THREE.BufferGeometry, piece: number, when: number | ((row: number) => number), cols = 0) {
-	const n = g.getAttribute('position').count;
-	const K = new Float32Array(n * 2);
-	for (let k = 0; k < n; k++) K.set([piece, typeof when === 'number' ? when : when(Math.floor(k / (cols + 1)))], k * 2);
-	g.setAttribute('knit', new THREE.BufferAttribute(K, 2));
-	return g;
+function measureHat(d: Design): Measurements {
+	const base = accessoryBase(d);
+	const { k } = base;
+	const head = base.chest * 0.56;
+	const brimH = d.brimFinish === 'Rolled' ? 0.8 * k : d.brimFinish === 'Folded' ? 5 * k : ribDepth(d.brimLength) * k;
+	const hatH = (d.hatLength === 'Snug' ? 19 : 26) * k;
+	const crownH = hatH * (d.crown === 'Gathered' ? 0.28 : 0.45);
+	return {
+		...base,
+		chest: head,
+		L: brimH + hatH,
+		hasSleeves: false,
+		raglan: false,
+		head,
+		hatH,
+		brimH,
+		crownH,
+		pom: d.pomPom === 'Pom-pom'
+	};
 }
 
-function flip(g: THREE.BufferGeometry) {
-	const idx = g.getIndex()!;
-	for (let k = 0; k < idx.count; k += 3) {
-		const a = idx.getX(k);
-		idx.setX(k, idx.getX(k + 1));
-		idx.setX(k + 1, a);
+function measureSock(d: Design): Measurements {
+	const base = accessoryBase(d);
+	const { k } = base;
+	const sockCirc = base.upperArm * 0.55;
+	const footLen = base.L * 0.45;
+	const legLen = (d.sockLength === 'Ankle' ? 8 : d.sockLength === 'Knee' ? 30 : 16) * k;
+	return {
+		...base,
+		chest: sockCirc,
+		L: legLen + footLen,
+		hasSleeves: false,
+		raglan: false,
+		legLen,
+		footLen,
+		heelLen: footLen * 0.3,
+		toeLen: footLen * 0.22,
+		sockCirc,
+		cuffLen: ribDepth(d.sockCuff) * k
+	};
+}
+
+function measureScarf(d: Design): Measurements {
+	const base = accessoryBase(d);
+	const { k } = base;
+	const scarfW = (d.scarfWidth === 'Narrow' ? 15 : d.scarfWidth === 'Wide' ? 30 : 22) * k;
+	const scarfL = (d.scarfLength === 'Short' ? 120 : d.scarfLength === 'Long' ? 220 : 170) * k;
+	return {
+		...base,
+		chest: scarfW,
+		L: scarfL,
+		hasSleeves: false,
+		raglan: false,
+		scarfW,
+		scarfL,
+		fringeLen: d.fringe === 'Short' ? 5 * k : d.fringe === 'Long' ? 10 * k : 0
+	};
+}
+
+/** Every measurement the 3D model and the written pattern read, whatever the garment. */
+export function measure(d: Design): Measurements {
+	switch (familyOf(d)) {
+		case 'hat':
+			return measureHat(d);
+		case 'sock':
+			return measureSock(d);
+		case 'scarf':
+			return measureScarf(d);
+		default:
+			return measureTop(d);
 	}
-	const n = g.getAttribute('normal');
-	for (let k = 0; k < n.count; k++) n.setXYZ(k, -n.getX(k), -n.getY(k), -n.getZ(k));
 }
 
-function mirrorX(src: THREE.BufferGeometry) {
-	const g = src.clone();
-	const p = g.getAttribute('position');
-	const n = g.getAttribute('normal');
-	for (let k = 0; k < p.count; k++) {
-		p.setX(k, -p.getX(k));
-		n.setX(k, -n.getX(k));
-	}
-	const idx = g.getIndex()!;
-	for (let k = 0; k < idx.count; k += 3) {
-		const a = idx.getX(k);
-		idx.setX(k, idx.getX(k + 1));
-		idx.setX(k + 1, a);
-	}
-	return g;
-}
-
+/** Builds the right 3D garment for the design family, leaving the tops' geometry untouched. */
 export function buildGarment(d: Design): Garment {
-	const m = measure(d);
+	switch (familyOf(d)) {
+		case 'hat':
+			return buildHat(d, measure(d));
+		case 'sock':
+			return buildSocks(d, measure(d));
+		case 'scarf':
+			return buildScarf(d, measure(d));
+		default:
+			return buildTop(d);
+	}
+}
+
+export function buildTop(d: Design): Garment {
+	const m = measureTop(d);
 	const { k, W, L, ya, ys, S, hemH, slitH, N, Nd, dropF, dropB, hasSleeves, raglan, stPerCm, rowPerCm, gauge } = m;
 	const ribbed = d.hemFinish === 'Ribbed';
 	// Rib draws in and gathers the fabric above it; a stockinette band lies flat at full width.
@@ -565,26 +606,6 @@ export function buildGarment(d: Design): Garment {
 		), bodyBuried), PIECE.body, (j) => bodyWhen(rowY[j]), COLS)
 	);
 
-	/** A rolled rim (I-cord or stockinette curl) around an edge loop. */
-	const roll = (cols: number, edge: (i: number, out: THREE.Vector3) => void, radial: (i: number, out: THREE.Vector3) => void, axial: THREE.Vector3, r: number, uWraps: number) => {
-		const p = new THREE.Vector3();
-		const q = new THREE.Vector3();
-		return sheet(
-			cols,
-			10,
-			(i, j, out) => {
-				const phi = (j / 10) * TAU;
-				edge(i, p);
-				radial(i, q);
-				out.copy(p).addScaledVector(axial, r * 0.7 + r * Math.sin(phi)).addScaledVector(q, r * Math.cos(phi));
-			},
-			(i, j) => [(i / cols) * uWraps, vOf((j / 10) * TAU * r)],
-			(i, _j, out) => {
-				edge(i, out);
-				out.addScaledVector(axial, r * 0.7);
-			}
-		);
-	};
 	const rimR = (finish: string) => (finish === 'I-cord' ? 0.55 : 1) * Math.sqrt(k);
 
 	// Hem: a rib or folded band, or a rolled / I-cord rim.
@@ -618,7 +639,8 @@ export function buildGarment(d: Design): Garment {
 				},
 				new THREE.Vector3(0, -1, 0),
 				rimR(d.hemFinish),
-				bodyWraps
+				bodyWraps,
+				vOf
 			), PIECE.body, 2)
 		);
 
@@ -635,7 +657,8 @@ export function buildGarment(d: Design): Garment {
 				},
 				new THREE.Vector3(0, 1, 0),
 				0.6 * Math.sqrt(k),
-				wraps(TAU * N)
+				wraps(TAU * N),
+				vOf
 			), PIECE.neck, 1)
 		);
 	else if (d.neckline === 'Turtleneck') {
@@ -859,7 +882,8 @@ export function buildGarment(d: Design): Garment {
 				},
 				end.t,
 				rimR(d.cuffFinish),
-				wraps(TAU * endR)
+				wraps(TAU * endR),
+				vOf
 			);
 			fabric.push(...both(rim, 2));
 		}
@@ -888,7 +912,8 @@ export function buildGarment(d: Design): Garment {
 			},
 			new THREE.Vector3(1, 0, 0),
 			0.7 * Math.sqrt(k),
-			wraps(TAU * (ys - ya) * 0.4)
+			wraps(TAU * (ys - ya) * 0.4),
+			vOf
 		);
 		holes.push(opening, mirrorX(opening));
 		rib(d.bodyRib).push(knitAt(edge, PIECE.body, 1), knitAt(mirrorX(edge), PIECE.body, 1));
@@ -936,6 +961,9 @@ export function buildGarment(d: Design): Garment {
 		seams,
 		bodyWhen,
 		scale: lerp(1, k, 0.6),
-		bodyWraps
+		bodyWraps,
+		pieces: ['body', 'sleeve', 'sleeve2', 'neck', 'bands'],
+		whole: [2, 2, 2, 1, 1],
+		pieceIndex: { ...PIECE }
 	};
 }

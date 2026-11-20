@@ -12,7 +12,7 @@ const list = (key: keyof Design) => {
 export const faq = [
 	{
 		q: 'What is knit?',
-		a: 'knit is a free sweater designer that runs in your browser. You pick a garment, size, fit, neckline, sleeves, edge finishes, yarn weight and colours, watch the result update on a 3D model, and get a written knitting pattern with stitch counts worked out for that exact design.'
+		a: 'knit is a free garment designer that runs in your browser. You pick a sweater, T-shirt, slipover, cardigan, beanie, socks or scarf, choose its size, fit and finishes, watch the result update on a 3D model, and get a written knitting pattern with stitch counts worked out for that exact design.'
 	},
 	{
 		q: 'Is knit free?',
@@ -20,15 +20,15 @@ export const faq = [
 	},
 	{
 		q: 'What can I design?',
-		a: `Garment types: ${list('garment')}. Made for: ${list('wearer')}. Sizes: ${list('size')}. Fit: ${list('fit')}. Body length: ${list('bodyLength')}. Necklines: ${list('neckline')}. Sleeve length: ${list('sleeveLength')}. Sleeve shape: ${list('sleeveShape')}. Hem and cuff finishes: ${list('hemFinish')}. Fabric: ${list('pattern')}, in ${colors.length} colours.`
+		a: `Garment types: ${list('garment')}. Made for: ${list('wearer')}. Tops: sizes ${list('size')}, fit ${list('fit')}, body length ${list('bodyLength')}, ${list('neckline')} necklines and ${list('sleeveLength')} sleeves in ${list('sleeveShape')} shapes. Finishes: ${list('hemFinish')}. Beanies: ${list('hatLength')} depth, ${list('crown')} crown and an optional ${list('pomPom')}. Socks: ${list('sockLength')} length, ${list('heel')} heel and ${list('toe')} toe. Scarves: ${list('scarfWidth')} width, ${list('scarfLength')} length, ${list('scarfEnds')} ends and ${list('fringe')} fringe. Fabric: ${list('pattern')}, in ${colors.length} colours.`
 	},
 	{
 		q: 'Which designs come with a written pattern?',
-		a: 'Sweaters, T-shirts, cardigans and slipovers all come with a full written pattern, worked top-down and seamless. Sleeved garments use either raglan or set-in sleeves; slipovers have a rolled edge round each armhole instead.'
+		a: 'All seven garment types come with a full written pattern. Sweaters, T-shirts, cardigans and slipovers are worked top-down and seamless, with raglan or set-in sleeves on the sleeved ones. Beanies are worked from the brim to the crown, socks from the cuff to the toe, and scarves from one end to the other.'
 	},
 	{
 		q: 'What does the pattern include?',
-		a: 'Materials (yarn weight, yardage and skeins per colour, needle sizes, notions), the gauge to match, finished measurements in centimetres and inches, step-by-step instructions for the yoke (or the back and fronts, for set-in sleeves), body, sleeves, neckband and finishing with the stitch count after each shaping step, a chart for Fair Isle designs, and a list of abbreviations.'
+		a: 'Materials (yarn weight, yardage and skeins per colour, needle sizes, notions), the gauge to match, finished measurements in centimetres and inches, and step-by-step instructions with a stitch count after every shaping step. Tops cover the yoke (or the back and fronts for set-in sleeves), body, sleeves and neckband; beanies run from brim to crown, socks from cuff to toe in two passes, and scarves from one end to the other. Fair Isle designs include a chart, and every pattern ends with a list of abbreviations.'
 	},
 	{
 		q: 'Which yarn weights and gauges are supported?',
@@ -40,7 +40,7 @@ export const faq = [
 	},
 	{
 		q: 'How is the yarn amount estimated?',
-		a: 'Yardage is calculated from the fabric area of the finished garment (body, sleeves, yoke and collar) and scaled by gauge, because finer yarn needs more length to cover the same area. Fair Isle adds about 20% for the strands carried behind the work, and contrast colours are estimated separately. Treat it as an estimate and buy a little extra.'
+		a: 'Yardage is calculated from the fabric area of the finished piece (body, sleeves, yoke and collar on tops; brim and crown on a beanie; leg and foot on each sock; the strip and fringe of a scarf) and scaled by gauge, because finer yarn needs more length to cover the same area. Fair Isle adds about 20% for the strands carried behind the work, and contrast colours are estimated separately. Treat it as an estimate and buy a little extra.'
 	},
 	{
 		q: 'Do I need to knit a gauge swatch?',
@@ -48,7 +48,7 @@ export const faq = [
 	},
 	{
 		q: 'How hard are the patterns?',
-		a: 'Each design is rated Beginner or Intermediate. A plain raglan with ribbed edges is rated Beginner. Set-in sleeves, V-necks, I-cord edges, puff sleeves, side slits, folded hems and Fair Isle colourwork make a design Intermediate.'
+		a: 'Each design is rated Beginner or Intermediate. A plain raglan, a spiral-crown beanie, a flap-heel sock or a plain scarf is Beginner. Set-in sleeves, V-necks, I-cord edges, puff sleeves, side slits, folded hems, gathered crowns, short-row heels, round toes and Fair Isle colourwork make a design Intermediate.'
 	},
 	{
 		q: 'I am new to knitting. Can I follow the pattern?',
@@ -56,7 +56,7 @@ export const faq = [
 	},
 	{
 		q: 'Can I keep track of where I am?',
-		a: 'Yes. Tick off each step as you finish it, and use the round counter on steps that repeat: it shows which kind of round comes next. Each sleeve is tracked separately. Your design and your place are saved in this browser. Sign in with Ravelry to sync them with your other devices, and “Find my place” takes you back to the next step.'
+		a: 'Yes. Tick off each step as you finish it, and use the round counter on steps that repeat: it shows which kind of round comes next. Each sleeve and each sock is tracked separately, and the 3D model grows as you read. Your design and your place are saved in this browser. Sign in with Ravelry to sync them with your other devices, and “Find my place” takes you back to the next step.'
 	},
 	{
 		q: 'How do I save or print a pattern?',
@@ -65,10 +65,10 @@ export const faq = [
 ];
 
 export const steps = [
-	{ id: 'design', name: 'Design', text: 'Pick the garment type, who it is for, the size and fit, the neckline and the sleeves.' },
-	{ id: 'details', name: 'Details', text: 'Choose how the hem, cuffs and neckband are finished: rib structure, rib length, folded hems, rolled edges or I-cord.' },
+	{ id: 'design', name: 'Design', text: 'Pick a sweater, T-shirt, slipover, cardigan, beanie, socks or scarf, who it is for, and its size and fit.' },
+	{ id: 'details', name: 'Details', text: 'Choose its finishes: rib structure and length, folded hems, brims and cuffs, crown, heel, toe, ends and fringe.' },
 	{ id: 'yarn', name: 'Yarn', text: 'Choose a yarn weight, which sets the gauge and needle size, then a colour and an optional stripe or Fair Isle pattern. Pick the needle sizes you already have and the pattern uses them where it can.' },
-	{ id: 'summary', name: 'Summary', text: 'Check the finished chest and length, the yardage, the number of skeins and the skill level.' },
+	{ id: 'summary', name: 'Summary', text: 'Check the finished measurements, the yardage, the number of skeins and the skill level.' },
 	{ id: 'pattern', name: 'Pattern', text: 'Read the instructions on screen, or print them and save as a PDF.' }
 ];
 
@@ -101,7 +101,22 @@ export const defaultDesign: Design = {
 	contrast: '#faf3dc',
 	gauge: 18,
 	needle: 0,
-	ribNeedle: 0
+	ribNeedle: 0,
+	hatLength: 'Slouchy',
+	crown: 'Spiral',
+	pomPom: 'None',
+	brimFinish: 'Ribbed',
+	brimRib: '1×1',
+	brimLength: 'Regular',
+	sockLength: 'Crew',
+	heel: 'Flap',
+	toe: 'Grafted',
+	sockRib: '1×1',
+	sockCuff: 'Regular',
+	scarfWidth: 'Regular',
+	scarfLength: 'Regular',
+	scarfEnds: 'Plain',
+	fringe: 'None'
 };
 
 export { colors, yarnWeights, needleLabel };
@@ -128,7 +143,10 @@ export const garmentPaths: Record<string, string> = {
 	Sweater: 'M20 12 28 9Q32 15 36 9L44 12 58 38 50 42 44 32V56H20V32L14 42 6 38Z',
 	'T-shirt': 'M20 12 28 9Q32 15 36 9L44 12 56 26 48 31 44 26V56H20V26L16 31 8 26Z',
 	Slipover: 'M22 10 28 9Q32 17 36 9L42 10 46 22 44 24V56H20V24L18 22Z',
-	Cardigan: 'M20 12 28 9 32 18 36 9 44 12 58 38 50 42 44 32V56H20V32L14 42 6 38Z'
+	Cardigan: 'M20 12 28 9 32 18 36 9 44 12 58 38 50 42 44 32V56H20V32L14 42 6 38Z',
+	Beanie: 'M16 36Q16 11 32 11T48 36V48H16ZM16 36H48',
+	Socks: 'M14 10H26V34Q26 40 34 43Q46 48 46 56Q46 60 41 60H14Q10 60 10 55V14Q10 10 14 10ZM38 10H50V34Q50 40 58 43H54V60H38Z',
+	Scarf: 'M16 10H48V50H16ZM16 10L12 5M24 10L21 5M32 10L32 5M40 10L43 5M48 10L52 5M16 50L12 55M24 50L21 55M32 50L32 55M40 50L43 55M48 50L52 55'
 };
 
 /** Dark thread on light yarn, light thread on dark yarn. */

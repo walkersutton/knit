@@ -62,7 +62,7 @@ export function parseChartText(text: string): { ok: true; chart: ParsedChart } |
 	const rows: string[] = [];
 	for (const raw of trimmed.split(/\r?\n/)) {
 		const line = raw.trim();
-		const header = line.match(/^(?:knit it )?pattern(?: name)?:\s*(.+)$/i);
+		const header = line.match(/^(?:knit (?:it )?)?pattern(?: name)?:\s*(.+)$/i);
 		const main = line.match(/^main colou?r:\s*(.+)$/i);
 		const contrast = line.match(/^(?:pattern|contrast) colou?r:\s*(.+)$/i);
 		if (main) chart.color = paletteColor(main[1]);

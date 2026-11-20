@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildGarment } from './garment';
-import { randomDesigns, singleVariations } from './testDesigns';
+import { baseDesign, randomDesigns, singleVariations } from './testDesigns';
 
 /**
  * Guards the 3D model against accidental change while measurements are shared with the pattern.
@@ -23,4 +23,25 @@ describe('3D garment geometry', () => {
 		});
 		expect(hashes).toMatchSnapshot();
 	}, 60_000); // builds ~100 full garments
+
+	it('builds finite geometry and names the pieces for all seven garments', () => {
+		const expected: Record<string, string[]> = {
+			Sweater: ['body', 'sleeve', 'sleeve2', 'neck', 'bands'],
+			'T-shirt': ['body', 'sleeve', 'sleeve2', 'neck', 'bands'],
+			Slipover: ['body', 'sleeve', 'sleeve2', 'neck', 'bands'],
+			Cardigan: ['body', 'sleeve', 'sleeve2', 'neck', 'bands'],
+			Beanie: ['brim', 'crown'],
+			Socks: ['sock1', 'sock2'],
+			Scarf: ['scarf']
+		};
+		for (const [garment, pieces] of Object.entries(expected)) {
+			const g = buildGarment({ ...baseDesign, garment });
+			expect(g.pieces, garment).toEqual(pieces);
+			expect(g.whole.length, garment).toBe(pieces.length);
+			for (const [name, geo] of [['fabric', g.fabric], ...g.ribs.map((r) => [r.kind, r.geometry] as const), ['trim', g.trim], ['holes', g.holes]] as const) {
+				if (!geo) continue;
+				for (const attr of Object.values(geo.attributes)) expect(Array.from(attr.array).every(Number.isFinite), `${garment} ${name} ${attr.constructor.name}`).toBe(true);
+			}
+		}
+	});
 });

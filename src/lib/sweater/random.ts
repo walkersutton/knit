@@ -1,3 +1,4 @@
+import { DEFAULT_DESIGN } from './defaults';
 import { CUSTOM, clamp, round } from './fit';
 import type { Design } from './garment';
 import { colors, summary, yarnWeights } from './options';
@@ -26,8 +27,8 @@ export function randomDesign(rnd: () => number = Math.random): Design {
 		return options[0][0];
 	};
 
-	const garment = weighted<string>([['Sweater', 45], ['Cardigan', 20], ['T-shirt', 20], ['Slipover', 15]]);
-	const sleeved = garment !== 'Slipover';
+	const garment = weighted<string>([['Sweater', 30], ['Cardigan', 14], ['T-shirt', 14], ['Slipover', 10], ['Beanie', 12], ['Socks', 10], ['Scarf', 10]]);
+	const sleeved = !['Slipover', 'Beanie', 'Socks', 'Scarf'].includes(garment);
 
 	// Size: usually a standard one for an adult, junior, kid or baby; sometimes a body of its own.
 	const custom = rnd() < 0.25;
@@ -47,6 +48,7 @@ export function randomDesign(rnd: () => number = Math.random): Design {
 	const pattern = weighted<string>([['Solid', 25], ['Stripes', 20], ['Fair isle', 20], ...['Checks', 'Dots', 'Diamonds', 'Chevron', 'Hearts', 'Snowflakes'].map((p): [string, number] => [p, 5])]);
 
 	return {
+		...DEFAULT_DESIGN,
 		wearer,
 		garment,
 		construction: pick(['Raglan', 'Set-in']),
@@ -75,7 +77,22 @@ export function randomDesign(rnd: () => number = Math.random): Design {
 		contrast: contrast.value as string,
 		gauge: pick(yarnWeights).gauge,
 		needle: 0,
-		ribNeedle: 0
+		ribNeedle: 0,
+		hatLength: pick(['Snug', 'Slouchy']),
+		crown: pick(['Spiral', 'Gathered']),
+		pomPom: weighted<string>([['None', 70], ['Pom-pom', 30]]),
+		brimFinish: pick(['Ribbed', 'Folded', 'Rolled']),
+		brimRib: rib(),
+		brimLength: length(),
+		sockLength: pick(['Ankle', 'Crew', 'Knee']),
+		heel: pick(['Flap', 'Short row']),
+		toe: pick(['Grafted', 'Round']),
+		sockRib: rib(),
+		sockCuff: length(),
+		scarfWidth: pick(['Narrow', 'Regular', 'Wide']),
+		scarfLength: pick(['Short', 'Regular', 'Long']),
+		scarfEnds: pick(['Plain', 'Ribbed']),
+		fringe: pick(['None', 'Short', 'Long'])
 	};
 }
 
@@ -84,7 +101,7 @@ const colorName = (hex: string) => colors.find((c) => c.value === hex)?.label ??
 /** "Sage Striped Turtleneck Cardigan" */
 export function designName(d: Design): string {
 	const pattern = d.pattern === 'Stripes' ? 'Striped' : d.pattern === 'Solid' ? '' : d.pattern === 'Custom' ? 'Patterned' : d.pattern;
-	const neck = ['Crew', 'I-cord'].includes(d.neckline) ? '' : d.neckline;
+	const neck = ['Crew', 'I-cord', 'Beanie', 'Socks', 'Scarf'].includes(d.neckline) || ['Beanie', 'Socks', 'Scarf'].includes(d.garment) ? '' : d.neckline;
 	return [colorName(d.color), pattern, neck, d.garment].filter(Boolean).join(' ');
 }
 

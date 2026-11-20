@@ -173,7 +173,7 @@
 	{:else}
 		<header>
 			<h1>{pattern.title}</h1>
-			<p class="meta">Top-down {pattern.sleeveless ? 'seamless' : pattern.construction.toLowerCase()} · {pattern.level}</p>
+			<p class="meta">{pattern.family === 'top' ? `Top-down ${pattern.sleeveless ? 'seamless' : pattern.construction.toLowerCase()}` : pattern.construction} · {pattern.level}</p>
 		</header>
 
 		{#if interactive}
@@ -198,15 +198,22 @@
 		{#if beginner}
 			<section class="primer">
 				<h2>Before you start</h2>
-				{#each primer(cardigan, pattern.construction === 'Set-in', pattern.sleeveless) as p (p.title)}
+				{#if pattern.family === 'top'}
+					{#each primer(cardigan, pattern.construction === 'Set-in', pattern.sleeveless) as p (p.title)}
+						<div class="point">
+							<h3>{p.title}</h3>
+							<p>{p.body}</p>
+							{#if p.links.length}
+								<p class="learn">{#each p.links as l, j (l.url)}{#if j}<span class="sep" aria-hidden="true">·</span>{/if}{@render link(l)}{/each}</p>
+							{/if}
+						</div>
+					{/each}
+				{:else}
 					<div class="point">
-						<h3>{p.title}</h3>
-						<p>{p.body}</p>
-						{#if p.links.length}
-							<p class="learn">{#each p.links as l, j (l.url)}{#if j}<span class="sep" aria-hidden="true">·</span>{/if}{@render link(l)}{/each}</p>
-						{/if}
+						<h3>Read the whole pattern first</h3>
+						<p>These sections are worked in order. Tick off each round or row as you go, and your browser keeps your place.</p>
 					</div>
-				{/each}
+				{/if}
 				{#if interactive}<p class="saved">Tick off steps and rounds as you go. Your place is saved in this browser, on this device.</p>{/if}
 			</section>
 		{/if}

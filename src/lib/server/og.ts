@@ -74,22 +74,31 @@ function centerpieceSvg(cells: string, color: string, contrast: string, size: nu
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${color}"/><g fill="${contrast}">${rects}</g></svg>`;
 }
 
-/** A flat sweater drawn in the design's colours: stripes for Stripes, dots for any colourwork. */
+/** A flat garment drawn in the design's colours: stripes for Stripes, dots for any colourwork. */
 function sweaterSvg(design: Design): string {
 	const { color, contrast, pattern, garment } = design;
-	const sleeved = garment !== 'Slipover';
 	const body = 'M150 60 Q250 110 350 60 L400 80 L470 330 L410 350 L380 250 L380 470 L120 470 L120 250 L90 350 L30 330 L100 80 Z';
 	const slipover = 'M165 60 Q250 110 335 60 L380 90 L380 470 L120 470 L120 90 Z';
-	const shape = sleeved ? body : slipover;
+	const beanie = 'M125 360 Q125 100 250 100 T375 360 V430 H125 Z';
+	const sock = 'M140 80H240V310Q240 370 320 395Q400 420 400 470Q400 500 360 500H140Q110 500 110 470V110Q110 80 140 80Z';
+	const scarf = 'M150 60 Q250 25 350 60 V420 Q250 455 150 420 Z';
+	const shape = garment === 'Beanie' ? beanie : garment === 'Socks' ? sock : garment === 'Scarf' ? scarf : garment === 'Slipover' ? slipover : body;
 	let art = '';
 	if (pattern === 'Stripes') for (let y = 150; y < 440; y += 70) art += `<rect x="0" y="${y}" width="500" height="26" fill="${contrast}"/>`;
 	else if (pattern !== 'Solid')
 		for (let y = 170; y < 450; y += 44) for (let x = 140 + ((y / 44) % 2) * 22; x < 380; x += 44) art += `<circle cx="${x}" cy="${y}" r="9" fill="${contrast}"/>`;
+	const detail =
+		garment === 'Beanie'
+			? `<path d="M125 360 H375 V430 H125 Z" fill="${contrast}" fill-opacity=".3"/><path d="M125 360 H375" stroke="${CREAM}" stroke-opacity=".5" stroke-width="8"/>`
+			: garment === 'Socks'
+				? `<path d="M110 100 H240" stroke="${contrast}" stroke-opacity=".45" stroke-width="36"/><path d="M140 470 H400" stroke="${contrast}" stroke-opacity=".35" stroke-width="20"/>`
+				: garment === 'Scarf'
+					? `<path d="M150 420 V465 M190 430 V475 M230 437 V480 M270 437 V480 M310 430 V475 M350 420 V465" stroke="${contrast}" stroke-opacity=".6" stroke-width="8" stroke-linecap="round"/>`
+					: `<path d="M120 440 H380 V470 H120 Z" fill="${contrast}" fill-opacity=".35"/><path d="M150 60 Q250 110 350 60" fill="none" stroke="${CREAM}" stroke-opacity=".5" stroke-width="10" stroke-linecap="round"/>`;
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500">
 <defs><clipPath id="c"><path d="${shape}"/></clipPath></defs>
 <path d="${shape}" fill="${color}"/><g clip-path="url(#c)">${art}</g>
-<path d="M120 440 H380 V470 H120 Z" fill="${contrast}" fill-opacity=".35"/>
-<path d="M150 60 Q250 110 350 60" fill="none" stroke="${CREAM}" stroke-opacity=".5" stroke-width="10" stroke-linecap="round"/></svg>`;
+${detail}</svg>`;
 }
 
 const clip = (text: string, max: number) => (text.length > max ? text.slice(0, max - 1).trimEnd() + '…' : text);

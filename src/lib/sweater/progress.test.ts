@@ -71,7 +71,7 @@ describe('knittedOf', () => {
 
 	it('is nothing before the cast-on and everything at the end', () => {
 		expect(knittedOf(sections, {})).toBeNull();
-		expect(knittedOf(sections, upTo(tasks.length))).toEqual({ yoke: 1, body: 1, sleeves: [1, 1], neck: 1, bands: 0 });
+		expect(knittedOf(sections, upTo(tasks.length))).toMatchObject({ yoke: 1, body: 1, sleeves: [1, 1], neck: 1, bands: 0 });
 		const cardigan = sectionsOf({ ...baseDesign, garment: 'Cardigan' });
 		expect(knittedOf(cardigan, Object.fromEntries(tasksOf(cardigan).map((t) => [t.key, t.total])))!.bands).toBe(1);
 	});
@@ -114,9 +114,30 @@ describe('knittedOf', () => {
 			const p = writePattern(d);
 			if (!p.ok) continue;
 			const all = Object.fromEntries(tasksOf(p.sections).map((t) => [t.key, t.total]));
-			expect(knittedOf(p.sections, all)).toEqual({ yoke: 1, body: 1, sleeves: d.garment === 'Slipover' ? [0, 0] : [1, 1], neck: 1, bands: d.garment === 'Cardigan' ? 1 : 0 });
+			const k = knittedOf(p.sections, all);
+			expect(k).not.toBeNull();
+			if (['Beanie', 'Socks', 'Scarf'].includes(d.garment)) {
+				expect(Object.values(k!.parts).some((v) => v > 0)).toBe(true);
+			} else {
+				expect(k).toMatchObject({ yoke: 1, body: 1, sleeves: d.garment === 'Slipover' ? [0, 0] : [1, 1], neck: 1, bands: d.garment === 'Cardigan' ? 1 : 0 });
+			}
 			for (const s of p.sections) for (const step of s.steps) expect(step.adds ?? 0).toBeGreaterThanOrEqual(0);
 		}
+	});
+
+	it('counts a whole sock across all its sections and keeps the two socks separate', () => {
+		const sections = sectionsOf({ ...baseDesign, garment: 'Socks' });
+		const tasks = tasksOf(sections);
+		const upTo = (n: number) => Object.fromEntries(tasks.slice(0, n).map((t) => [t.key, t.total]));
+		const first = tasks.filter((t) => t.pass === 0);
+		const firstPass = (n: number) => Object.fromEntries(first.slice(0, n).map((t) => [t.key, t.total]));
+		const beforeFoot = knittedOf(sections, firstPass(first.findIndex((t) => t.section === 'foot')))!;
+		expect(beforeFoot.parts.sock1).toBeGreaterThan(0.5);
+		expect(beforeFoot.parts.sock1).toBeLessThan(1);
+		expect(beforeFoot.parts.sock2).toBe(-1);
+		const both = knittedOf(sections, upTo(tasks.length))!;
+		expect(both.parts.sock1).toBeCloseTo(1);
+		expect(both.parts.sock2).toBeCloseTo(1);
 	});
 });
 
@@ -150,6 +171,15 @@ describe('signature', () => {
 		// A different main needle changes the gauge; a different ribbing needle changes no step.
 		expect(signature({ ...baseDesign, needle: 4.5 })).not.toBe(signature(baseDesign));
 		expect(signature({ ...baseDesign, ribNeedle: 3.5 })).toBe(signature(baseDesign));
+	});
+
+	it('keeps an old top\'s place when accessory fields are added, but follows accessory choices', () => {
+		const accessoryFields = new Set(['hatLength', 'crown', 'pomPom', 'brimFinish', 'brimRib', 'brimLength', 'sockLength', 'heel', 'toe', 'sockRib', 'sockCuff', 'scarfWidth', 'scarfLength', 'scarfEnds', 'fringe']);
+		const oldTop = Object.fromEntries(Object.entries(baseDesign).filter(([key]) => !accessoryFields.has(key)));
+		expect(signature(oldTop as typeof baseDesign)).toBe(signature(baseDesign));
+		const hat = { ...baseDesign, garment: 'Beanie' };
+		expect(signature({ ...hat, crown: 'Gathered' })).not.toBe(signature(hat));
+		expect(signature({ ...hat, neckline: 'V-neck' })).toBe(signature(hat));
 	});
 });
 

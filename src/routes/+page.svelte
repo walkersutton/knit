@@ -6,9 +6,9 @@
 	import { SITE } from '$lib/site';
 	import { yarn } from '$lib/yarn.svelte';
 
-	const title = 'knit — Custom sweater pattern generator with 3D preview';
+	const title = 'knit — Custom knitting pattern generator with 3D preview';
 	const description =
-		'Design a sweater, cardigan or tee in 3D, then get a free written top-down raglan or set-in knitting pattern sized to your yarn weight, gauge and measurements.';
+		'Design a sweater, cardigan, tee, beanie, socks or scarf in 3D, then get a free written knitting pattern sized to your yarn weight, gauge and measurements.';
 	const jsonLd = {
 		'@context': 'https://schema.org',
 		'@type': 'WebApplication',
@@ -22,9 +22,9 @@
 		isAccessibleForFree: true,
 		offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
 		featureList: [
-			'Live 3D sweater preview',
-			'Written top-down raglan and set-in knitting patterns with stitch counts',
-			'Sweaters, T-shirts, cardigans and slipovers',
+			'Live 3D garment preview',
+			'Written knitting patterns with stitch counts, from top-down sweaters to hats, socks and scarves',
+			'Sweaters, T-shirts, cardigans, slipovers, beanies, socks and scarves',
 			'Adult, junior, kid and baby sizes from XS to XL, or a custom fit from your own measurements',
 			'Fingering, DK, worsted and bulky yarn weights',
 			'Yarn yardage, skein and needle size estimates',
@@ -117,8 +117,8 @@
 		<ul class="perks">
 			{#each perks as p (p.label)}<li class={p.tone}>{p.label}</li>{/each}
 		</ul>
-		<h2 class="tagline">Design a sweater, then <em>knit it</em></h2>
-		<p class="lede">Shape it in 3D, pick your yarn, and get a written pattern with every stitch count worked out.</p>
+		<h2 class="tagline">Design a garment, then <em>knit it</em></h2>
+		<p class="lede">Shape a sweater, hat, socks or scarf in 3D, pick your yarn, and get a written pattern with every stitch count worked out.</p>
 		<p class="actions"><a class="cta" href="/design">Start designing</a><a class="link" href="/about">How knit works</a></p>
 	</main>
 

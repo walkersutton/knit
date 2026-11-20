@@ -1,4 +1,5 @@
 import { measure, type Design } from './garment';
+import { familyOf, type GarmentFamily } from './family';
 import { needleLabel, needlesOf, weightOf } from './needles';
 import { contrastShare, longestFloat, tileFor, tileOf, TILE_ROWS } from './motifs';
 import { bodyBoxOf, centerpieceOf, countOn, dropRows, longestStrand, offsetSts, rowsOf, type BodyBox, type Centerpiece } from './centerpiece';
@@ -35,6 +36,8 @@ export type PatternSection = {
 	steps: Step[];
 	/** Set when the section is worked twice: names for the two passes. */
 	twice?: [string, string];
+	/** Which 3D piece this section knits; for a section worked twice, each pass gets a `1`/`2` suffix. */
+	piece?: string;
 };
 export type Counts = {
 	castOn: number;
@@ -101,10 +104,17 @@ type Done = {
 	centerpiece: boolean[][] | null;
 	/** A slipover: no sleeves, so armhole edgings in their place. */
 	sleeveless: boolean;
+	/** The shape family, so the page can describe hats and socks without calling them tops. */
+	family: GarmentFamily;
 	/** Front stitches on the rows above the underarm a centerpiece can rise into (see `BodyBox.yoke`). */
 	yokeFront: number[];
 };
-export type Pattern = { ok: false; reason: string } | (Done & { construction: 'Raglan'; counts: Counts }) | (Done & { construction: 'Set-in'; counts: SetInCounts });
+export type AccessoryCounts = Record<string, number>;
+export type Pattern =
+	| { ok: false; reason: string }
+	| (Done & { construction: 'Raglan'; counts: Counts })
+	| (Done & { construction: 'Set-in'; counts: SetInCounts })
+	| (Done & { construction: 'Beanie' | 'Socks' | 'Scarf'; counts: AccessoryCounts });
 
 // ── Stitch patterns ─────────────────────────────────────────────────────
 const RIB: Record<string, { rep: number; name: string; work: string }> = {
@@ -165,13 +175,20 @@ export function chartOf(d: Design, gauge: number) {
 export function estimate(d: Design) {
 	const yarn = weightOf(d.gauge);
 	const m = measure(d);
+	const family = familyOf(d);
 	const fairIsle = isColourwork(d.pattern);
-	// Fabric area (cm²): body, sleeves below the underarm, sleeve tops in the yoke, collar.
-	const sleeveBody = m.sleeveBody + m.cuffLen;
-	const area =
-		m.chest * m.L +
-		(m.hasSleeves ? 2 * (0.8 * m.upperArm * sleeveBody + 0.6 * m.upperArm * (m.L - m.ya)) : 0) +
-		ellipse(m.N, m.Nd) * m.collarH;
+	// Fabric area (cm²). Accessories use their own simple surface areas; tops keep the original model.
+	let area: number;
+	if (family === 'hat') area = m.chest * m.L + (m.pom ? 20 : 0);
+	else if (family === 'sock') area = 2 * (m.chest! * m.legLen! + 0.8 * m.chest! * m.footLen!);
+	else if (family === 'scarf') area = m.scarfW! * m.scarfL! + 2 * m.scarfW! * (m.fringeLen ?? 0) * 0.5;
+	else {
+		const sleeveBody = m.sleeveBody + m.cuffLen;
+		area =
+			m.chest * m.L +
+			(m.hasSleeves ? 2 * (0.8 * m.upperArm * sleeveBody + 0.6 * m.upperArm * (m.L - m.ya)) : 0) +
+			ellipse(m.N, m.Nd) * m.collarH;
+	}
 	// About 0.125 yd per cm² at worsted gauge (an adult M worsted sweater takes ~1,150 yd); finer
 	// yarn, or the same yarn knitted tighter on a thinner needle, takes proportionally more. Stranded colourwork carries the unused colour behind the work.
 	const yards = Math.round(area * 0.125 * (m.gauge / 18) * (fairIsle ? 1.2 : 1));
@@ -185,9 +202,21 @@ export function estimate(d: Design) {
 	const mainYards = yards - Math.round(yards * share);
 	const skeins = (y: number) => Math.ceil(y / yarn.yardage);
 	const level =
-		(m.hasSleeves && !m.raglan) || d.neckline === 'V-neck' || d.neckline === 'I-cord' || d.sleeveShape === 'Puff' || d.slits !== 'None' || d.hemFinish === 'Folded hem' || d.hemFinish === 'I-cord' || fairIsle || Boolean(cp)
-			? 'Intermediate'
-			: 'Beginner';
+		family === 'sock'
+			? d.heel === 'Short row' || d.toe === 'Round' || fairIsle
+				? 'Intermediate'
+				: 'Beginner'
+			: family === 'hat'
+				? d.crown === 'Gathered' || fairIsle
+					? 'Intermediate'
+					: 'Beginner'
+				: family === 'scarf'
+					? fairIsle
+						? 'Intermediate'
+						: 'Beginner'
+					: (m.hasSleeves && !m.raglan) || d.neckline === 'V-neck' || d.neckline === 'I-cord' || d.sleeveShape === 'Puff' || d.slits !== 'None' || d.hemFinish === 'Folded hem' || d.hemFinish === 'I-cord' || fairIsle || Boolean(cp)
+						? 'Intermediate'
+						: 'Beginner';
 	return { yarn, needles: needlesOf(d), gauge: m.gauge, yards: mainYards + contrastYards, mainYards, contrastYards, skeins: skeins(mainYards) + (contrastYards ? skeins(contrastYards) : 0), mainSkeins: skeins(mainYards), contrastSkeins: contrastYards ? skeins(contrastYards) : 0, level };
 }
 
@@ -272,7 +301,7 @@ export function bodySection(d: Design, m: Measures, bodySts: number, intro: stri
 	const slits = !cardigan && m.slitH > 0;
 	const body: Step[] = [];
 	const rolled = d.hemFinish === 'Rolled edge' ? 2 * k : 0;
-	const bodyLen = m.ya - m.hemH - rolled;
+	const bodyLen = Math.max(0, m.ya - m.hemH - rolled);
 	const fabric = cardigan ? 'Work in stockinette (knit RS rows, purl WS rows)' : 'Knit every round';
 	const bodyTip = `The long, easy stretch. Measure with the work lying flat, straight down from the underarm cast-on, without stretching it. Because you knit from the top down you can try it on at any point, and stop earlier or later to change the length.`;
 	// The part worked in the round: all of the body, or down to the slits. A centerpiece is worked inside it.
@@ -282,7 +311,7 @@ export function bodySection(d: Design, m: Measures, bodySts: number, intro: stri
 	};
 	if (slits) {
 		const half = bodySts / 2;
-		body.push(...round(bodyLen - m.slitH));
+		body.push(...round(Math.max(0, bodyLen - m.slitH)));
 		body.push({
 			text: `Side slits: from here the back and front are finished separately, flat. Keep the front sts on hold. Work the back sts back and forth, knitting the first 2 and last 2 sts of every row for a neat slit edge, for ${len(m.slitH)}.`,
 			count: sts(half),
@@ -522,14 +551,15 @@ export function finishingSection(cardigan: boolean, buttons: number): PatternSec
 export function materialsOf(d: Design, m: Measures, notions: string): [string, string][] {
 	const est = estimate(d);
 	const yarn = est.yarn;
-	const circ = m.chest > 70 ? '80 cm (32 in)' : m.chest > 48 ? '60 cm (24 in)' : '40 cm (16 in)';
+	const family = familyOf(d);
+	const circ = family === 'sock' ? '40 cm (16 in), or DPNs' : m.chest > 70 ? '80 cm (32 in)' : m.chest > 48 ? '60 cm (24 in)' : '40 cm (16 in)';
 	return [
 		[
 			'Yarn',
 			`${yarn.label} weight. Main colour: about ${est.mainYards} yd (${Math.round(est.mainYards * 0.9144)} m), ${est.mainSkeins} × ${yarn.yardage} yd skeins` +
 				(est.contrastYards ? `. Contrast colour: about ${est.contrastYards} yd (${Math.round(est.contrastYards * 0.9144)} m), ${est.contrastSkeins} skein${est.contrastSkeins > 1 ? 's' : ''}` : '')
 		],
-		['Main needle', `${needleLabel(est.needles.main)} circular, ${circ} long${m.hasSleeves ? ', plus DPNs or a long circular for magic loop (sleeves)' : ''}`],
+		['Main needle', `${needleLabel(est.needles.main)}${family === 'scarf' ? ' straight' : ` circular, ${circ} long`}${m.hasSleeves ? ', plus DPNs or a long circular for magic loop (sleeves)' : ''}`],
 		['Smaller needle', `${needleLabel(est.needles.rib)}, for ribbing and bands`],
 		['Notions', notions]
 	];

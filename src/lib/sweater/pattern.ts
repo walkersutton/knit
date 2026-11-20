@@ -39,6 +39,7 @@ import {
 } from './patternKit';
 import { writeSetIn } from './setin';
 import { bodyBoxOf, type BodyBox } from './centerpiece';
+import { writeAccessory } from './accessories/patterns';
 
 export { estimate, isColourwork, len, patternText } from './patternKit';
 export type { Counts, Pattern, PatternSection, SetInCounts, Step, Tally } from './patternKit';
@@ -50,6 +51,8 @@ export type { Counts, Pattern, PatternSection, SetInCounts, Step, Tally } from '
  */
 export function writePattern(d: Design): Pattern {
 	const m = measure(d);
+	const accessory = writeAccessory(d, m);
+	if (accessory) return accessory;
 	// A slipover has no sleeves for a raglan to feed, so it is always worked with the set-in shoulders.
 	return m.raglan ? writeRaglan(d, m) : writeSetIn(d, m);
 }
@@ -424,6 +427,7 @@ function writeRaglan(d: Design, m: Measures): Pattern {
 	return {
 		ok: true,
 		construction: 'Raglan',
+		family: 'top',
 		sleeveless: false,
 		yokeFront: cardigan ? [] : yokeFront,
 		title: `${wearer}${d.neckline} raglan ${d.garment.toLowerCase()}, ${custom ? 'custom fit' : `size ${d.size}`}`,

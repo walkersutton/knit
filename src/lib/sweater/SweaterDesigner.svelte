@@ -16,6 +16,7 @@
 	import AccountLink from '$lib/AccountLink.svelte';
 	import HowItWorks from '$lib/sweater/HowItWorks.svelte';
 	import { DEFAULT_DESIGN } from '$lib/sweater/defaults';
+	import { centerpieceGarments } from '$lib/sweater/family';
 	import { NEEDLES, mainSizes, needleLabel, pickNeedles } from '$lib/sweater/needles';
 		import Needles from '$lib/sweater/Needles.svelte';
 	import Measurements from '$lib/sweater/Measurements.svelte';
@@ -107,6 +108,8 @@
 			tab = 'yarn';
 		}
 		if (centerpiece) {
+			// A shared centerpiece always opens on a garment that can wear it.
+			if (!centerpieceGarments.includes(design.garment)) design.garment = 'Sweater';
 			design.centerpiece = centerpiece.centerpiece;
 			if (centerpiece.color) design.color = centerpiece.color;
 			if (centerpiece.contrast) design.contrast = centerpiece.contrast;
@@ -229,7 +232,7 @@
 						</section>
 					{/if}
 					{#if section.id === 'yarn'}
-						{#if design.garment !== 'Cardigan'}
+						{#if centerpieceGarments.includes(design.garment)}
 							<section>
 								<h2>Centerpiece</h2>
 								<CenterpiecePicker bind:design {box} />

@@ -1,4 +1,5 @@
 import { CUSTOM, standardBody } from './fit';
+import { familyOf, isTop } from './family';
 import type { Design } from './garment';
 import { PATTERNS, starterMotif, validMotif } from './motifs';
 
@@ -14,12 +15,16 @@ export type Group = { id: string; label: string; fields: Field[]; show?: (d: Des
 export type Section = { id: string; label: string; groups: Group[] };
 
 const opts = (...labels: string[]): Option[] => labels.map((label) => ({ label, value: label }));
-const sleeved = (d: Design) => d.garment !== 'Slipover';
+const sleeved = (d: Design) => isTop(d) && d.garment !== 'Slipover';
 const standard = (d: Design) => d.size !== CUSTOM;
+const hat = (d: Design) => familyOf(d) === 'hat';
+const sock = (d: Design) => familyOf(d) === 'sock';
+const scarf = (d: Design) => familyOf(d) === 'scarf';
 
 export const RIBS = ['1×1', '2×2', '2×1', 'Twisted', 'Stockinette'];
 const finishes = opts('Ribbed', 'Folded hem', 'Rolled edge', 'I-cord');
 const ribLengths = opts('Short', 'Regular', 'Long');
+const brimFinishes = opts('Ribbed', 'Folded', 'Rolled');
 
 export const colors: Option[] = [
 	{ label: 'Brick', value: '#c8543e' },
@@ -55,15 +60,54 @@ export const sections: Section[] = [
 			{
 				id: 'garment',
 				label: 'Garment',
+				fields: [{ key: 'garment', label: 'Type', kind: 'choice', options: opts('Sweater', 'T-shirt', 'Slipover', 'Cardigan', 'Beanie', 'Socks', 'Scarf') }]
+			},
+			{
+				id: 'construction',
+				label: 'Construction',
+				show: sleeved,
+				fields: [{ key: 'construction', label: 'Sleeves', kind: 'choice', options: opts('Raglan', 'Set-in') }]
+			},
+			{
+				id: 'wearer',
+				label: 'Made for',
+				fields: [{ key: 'wearer', label: 'Made for', kind: 'choice', options: opts('Adult', 'Junior', 'Kid', 'Baby'), show: standard }]
+			},
+			{
+				id: 'beanie',
+				label: 'Beanie',
+				show: hat,
 				fields: [
-					{ key: 'garment', label: 'Type', kind: 'choice', options: opts('Sweater', 'T-shirt', 'Slipover', 'Cardigan') },
-					{ key: 'construction', label: 'Construction', kind: 'choice', options: opts('Raglan', 'Set-in'), show: sleeved },
-					{ key: 'wearer', label: 'Made for', kind: 'choice', options: opts('Adult', 'Junior', 'Kid', 'Baby'), show: standard }
+					{ key: 'hatLength', label: 'Depth', kind: 'choice', options: opts('Snug', 'Slouchy') },
+					{ key: 'crown', label: 'Crown', kind: 'choice', options: opts('Spiral', 'Gathered') },
+					{ key: 'pomPom', label: 'Top', kind: 'choice', options: opts('None', 'Pom-pom') }
+				]
+			},
+			{
+				id: 'socks',
+				label: 'Socks',
+				show: sock,
+				fields: [
+					{ key: 'sockLength', label: 'Length', kind: 'choice', options: opts('Ankle', 'Crew', 'Knee') },
+					{ key: 'heel', label: 'Heel', kind: 'choice', options: opts('Flap', 'Short row') },
+					{ key: 'toe', label: 'Toe', kind: 'choice', options: opts('Grafted', 'Round') }
+				]
+			},
+			{
+				id: 'scarf',
+				label: 'Scarf',
+				show: scarf,
+				fields: [
+					{ key: 'scarfWidth', label: 'Width', kind: 'choice', options: opts('Narrow', 'Regular', 'Wide') },
+					{ key: 'scarfLength', label: 'Length', kind: 'choice', options: opts('Short', 'Regular', 'Long') },
+					{ key: 'scarfEnds', label: 'Ends', kind: 'choice', options: opts('Plain', 'Ribbed') },
+					{ key: 'fringe', label: 'Fringe', kind: 'choice', options: opts('None', 'Short', 'Long') }
 				]
 			},
 			{
 				id: 'fit',
 				label: 'Size & fit',
+				show: isTop,
 				fields: [
 					{ key: 'size', label: 'Size', kind: 'choice', options: opts('XS', 'S', 'M', 'L', 'XL', CUSTOM) },
 					{ key: 'fit', label: 'Fit', kind: 'choice', options: opts('Fitted', 'Relaxed', 'Oversized') },
@@ -73,6 +117,7 @@ export const sections: Section[] = [
 			{
 				id: 'neck',
 				label: 'Neckline',
+				show: isTop,
 				fields: [{ key: 'neckline', label: 'Shape', kind: 'choice', options: opts('Crew', 'V-neck', 'Boat', 'I-cord', 'Mock neck', 'Turtleneck') }]
 			},
 			{
@@ -93,6 +138,7 @@ export const sections: Section[] = [
 			{
 				id: 'body',
 				label: 'Body',
+				show: isTop,
 				fields: [
 					{ key: 'hemFinish', label: 'Hem finish', kind: 'choice', options: finishes },
 					{ key: 'bodyRib', label: 'Rib structure', kind: 'choice', options: opts(...RIBS), show: (d) => d.hemFinish === 'Ribbed' },
@@ -101,9 +147,28 @@ export const sections: Section[] = [
 				]
 			},
 			{
+				id: 'brim',
+				label: 'Brim',
+				show: hat,
+				fields: [
+					{ key: 'brimFinish', label: 'Brim finish', kind: 'choice', options: brimFinishes },
+					{ key: 'brimRib', label: 'Rib structure', kind: 'choice', options: opts(...RIBS), show: (d) => d.brimFinish === 'Ribbed' },
+					{ key: 'brimLength', label: 'Brim depth', kind: 'choice', options: ribLengths, show: (d) => d.brimFinish === 'Ribbed' }
+				]
+			},
+			{
+				id: 'sockDetails',
+				label: 'Cuff',
+				show: sock,
+				fields: [
+					{ key: 'sockRib', label: 'Rib structure', kind: 'choice', options: opts(...RIBS) },
+					{ key: 'sockCuff', label: 'Cuff depth', kind: 'choice', options: ribLengths }
+				]
+			},
+			{
 				id: 'neckband',
 				label: 'Neckline',
-				show: (d) => d.neckline !== 'I-cord',
+				show: (d) => isTop(d) && d.neckline !== 'I-cord',
 				fields: [
 					{ key: 'neckRib', label: 'Rib structure', kind: 'choice', options: opts(...RIBS) },
 					{
@@ -157,10 +222,21 @@ export function choose(d: Design, key: keyof Design, value: string | number) {
 	// Custom starts from the standard size they were looking at, so the numbers are never blank.
 	if (key === 'size' && value === CUSTOM && !d.custom) d.custom = standardBody(d.wearer, d.size === CUSTOM ? 'M' : d.size);
 	if (key === 'pattern' && value === 'Custom' && !validMotif(d.motif)) d.motif = starterMotif();
-	if (key === 'garment' && value === 'T-shirt') d.sleeveLength = 'Short';
-	if (key === 'garment' && value !== 'T-shirt' && d.sleeveLength === 'Short') d.sleeveLength = 'Full';
+	if (key === 'garment') {
+		// Centerpieces are placed on torsos; accessories keep their repeating charts only.
+		if (!isTop(d)) d.centerpiece = '';
+		if (d.garment === 'T-shirt') d.sleeveLength = 'Short';
+		else if (isTop(d) && d.sleeveLength === 'Short') d.sleeveLength = 'Full';
+	}
 }
 
 export const labelOf = (field: Field, d: Design) => field.options.find((o) => o.value === d[field.key])?.label ?? String(d[field.key]);
 
-export const summary = (d: Design) => `${d.size === CUSTOM && d.custom ? `Custom ${d.custom.chest} cm chest` : `${d.wearer} ${d.size}`} · ${d.construction === 'Raglan' && d.garment !== 'Slipover' ? `Raglan ${d.garment.toLowerCase()}` : d.garment}`;
+export const summary = (d: Design) => {
+	const family = familyOf(d);
+	if (family === 'hat') return `${d.wearer} beanie`;
+	if (family === 'sock') return `${d.wearer} socks`;
+	if (family === 'scarf') return `${d.wearer} scarf`;
+	const size = d.size === CUSTOM && d.custom ? `Custom ${d.custom.chest} cm chest` : `${d.wearer} ${d.size}`;
+	return `${size} · ${d.construction === 'Raglan' && d.garment !== 'Slipover' ? `Raglan ${d.garment.toLowerCase()}` : d.garment}`;
+};

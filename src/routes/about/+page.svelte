@@ -35,7 +35,7 @@
 	const setRib = (rib: string) => (design.bodyRib = design.neckRib = design.sleeveRib = rib);
 	const setFinish = (finish: string) => (design.hemFinish = design.cuffFinish = finish);
 
-	const garments = ['Sweater', 'T-shirt', 'Slipover', 'Cardigan'];
+	const garments = ['Sweater', 'T-shirt', 'Slipover', 'Cardigan', 'Beanie', 'Socks', 'Scarf'];
 	const sizes = ['XS', 'S', 'M', 'L', 'XL'].filter((s) => s !== CUSTOM);
 	const ribs = [
 		{ name: '1×1', run: [1, 1] },

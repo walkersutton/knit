@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { isColourwork, writePattern, patternText, type Pattern } from './pattern';
 import { baseDesign, customVariations, needleVariations, randomDesigns, singleVariations } from './testDesigns';
+import { centerpieceOf } from './centerpiece';
+import { isTop } from './family';
 
 const RIB_REP: Record<string, number> = { '1×1': 2, '2×2': 4, '2×1': 3, Twisted: 2, Stockinette: 1 };
 const designs = [...singleVariations(), ...needleVariations(), ...customVariations(), ...randomDesigns(600, 7)];
-const raglanDesigns = designs.filter((d) => d.construction === 'Raglan' && d.garment !== 'Slipover');
-const setInDesigns = designs.filter((d) => d.construction === 'Set-in' && d.garment !== 'Slipover');
+const raglanDesigns = designs.filter((d) => isTop(d) && d.construction === 'Raglan' && d.garment !== 'Slipover');
+const setInDesigns = designs.filter((d) => isTop(d) && d.construction === 'Set-in' && d.garment !== 'Slipover');
 const slipoverDesigns = designs.filter((d) => d.garment === 'Slipover');
 
 /** The first stitch count (**n**) in a step's count line. */
@@ -26,6 +28,66 @@ describe('writePattern', () => {
 		expect(setIn.construction).toBe('Set-in');
 		expect(raglan.title).toContain('raglan');
 		expect(setIn.title).toContain('set-in');
+	});
+
+	it('writes a beanie, a pair of socks and a scarf', () => {
+		const hat = writePattern({ ...baseDesign, garment: 'Beanie' });
+		const socks = writePattern({ ...baseDesign, garment: 'Socks' });
+		const scarf = writePattern({ ...baseDesign, garment: 'Scarf' });
+		for (const p of [hat, socks, scarf]) {
+			expect(p.ok).toBe(true);
+			if (!p.ok) continue;
+			expect(p.family).not.toBe('top');
+			expect(p.centerpiece).toBeNull();
+			expect(patternText(p)).not.toMatch(/NaN|undefined|Infinity|\*\*-|\*\*0\*\* st/);
+			for (const s of p.sections) for (const step of s.steps) expect(step.adds ?? 0).toBeGreaterThanOrEqual(0);
+		}
+		if (!hat.ok || !socks.ok || !scarf.ok) return;
+		expect(hat.construction).toBe('Beanie');
+		expect(socks.construction).toBe('Socks');
+		expect(scarf.construction).toBe('Scarf');
+		expect(hat.sections.map((s) => s.id)).toEqual(['brim', 'crown', 'finishing']);
+		expect(hat.sections[0].piece).toBe('brim');
+		expect(hat.sections[1].piece).toBe('crown');
+		expect(socks.sections.map((s) => s.id)).toEqual(['cuff', 'leg', 'heel', 'foot', 'toe', 'finishing']);
+		expect(socks.sections.slice(0, 5).every((s) => s.twice?.[0] === 'First sock' && s.piece === 'sock')).toBe(true);
+		expect(scarf.sections[0].piece).toBe('scarf');
+	});
+
+	it('follows the accessory finishes without adding a centerpiece', () => {
+		const beanie = { ...baseDesign, garment: 'Beanie', brimFinish: 'Folded', crown: 'Gathered', pomPom: 'Pom-pom', centerpiece: '12x12:000000000000' };
+		const socks = { ...baseDesign, garment: 'Socks', heel: 'Short row', toe: 'Round' };
+		const scarf = { ...baseDesign, garment: 'Scarf', scarfEnds: 'Ribbed', fringe: 'Short' };
+		for (const d of [beanie, socks, scarf]) expect(centerpieceOf(d)).toBeNull();
+		const hat = writePattern(beanie);
+		if (!hat.ok) throw new Error('expected a hat pattern');
+		expect(hat.sections[0].steps.some((s) => s.text.includes('turning round'))).toBe(true);
+		expect(hat.materials.join(' ')).toContain('pom-pom maker');
+		const pair = writePattern(socks);
+		if (!pair.ok) throw new Error('expected a sock pattern');
+		expect(pair.sections.find((s) => s.id === 'heel')?.steps[0].text).toContain('German short-row heel');
+		expect(pair.sections.find((s) => s.id === 'toe')?.steps.at(-1)?.text).toContain('three-needle bind-off');
+		const strip = writePattern(scarf);
+		if (!strip.ok) throw new Error('expected a scarf pattern');
+		expect(strip.sections.map((s) => s.id)).toContain('fringe');
+		expect(strip.sections[0].steps.some((s) => s.text.includes('1×1 rib'))).toBe(true);
+	});
+
+	it('charts colourwork accessories without giving them a centerpiece', () => {
+		for (const garment of ['Beanie', 'Socks', 'Scarf']) {
+			const d = { ...baseDesign, garment: garment as typeof baseDesign.garment, pattern: 'Fair isle', centerpiece: '12x12:000000000000' };
+			const p = writePattern(d);
+			if (!p.ok) throw new Error(`expected a ${garment} pattern`);
+			expect(p.chart, garment).toBeTruthy();
+			expect(p.centerpiece, garment).toBeNull();
+			const text = patternText(p);
+			expect(text, garment).toContain('CHART (');
+			expect(text, garment).not.toContain('CENTERPIECE CHART');
+		}
+		const scarf = writePattern({ ...baseDesign, garment: 'Scarf', pattern: 'Stripes' });
+		if (!scarf.ok) throw new Error('expected a scarf pattern');
+		expect(scarf.sections[0].steps.some((s) => s.text.includes('16-row repeat'))).toBe(true);
+		expect(scarf.sections[0].steps.some((s) => s.text.includes('jogless'))).toBe(false);
 	});
 });
 

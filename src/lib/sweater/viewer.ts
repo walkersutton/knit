@@ -30,6 +30,9 @@ const FUZZ = 5000;
 const ZOOM_MAX = 3;
 /** `when` limits (see Garment) that show every piece whole. */
 const WHOLE = [2, 2, 2, 1, 1];
+/** Shader slots for the `knit` attribute's piece index; tops use five, accessories two. */
+const MAX_PIECES = 8;
+const PIECE_NAMES = Object.keys(PIECE);
 
 export function createViewer(host: HTMLElement, onView: (view: string) => void, intro = true): ViewerHandle {
 	const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -86,8 +89,10 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 	// Wool is matte: almost no specular, a soft sheen at grazing angles.
 	const cloth = () => new THREE.MeshPhysicalMaterial({ roughness: 1, specularIntensity: 0.12, sheen: 0.6, sheenRoughness: 0.75, vertexColors: true });
 	// How far each piece has been knitted: fabric whose `knit` attribute lies past its piece's limit is not drawn.
-	const knitNow = Float32Array.from(WHOLE);
-	const knitTo = Float32Array.from(WHOLE);
+	const knitNow = new Float32Array(MAX_PIECES).fill(-1);
+	const knitTo = new Float32Array(MAX_PIECES).fill(-1);
+	knitNow.set(WHOLE);
+	knitTo.set(WHOLE);
 	const knitUniform = { value: knitNow };
 	/** Makes a material draw only the knitted part of its geometry. */
 	const knitted = <T extends THREE.Material>(mat: T): T => {
@@ -95,7 +100,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 			shader.uniforms.uKnit = knitUniform;
 			shader.vertexShader = 'attribute vec2 knit;\nvarying vec2 vKnit;\n' + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvKnit = knit;');
 			shader.fragmentShader =
-				'uniform float uKnit[5];\nvarying vec2 vKnit;\n' +
+				`uniform float uKnit[${MAX_PIECES}];\nvarying vec2 vKnit;\n` +
 				shader.fragmentShader.replace('void main() {', 'void main() {\n\tif (vKnit.y > uKnit[int(vKnit.x + 0.5)] + 0.004) discard;');
 		};
 		mat.customProgramCacheKey = () => 'knit';
@@ -121,7 +126,7 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 	// Drawing the stitch textures and building the geometry is the slow part of changing the design.
 	// Both are written as stepped jobs: `setDesign` runs one straight through, `prefetch` runs it a step
 	// at a time in idle time, so that changing the design later only has to swap the finished pieces in.
-	type Shape = { children: THREE.Object3D[]; y: number; floorY: number; floorScale: [number, number]; scale: number; fabric: THREE.BufferGeometry; wraps: number };
+	type Shape = { children: THREE.Object3D[]; y: number; floorY: number; floorScale: [number, number]; scale: number; fabric: THREE.BufferGeometry; wraps: number; pieces: string[]; whole: number[] };
 	const readyMaps = new Map<string, KnitMaps[]>();
 	const readyShapes = new Map<string, Shape>();
 	const inFlight = new Map<string, Promise<void>>();
@@ -311,7 +316,9 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 			floorScale: [(box.max.x - box.min.x) * 0.95, (box.max.z - box.min.z) * 2.6],
 			scale: built.scale,
 			fabric: built.fabric,
-			wraps: built.bodyWraps
+			wraps: built.bodyWraps,
+			pieces: built.pieces,
+			whole: built.whole
 		};
 	}
 
@@ -649,9 +656,12 @@ export function createViewer(host: HTMLElement, onView: (view: string) => void, 
 			await ahead(readyShapes, shape, shapeJob(d), disposeShape, () => shape === key_);
 		},
 		setKnitted(k) {
-			// Body and sleeves count 0–1 down the yoke, then 1–2 on to the hem or cuff. A piece not yet begun shows nothing.
-			const hang = (part: number) => (k!.yoke < 1 ? k!.yoke || -1 : 1 + part);
-			knitTo.set(k ? [hang(k.body), hang(k.sleeves[0]), hang(k.sleeves[1]), k.neck || -1, k.bands || -1] : WHOLE);
+			knitTo.fill(-1);
+			if (k) {
+				const pieces = current?.pieces ?? PIECE_NAMES;
+				// Parts are fractions of a piece; tops' body and sleeves run 0–2, the others 0–1.
+				pieces.forEach((name, i) => (knitTo[i] = (k.parts[name] ?? -1) * (current?.whole[i] ?? 1)));
+			} else knitTo.set(current?.whole ?? WHOLE);
 			// Nothing on screen yet: open at the knitter's place instead of unravelling to it.
 			if (reduced || !drawn) knitNow.set(knitTo);
 			invalidate();

@@ -5,6 +5,8 @@
  * An empty string means no centerpiece.
  */
 
+import { centerpieceGarments } from './family';
+
 export const MAX_W = 40;
 export const MAX_H = 48;
 export const MIN_SIZE = 3;
@@ -278,8 +280,8 @@ export function fitProblem(c: Centerpiece, b: BodyBox, at = 'Centre'): 'wide' | 
 export const leftOf = (c: Centerpiece, bodySts: number) => Math.max(0, Math.floor((bodySts - c.w) / 2));
 
 // ── From a design ───────────────────────────────────────────────────────
-/** The centerpiece a design asks for. A cardigan opens down the front, so it has none. */
-export const centerpieceOf = (d: { garment: string; centerpiece?: string }) => (d.garment === 'Cardigan' ? null : parseCenterpiece(d.centerpiece));
+/** The centerpiece a design asks for. Cardigans open down the front and accessories have no torso patch. */
+export const centerpieceOf = (d: { garment: string; centerpiece?: string }) => (centerpieceGarments.includes(d.garment) ? parseCenterpiece(d.centerpiece) : null);
 
 /** The measurements of a design's body that decide where a centerpiece can go (see `measure`). */
 export const bodyBoxOf = (d: { hemFinish: string }, m: { stPerCm: number; rowPerCm: number; chest: number; ya: number; hemH: number; slitH: number; k: number }): BodyBox => ({

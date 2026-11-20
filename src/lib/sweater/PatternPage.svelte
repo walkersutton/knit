@@ -78,7 +78,7 @@
 			// Set on the link preview card's own cream.
 			return await jpegStill(blob, { width: 660, height: 750, background: '#faf3dc' });
 		} catch (e) {
-			// Sharing goes ahead without a picture; the preview falls back to a drawn sweater.
+			// Sharing goes ahead without a picture; the preview falls back to a drawn garment.
 			console.warn('Could not capture the pattern preview:', e);
 			return undefined;
 		} finally {
@@ -120,6 +120,7 @@
 	let viewing = $state<string>();
 	let tasks = $derived(pattern.ok ? tasksOf(pattern.sections) : []);
 	let knitted = $derived(pattern.ok && viewing ? knittedOf(pattern.sections, progressAt(tasks, viewing, progress)) : null);
+	let wholeName = $derived(`Whole ${design.garment === 'Socks' ? 'pair of socks' : design.garment.toLowerCase()}`);
 	let where = $derived.by(() => {
 		const t = tasks.find((x) => x.key === viewing);
 		return t && pattern.ok ? pattern.sections.find((s) => s.id === t.section)?.title : undefined;
@@ -154,7 +155,7 @@
 				<button class="primary" type="button" onclick={() => reader?.scrollIntoView({ behavior: 'smooth' })}>Start knitting ↓</button>
 				<button class="ghost" type="button" onclick={onedit}>{author ? 'Adapt in designer' : '← Edit design'}</button>
 				<button class="ghost" type="button" onclick={() => window.print()}>Print</button>
-				<button class="ghost" type="button" onclick={onsave} title="Save this sweater design to your account or this device">Save design</button>
+				<button class="ghost" type="button" onclick={onsave} title="Save this design to your account or this device">Save design</button>
 				<button class="ghost" type="button" onclick={share} disabled={shareState === 'busy'}>{shareState === 'busy' ? 'Sharing…' : shareState === 'copied' ? 'Link copied' : link ? 'Copy link' : 'Share'}</button>
 				{#if likes && sharedId}<LikeButton kind="pattern" id={sharedId} likes={likes.count} liked={likes.liked} signedIn={likes.signedIn} />{/if}
 				{#if onunshare}<button class="ghost" type="button" onclick={onunshare}>Unshare</button>{/if}
@@ -170,7 +171,7 @@
 			<PatternView {pattern} main={design.color} contrast={design.contrast} bind:mode {progress} interactive {onstep} onview={(k) => (viewing = k)} {onreset} />
 		</div>
 		<aside class="rail" aria-label="Model at this step">
-			<div class="cap"><span>{knitted ? 'Knitted up to' : 'Finished'}</span><b>{where ?? 'Whole sweater'}</b></div>
+			<div class="cap"><span>{knitted ? 'Knitted up to' : 'Finished'}</span><b>{where ?? wholeName}</b></div>
 			<div class="stage"><Stage {design} {knitted} intro={false} /></div>
 		</aside>
 	</div>
@@ -181,7 +182,7 @@
 	<button class="scrim" type="button" aria-label="Close model" onclick={() => (sheet = false)}></button>
 	<section class="sheet" aria-label="Model at this step">
 		<header>
-			<span><em>{knitted ? 'Knitted up to' : 'Finished'}</em><b>{where ?? 'Whole sweater'}</b></span>
+			<span><em>{knitted ? 'Knitted up to' : 'Finished'}</em><b>{where ?? wholeName}</b></span>
 			<button type="button" onclick={() => (sheet = false)}>Done</button>
 		</header>
 		<div class="stage"><Stage {design} {knitted} intro={false} /></div>

@@ -4,7 +4,7 @@ import { listShared } from '$lib/server/patterns';
 // Shared patterns come and go, so this page is built per request rather than ahead of time.
 export const prerender = false;
 
-const GARMENTS = ['Sweater', 'T-shirt', 'Slipover', 'Cardigan'];
+const GARMENTS = ['Sweater', 'T-shirt', 'Slipover', 'Cardigan', 'Beanie', 'Socks', 'Scarf'];
 
 export const load: PageServerLoad = async ({ url, setHeaders }) => {
 	const q = (url.searchParams.get('q') ?? '').trim().slice(0, 80);

@@ -1,4 +1,5 @@
 import { PLACEMENTS, validCenterpiece } from './centerpiece';
+import { familyOf } from './family';
 import { validCustom } from './fit';
 import type { Design } from './garment';
 import { cleanNeedles } from './needles';
@@ -39,9 +40,17 @@ export function summarize(tasks: Task[], p: Progress) {
 
 /**
  * How much of each piece is on the needles or finished, from 0 (not started) to 1. The first sleeve
- * is the first pass of the sleeve section.
+ * is the first pass of the sleeve section. `parts` is keyed by the 3D garment's piece names, so the
+ * viewer can show accessories as well as tops from the same progress numbers.
  */
-export type Knitted = { yoke: number; body: number; sleeves: [number, number]; neck: number; bands: number };
+export type Knitted = {
+	yoke: number;
+	body: number;
+	sleeves: [number, number];
+	neck: number;
+	bands: number;
+	parts: Record<string, number>;
+};
 
 /**
  * The fabric a knitter has made so far, for the 3D view; null before anything is knitted.
@@ -51,9 +60,10 @@ export type Knitted = { yoke: number; body: number; sleeves: [number, number]; n
  * the yoke, so starting either means the yoke is finished.
  */
 export function knittedOf(sections: PatternSection[], p: Progress): Knitted | null {
-	const piece = (id: string, pass = 0) => {
+	/** Reached and total centimetres of fabric in one pass of a section. */
+	const lengthOf = (id: string, pass = 0) => {
 		const s = sections.find((x) => x.id === id);
-		if (!s) return 0;
+		if (!s) return { reached: 0, total: 0 };
 		let at = 0;
 		let reached = 0;
 		let started = false;
@@ -68,11 +78,43 @@ export function knittedOf(sections: PatternSection[], p: Progress): Knitted | nu
 			reached = Math.max(reached, from + ((at - from) * n) / total);
 		});
 		// A cast-on or picked-up edge has no length yet, but it is there: show a sliver.
-		return started && at ? Math.max(0.03, reached / at) : 0;
+		return { reached: started && at ? Math.max(0.03 * at, reached) : 0, total: at };
 	};
-	const k: Knitted = { yoke: piece('yoke'), body: piece('body'), sleeves: [piece('sleeves', 0), piece('sleeves', 1)], neck: piece('neck'), bands: piece('bands') };
+	const piece = (id: string, pass = 0) => {
+		const { reached, total } = lengthOf(id, pass);
+		return total ? Math.min(1, reached / total) : 0;
+	};
+	const k: Omit<Knitted, 'parts'> = { yoke: piece('yoke'), body: piece('body'), sleeves: [piece('sleeves', 0), piece('sleeves', 1)], neck: piece('neck'), bands: piece('bands') };
 	if (k.body || k.sleeves[0] || k.sleeves[1]) k.yoke = 1;
-	return k.yoke || k.neck || k.bands ? k : null;
+
+	// `parts` is a fraction (0–1) of each 3D piece; the viewer stretches it to that piece's own scale.
+	const parts: Record<string, number> = {};
+	// Accessory sections name the piece they knit. A sock is several sections of one piece, so add
+	// their lengths together rather than taking the furthest one.
+	const lengths = new Map<string, { reached: number; total: number }>();
+	for (const s of sections) {
+		if (!s.piece) continue;
+		const passes = s.twice ? 2 : 1;
+		for (let pass = 0; pass < passes; pass++) {
+			const key = passes === 2 ? `${s.piece}${pass + 1}` : s.piece;
+			const { reached, total } = lengthOf(s.id, pass);
+			const acc = lengths.get(key) ?? { reached: 0, total: 0 };
+			acc.reached += reached;
+			acc.total += total;
+			lengths.set(key, acc);
+		}
+	}
+	for (const [key, { reached, total }] of lengths) parts[key] = reached > 0 && total > 0 ? Math.min(1, reached / total) : -1;
+
+	// Tops keep their old mapping: body and sleeves hang from the yoke, which must be complete first.
+	const hanging = (part: number) => (k.yoke < 1 ? (k.yoke ? k.yoke / 2 : -1) : (1 + part) / 2);
+	parts.body = hanging(k.body);
+	parts.sleeve = hanging(k.sleeves[0]);
+	parts.sleeve2 = hanging(k.sleeves[1]);
+	parts.neck = k.neck || -1;
+	parts.bands = k.bands || -1;
+	const any = k.yoke || k.neck || k.bands || Object.values(parts).some((v) => v > 0);
+	return any ? { ...k, parts } : null;
 }
 
 /**
@@ -91,13 +133,19 @@ export function progressAt(tasks: Task[], key: string, p: Progress = {}): Progre
  * they do not change the steps, so recolouring a sweater keeps your place. The main needle only
  * counts when it is not the standard one, which changes the gauge and every stitch count.
  */
-export const signature = (d: Design) =>
-	Object.entries(d)
+const ACCESSORY_FIELDS = new Set(['hatLength', 'crown', 'pomPom', 'brimFinish', 'brimRib', 'brimLength', 'sockLength', 'heel', 'toe', 'sockRib', 'sockCuff', 'scarfWidth', 'scarfLength', 'scarfEnds', 'fringe']);
+const TOP_FIELDS = new Set(['construction', 'bodyLength', 'sleeveLength', 'neckline', 'sleeveShape', 'hemFinish', 'bodyRib', 'bodyRibLength', 'slits', 'neckRib', 'neckDepth', 'cuffFinish', 'sleeveRib', 'cuffLength', 'centerpiece', 'centerpieceY', 'centerpieceAt']);
+
+export const signature = (d: Design) => {
+	// Fields from the other family do not change this pattern, and must not move an old top's place.
+	const unrelated = familyOf(d) === 'top' ? ACCESSORY_FIELDS : TOP_FIELDS;
+	return Object.entries(d)
 		// Custom measurements only count while they are in use; switching back to a size leaves them out.
-		.filter(([key, value]) => key !== 'color' && key !== 'contrast' && key !== 'ribNeedle' && (key !== 'motif' || d.pattern === 'Custom') && ((key !== 'centerpieceY' && key !== 'centerpieceAt') || d.centerpiece !== '') && (key !== 'needle' || value) && (key !== 'custom' || d.size === 'Custom'))
+		.filter(([key, value]) => !unrelated.has(key) && key !== 'color' && key !== 'contrast' && key !== 'ribNeedle' && (key !== 'motif' || d.pattern === 'Custom') && ((key !== 'centerpieceY' && key !== 'centerpieceAt') || d.centerpiece !== '') && (key !== 'needle' || value) && (key !== 'custom' || d.size === 'Custom'))
 		.sort(([a], [b]) => a.localeCompare(b))
 		.map(([key, value]) => `${key}=${key === 'custom' ? JSON.stringify(value) : value}`)
 		.join('|');
+};
 
 // ── Saved on this device ────────────────────────────────────────────────
 export type Mode = 'concise' | 'beginner';

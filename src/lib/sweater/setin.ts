@@ -456,6 +456,7 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 	return {
 		ok: true,
 		construction: 'Set-in',
+		family: 'top',
 		sleeveless: slip,
 		yokeFront,
 		title: `${wearer}${d.neckline} ${slip ? '' : 'set-in '}${d.garment.toLowerCase()}, ${custom ? 'custom fit' : `size ${d.size}`}`,
