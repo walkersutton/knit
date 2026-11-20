@@ -8,10 +8,10 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (!body || typeof body.message !== 'string' || body.message.trim().length < 10) {
 		error(400, 'Please write at least 10 characters.');
 	}
-	const name = (body.name ?? '').toString().slice(0, 200);
-	const email = (body.email ?? '').toString().slice(0, 300);
+
+	const name = typeof body.name === 'string' ? body.name.trim().slice(0, 200) : '';
+	const email = typeof body.email === 'string' ? body.email.trim().slice(0, 300) : '';
 	const message = body.message.trim();
-	if (message.length < 10) error(400, 'Please write at least 10 characters.');
 	if (message.length > 5000) error(400, 'Message is too long.');
 
 	await database()`

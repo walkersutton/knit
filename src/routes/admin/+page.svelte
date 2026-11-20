@@ -1,129 +1,213 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-	export let data: PageData;
+	import { enhance } from '$app/forms';
 
-	async function markRead(id: string) {
-		await fetch(`/api/feedback/${id}/read`, { method: 'POST' });
-	}
+	let { data } = $props();
 
-	async function dismiss(id: string) {
-		await fetch(`/api/feedback/${id}/dismiss`, { method: 'POST' });
+	let filter = $state<'unread' | 'all'>('unread');
+	let unread = $derived(data.feedback.filter((f) => !f.read).length);
+	let shown = $derived(filter === 'unread' ? data.feedback.filter((f) => !f.read) : data.feedback);
+
+	const when = (iso: string) =>
+		new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+	function confirmDelete(event: SubmitEvent) {
+		if (!confirm('Delete this feedback for good?')) event.preventDefault();
 	}
 </script>
 
 <svelte:head>
-	<title>Feedback — knit</title>
+	<title>Feedback inbox — knit</title>
+	<meta name="robots" content="noindex" />
 </svelte:head>
 
-<div class="admin">
-	<h1>Feedback</h1>
-	{#if data.feedback.length === 0}
-		<p class="empty">No feedback yet. It will appear here when visitors submit it.</p>
+<main>
+	<header>
+		<h1>Feedback</h1>
+		<p class="count">
+			{data.feedback.length} {data.feedback.length === 1 ? 'note' : 'notes'}{#if unread}, <strong>{unread} unread</strong>{/if}
+		</p>
+		<div class="tabs" role="tablist" aria-label="Show">
+			<button role="tab" aria-selected={filter === 'unread'} onclick={() => (filter = 'unread')}>Unread</button>
+			<button role="tab" aria-selected={filter === 'all'} onclick={() => (filter = 'all')}>All</button>
+		</div>
+	</header>
+
+	{#if shown.length === 0}
+		<p class="empty">
+			{filter === 'unread' && data.feedback.length ? 'All caught up.' : 'No feedback yet. Notes sent from the footer land here.'}
+		</p>
 	{:else}
-		<div class="list">
-			{#each data.feedback as item (item.id)}
-				<article class:unread={!item.read}>
+		<ul>
+			{#each shown as item (item.id)}
+				<li class="note" class:unread={!item.read}>
 					<div class="meta">
-						<span class="date">{new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-						{#if item.name}<span class="name">{item.name}</span>{/if}
-						{#if item.email}<a href="mailto:{item.email}" class="email">{item.email}</a>{/if}
+						<time datetime={item.createdAt}>{when(item.createdAt)}</time>
+						<span class="who">{item.name || 'Anonymous'}</span>
+						{#if item.email}<a href="mailto:{item.email}?subject=Your%20knit%20feedback">{item.email}</a>{/if}
 					</div>
 					<p class="message">{item.message}</p>
 					<div class="actions">
-						{#if !item.read}
-							<button onclick={() => markRead(item.id)}>Mark read</button>
-						{/if}
-						<button class="dismiss" onclick={() => dismiss(item.id)}>Dismiss</button>
+						<form method="POST" action={item.read ? '?/unread' : '?/read'} use:enhance>
+							<input type="hidden" name="id" value={item.id} />
+							<button>{item.read ? 'Mark unread' : 'Mark read'}</button>
+						</form>
+						<form method="POST" action="?/delete" use:enhance onsubmit={confirmDelete}>
+							<input type="hidden" name="id" value={item.id} />
+							<button class="delete">Delete</button>
+						</form>
 					</div>
-				</article>
+				</li>
 			{/each}
-		</div>
+		</ul>
 	{/if}
-</div>
+</main>
 
 <style>
-	.admin {
+	main {
+		width: 100%;
 		max-width: 720px;
 		margin: 0 auto;
-		padding: 32px 16px;
+		padding: 40px 16px 64px;
+		color: #26335f;
+	}
+	header {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 4px 14px;
+		margin-bottom: 24px;
 	}
 	h1 {
-		margin: 0 0 24px;
-		font-family: var(--display);
-		font-size: 28px;
-		font-weight: 650;
+		margin: 0;
+		font: 600 clamp(32px, 7vw, 44px) / 1 var(--display);
+	}
+	.count {
+		flex: 1;
+		margin: 0;
+		color: #55545b;
+		font-size: 14px;
+	}
+	.count strong {
+		color: #c8543e;
+	}
+	.tabs {
+		display: flex;
+		gap: 2px;
+		padding: 3px;
+		border-radius: 999px;
+		background: #26335f12;
+	}
+	.tabs button {
+		padding: 6px 14px;
+		border: 0;
+		border-radius: 999px;
+		background: none;
+		color: #55545b;
+		font: inherit;
+		font-size: 13px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.tabs button[aria-selected='true'] {
+		background: #fffdf8;
+		color: #26335f;
+		box-shadow: 0 1px 3px #26335f22;
 	}
 	.empty {
-		color: var(--muted);
+		padding: 48px 0;
+		color: #76747b;
 		font-size: 15px;
+		text-align: center;
 	}
-	.list {
-		display: flex;
-		flex-direction: column;
-		gap: 16px;
+	ul {
+		display: grid;
+		gap: 14px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
 	}
-	article {
-		padding: 16px;
-		border: 1px solid var(--line);
-		border-radius: 12px;
-		background: #fff;
+	/* Each note is a small patch, stitched like the dialog it came from. */
+	.note {
+		position: relative;
+		padding: 20px 22px 16px;
+		border-radius: 18px;
+		background: #fffdf8;
+		box-shadow: 0 0 0 1px #e6dcc0, 0 4px 14px #433c2914;
 	}
-	article.unread {
-		border-color: #465e9d;
-		box-shadow: 0 0 0 1px #465e9d;
+	.note.unread::before {
+		content: '';
+		position: absolute;
+		inset: 6px;
+		border: 1.5px dashed #c9bb92;
+		border-radius: 13px;
+		pointer-events: none;
 	}
 	.meta {
 		display: flex;
-		align-items: center;
-		gap: 12px;
-		margin-bottom: 8px;
-		font-size: 13px;
-		color: var(--muted);
 		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 4px 12px;
+		margin-bottom: 8px;
+		color: #76747b;
+		font-size: 13px;
 	}
-	.name {
-		font-weight: 500;
-		color: var(--ink);
+	.unread .meta::before {
+		content: '';
+		align-self: center;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: #c8543e;
 	}
-	.email {
+	.who {
+		color: #26335f;
+		font-weight: 600;
+	}
+	.meta a {
 		color: #465e9d;
-		text-decoration: none;
-	}
-	.email:hover {
-		text-decoration: underline;
 	}
 	.message {
-		margin: 0 0 12px;
-		font-size: 14.5px;
+		margin: 0 0 14px;
+		font-size: 15px;
 		line-height: 1.55;
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
 	}
 	.actions {
 		display: flex;
 		gap: 8px;
 	}
-	button {
-		padding: 6px 14px;
-		border: 1px solid var(--line);
-		border-radius: 8px;
+	.actions button {
+		position: relative;
+		min-height: 32px;
+		padding: 0 14px;
+		border: 1.5px solid #e6dcc0;
+		border-radius: 999px;
 		background: #fff;
+		color: #26335f;
 		font: inherit;
 		font-size: 13px;
+		font-weight: 600;
 		cursor: pointer;
-		transition: background-color 150ms ease-out;
+		transition: background-color 150ms ease-out, transform 120ms ease-out;
 	}
 	@media (hover: hover) and (pointer: fine) {
-		button:hover {
-			background: var(--wash);
+		.actions button:hover {
+			background: #f2edcf;
+		}
+		.actions .delete:hover {
+			background: #c8543e14;
 		}
 	}
-	button:active {
+	.actions button:active {
 		transform: scale(0.97);
 	}
-	.dismiss {
-		color: #c8543e;
-		border-color: #c8543e33;
+	.actions .delete {
+		border-color: #c8543e40;
+		color: #b4432f;
 	}
-	.dismiss:hover {
-		background: #c8543e11;
+	button:focus-visible {
+		outline: 2px solid #2563eb;
+		outline-offset: 2px;
 	}
 </style>
