@@ -118,3 +118,15 @@ BEGIN
 END $$;
 ALTER TABLE shared_patterns ALTER COLUMN slug SET NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS shared_patterns_slug_idx ON shared_patterns(slug);
+
+-- Feedback from visitors who want to report a bug, suggest a feature, or just say hello. No auth required to submit; only the site owner can read it.
+CREATE TABLE IF NOT EXISTS feedback (
+	id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	name text NOT NULL DEFAULT '',
+	email text NOT NULL DEFAULT '',
+	message text NOT NULL,
+	read boolean NOT NULL DEFAULT false,
+	created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS feedback_created_at_idx ON feedback(created_at DESC);
+CREATE INDEX IF NOT EXISTS feedback_read_idx ON feedback(read, created_at DESC);

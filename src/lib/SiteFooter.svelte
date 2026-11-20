@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { SITE } from '$lib/site';
+	import FeedbackDialog from './FeedbackDialog.svelte';
 
 	const links = [
 		{ t: 'Design', href: '/design' },
@@ -7,6 +8,8 @@
 		{ t: 'Charts', href: '/chart' },
 		{ t: 'How it works', href: '/about' }
 	];
+
+	let open = false;
 </script>
 
 <footer>
@@ -14,10 +17,13 @@
 		<p class="sign">Happy knitting.</p>
 		<nav aria-label="Footer">
 			{#each links as l}<a href={l.href}>{l.t}</a>{/each}
+			<button type="button" class="feedback-btn" onclick={() => open = true}>Feedback</button>
 		</nav>
 		<p class="fine">knit is open source. <a href={SITE.source} target="_blank" rel="noopener">View the code on GitHub</a>.</p>
 	</div>
 </footer>
+
+<FeedbackDialog {open} onClose={() => open = false} />
 
 <style>
 	/* The closing band for every content page. The designer runs edge to edge and has no footer. */
@@ -46,12 +52,24 @@
 		margin: 20px 0 24px;
 		font-size: 15px;
 	}
-	nav a {
+	nav a,
+	nav .feedback-btn {
 		display: inline-flex;
 		align-items: center;
 		min-height: 36px;
 		font-weight: 500;
 		text-decoration: none;
+	}
+	.feedback-btn {
+		background: transparent;
+		border: 1px solid #faf3dc55;
+		border-radius: 8px;
+		padding: 4px 12px;
+		color: #faf3dc;
+		font: inherit;
+		font-size: 14px;
+		cursor: pointer;
+		transition: background-color 150ms ease-out, border-color 150ms ease-out;
 	}
 	@media (hover: hover) and (pointer: fine) {
 		nav a:hover {
@@ -60,6 +78,13 @@
 			text-decoration-thickness: 2px;
 			text-decoration-color: #c8543e;
 		}
+		.feedback-btn:hover {
+			background: #faf3dc15;
+			border-color: #faf3dc99;
+		}
+	}
+	.feedback-btn:active {
+		transform: scale(0.97);
 	}
 	.fine {
 		margin: 0;
@@ -70,7 +95,8 @@
 	a {
 		color: inherit;
 	}
-	a:focus-visible {
+	a:focus-visible,
+	.feedback-btn:focus-visible {
 		outline: 2px solid #faf3dc;
 		outline-offset: 2px;
 		border-radius: 4px;
