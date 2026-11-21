@@ -35,32 +35,40 @@ export async function likesOf(kind: Kind, id: string, userId?: string) {
 	return { likes: rows[0].n as number, liked: rows[0].mine as boolean };
 }
 
-export type Featured = {
-	chart: (SharedChart & { likes: number }) | null;
-	pattern: (SharedPattern & { likes: number }) | null;
-};
+export type FeaturedChart = SharedChart & { likes: number };
+export type FeaturedPattern = SharedPattern & { likes: number };
+export type Featured = { patterns: FeaturedPattern[]; charts: FeaturedChart[]; centerpieces: FeaturedChart[] };
 
-/** The most-liked chart and pattern, the newest winning a tie. Nothing is featured until someone has liked it. */
+/** How many of each kind the home page shows. */
+export const FEATURED_COUNT = 5;
+
+/**
+ * The most-liked patterns, charts and centerpieces, the newest winning a tie. Nothing is featured until someone has
+ * liked it. A centerpiece is a chart whose motif carries its size ("20x11:…"); a repeat is only 0s and 1s.
+ */
 export async function featured(): Promise<Featured> {
 	const sql = database();
-	const [charts, patterns] = await Promise.all([
-		sql`
-			SELECT c.id, c.name, c.motif, c.color, c.contrast, c.created_at, u.ravelry_username AS author, u.photo_url AS author_photo, count(l.user_id)::int AS likes
-			FROM shared_charts c JOIN users u ON u.id = c.user_id JOIN chart_likes l ON l.chart_id = c.id
-			GROUP BY c.id, u.ravelry_username, u.photo_url
-			ORDER BY likes DESC, c.created_at DESC LIMIT 1
-		`,
+	const charts = (centerpiece: boolean) => sql`
+		SELECT c.id, c.name, c.motif, c.color, c.contrast, c.created_at, u.ravelry_username AS author, u.photo_url AS author_photo, count(l.user_id)::int AS likes
+		FROM shared_charts c JOIN users u ON u.id = c.user_id JOIN chart_likes l ON l.chart_id = c.id
+		WHERE (position(':' in c.motif) > 0) = ${centerpiece}
+		GROUP BY c.id, u.ravelry_username, u.photo_url
+		ORDER BY likes DESC, c.created_at DESC LIMIT ${FEATURED_COUNT}
+	`;
+	const [patterns, repeats, centerpieces] = await Promise.all([
 		sql`
 			SELECT p.id, p.slug, p.name, p.design, p.created_at, u.ravelry_username AS author, u.photo_url AS author_photo, count(l.user_id)::int AS likes
 			FROM shared_patterns p JOIN users u ON u.id = p.user_id JOIN pattern_likes l ON l.pattern_id = p.id
 			GROUP BY p.id, u.ravelry_username, u.photo_url
-			ORDER BY likes DESC, p.created_at DESC LIMIT 1
-		`
+			ORDER BY likes DESC, p.created_at DESC LIMIT ${FEATURED_COUNT}
+		`,
+		charts(false),
+		charts(true)
 	]);
-	const c = charts[0];
-	const p = patterns[0];
+	const chart = (c: Record<string, any>): FeaturedChart => ({ id: c.id, name: c.name, motif: c.motif, color: c.color, contrast: c.contrast, author: c.author, authorPhoto: cleanPhoto(c.author_photo), createdAt: c.created_at, likes: c.likes });
 	return {
-		chart: c ? { id: c.id, name: c.name, motif: c.motif, color: c.color, contrast: c.contrast, author: c.author, authorPhoto: cleanPhoto(c.author_photo), createdAt: c.created_at, likes: c.likes } : null,
-		pattern: p ? { id: p.id, slug: p.slug, name: p.name, design: p.design, author: p.author, authorPhoto: cleanPhoto(p.author_photo), createdAt: p.created_at, likes: p.likes } : null
+		patterns: patterns.map((p) => ({ id: p.id, slug: p.slug, name: p.name, design: p.design, author: p.author, authorPhoto: cleanPhoto(p.author_photo), createdAt: p.created_at, likes: p.likes })),
+		charts: repeats.map(chart),
+		centerpieces: centerpieces.map(chart)
 	};
 }

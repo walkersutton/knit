@@ -1,4 +1,5 @@
 import { database } from './db';
+import { SEED_USER } from './seed';
 
 /** How many circles the home page shows; the rest are counted. */
 export const MEMBER_LIMIT = 48;
@@ -21,12 +22,12 @@ export function profilePhoto(user?: { small_photo_url?: unknown; tiny_photo_url?
 	return cleanPhoto(user?.small_photo_url) ?? cleanPhoto(user?.tiny_photo_url) ?? cleanPhoto(user?.photo_url);
 }
 
-/** The knitters who have signed up, newest first, and how many there are in all. */
+/** The knitters who have signed up, newest first, and how many there are in all. knit's own house account (see seed.ts) is not one. */
 export async function listMembers(): Promise<{ members: Member[]; total: number }> {
 	const sql = database();
 	const [rows, count] = await Promise.all([
-		sql`SELECT ravelry_username AS username, photo_url AS photo FROM users ORDER BY created_at DESC LIMIT ${MEMBER_LIMIT}`,
-		sql`SELECT count(*)::int AS n FROM users`
+		sql`SELECT ravelry_username AS username, photo_url AS photo FROM users WHERE ravelry_user_id <> ${SEED_USER.ravelryUserId} ORDER BY created_at DESC LIMIT ${MEMBER_LIMIT}`,
+		sql`SELECT count(*)::int AS n FROM users WHERE ravelry_user_id <> ${SEED_USER.ravelryUserId}`
 	]);
 	return {
 		members: rows.map((r) => ({ username: String(r.username), photo: cleanPhoto(r.photo) })),

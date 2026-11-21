@@ -9,10 +9,9 @@ vi.mock('./auth', async () => {
 });
 
 import { DEFAULT_DESIGN } from '$lib/sweater/defaults';
-import { chartDesign } from '$lib/sweater/library';
 import { starterMotif } from '$lib/sweater/motifs';
 import type { Featured } from './likes';
-import { featuredDesigns, RENDER_LOOK, renderKey } from './renders';
+import { featuredDesign, RENDER_LOOK, renderKey } from './renders';
 
 const chart = { id: 'c', name: 'Chart', motif: starterMotif(), color: DEFAULT_DESIGN.color, contrast: DEFAULT_DESIGN.contrast, author: 'a', authorPhoto: null, createdAt: '', likes: 1 };
 const pattern = { id: 'p', slug: 'pattern', name: 'Pattern', design: { ...DEFAULT_DESIGN }, author: 'a', authorPhoto: null, createdAt: '', likes: 2 };
@@ -28,12 +27,13 @@ describe('renderKey', () => {
 	});
 });
 
-describe('featuredDesigns', () => {
-	it('shows a pattern as shared and a chart on the default sweater', () => {
-		const picks: Featured = { chart, pattern };
-		expect(featuredDesigns(picks)).toEqual({ pattern: pattern.design, chart: chartDesign(chart.motif, chart.color, chart.contrast) });
+describe('featuredDesign', () => {
+	const picks: Featured = { patterns: [pattern], charts: [chart], centerpieces: [] };
+	it('finds a featured pattern’s design by id', () => {
+		expect(featuredDesign(picks, 'p')).toEqual(pattern.design);
 	});
-	it('has nothing for a favourite that is missing', () => {
-		expect(featuredDesigns({ chart: null, pattern: null })).toEqual({});
+	it('has nothing for a chart or a pattern that is not featured', () => {
+		expect(featuredDesign(picks, 'c')).toBeUndefined();
+		expect(featuredDesign(picks, 'nope')).toBeUndefined();
 	});
 });
