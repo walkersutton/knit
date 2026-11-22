@@ -170,13 +170,31 @@
 			</dl>
 			{#if onnotes || notes.trim()}<div class="notes"><Notes value={notes} onsave={onnotes} label={author ? 'From the designer' : 'Notes'} hint={notesHint} /></div>{/if}
 			<div class="actions">
-				<button class="stitch sm" type="button" onclick={() => reader?.scrollIntoView({ behavior: 'smooth' })}>Start knitting ↓</button>
-				<button class="stitch quiet sm" type="button" onclick={onedit}>{author ? 'Adapt in designer' : '← Edit design'}</button>
-				<button class="stitch quiet sm" type="button" onclick={() => window.print()}>Print</button>
-				<button class="stitch quiet sm" type="button" onclick={onsave} title="Save this design to your account or this device">Save design</button>
-				<button class="stitch quiet sm" type="button" onclick={share} disabled={shareState === 'busy'}>{shareState === 'busy' ? 'Sharing…' : shareState === 'copied' ? 'Link copied' : link ? 'Copy link' : 'Share'}</button>
-				{#if likes && sharedId}<LikeButton kind="pattern" id={sharedId} likes={likes.count} liked={likes.liked} signedIn={likes.signedIn} />{/if}
-				{#if onunshare}<button class="stitch quiet sm" type="button" onclick={onunshare}>Unshare</button>{/if}
+				<button class="chunk sm" type="button" onclick={() => reader?.scrollIntoView({ behavior: 'smooth' })}>Start knitting ↓</button>
+				<button class="chunk quiet sm" type="button" onclick={onedit}>{author ? 'Adapt in designer' : '← Edit design'}</button>
+				<div class="tools" role="toolbar" aria-label="Pattern actions">
+					<button type="button" aria-label="Print" title="Print" onclick={() => window.print()}>
+						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a1 1 0 0 1-1-1v-5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5a1 1 0 0 1-1 1h-2M7 14h10v6H7z" /></svg>
+					</button>
+					{#if !(likes && sharedId)}
+						<button type="button" aria-label="Save design" title="Save this design to your account or this device" onclick={onsave}>
+							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16l-6-4-6 4z" /></svg>
+						</button>
+					{/if}
+					<button type="button" aria-label={link ? 'Copy link' : 'Share'} title={shareState === 'copied' ? 'Link copied' : link ? 'Copy link' : 'Share'} onclick={share} disabled={shareState === 'busy'}>
+						{#if shareState === 'copied'}
+							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+						{:else}
+							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M5 13v6h14v-6" /></svg>
+						{/if}
+					</button>
+					{#if likes && sharedId}<LikeButton icon kind="pattern" id={sharedId} likes={likes.count} liked={likes.liked} signedIn={likes.signedIn} />{/if}
+					{#if onunshare}
+						<button type="button" class="danger" aria-label="Unshare" title="Unshare" onclick={onunshare}>
+							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13" /></svg>
+						</button>
+					{/if}
+				</div>
 			</div>
 			<p class="share-note" role="status">
 				{#if shareError}{shareError}{:else if link && !author}Shared at <a href={link}>{link}</a>.{/if}
@@ -312,7 +330,67 @@
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		align-items: center;
+		gap: 10px;
+	}
+	/* One cream bar of icon controls, matching the quiet chunky button beside it. */
+	.tools {
+		display: inline-flex;
+		align-items: stretch;
+		height: 34px;
+		border-radius: 10px;
+		background: #fffdf8;
+		box-shadow: 0 2px 0 #c9bb92;
+	}
+	.tools :global(button) {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 38px;
+		padding: 0 10px;
+		border: 0;
+		border-left: 1px solid #c9bb9260;
+		background: transparent;
+		color: #26335f;
+		cursor: pointer;
+		transition: background-color 150ms ease-out;
+	}
+	.tools > :global(:first-child),
+	.tools > :global(:first-child) :global(button) {
+		border-left: 0;
+		border-radius: 10px 0 0 10px;
+	}
+	.tools > :global(:last-child),
+	.tools > :global(:last-child button) {
+		border-radius: 0 10px 10px 0;
+	}
+	.tools > :global(:only-child) {
+		border-radius: 10px;
+	}
+	.tools :global(button:disabled) {
+		opacity: 0.5;
+		cursor: default;
+	}
+	.tools :global(button.danger) {
+		color: #9b2c1f;
+	}
+	.tools :global(button:focus-visible) {
+		outline: 2px solid var(--focus);
+		outline-offset: -2px;
+	}
+	.tools svg {
+		width: 18px;
+		height: 18px;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.8;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	@media (hover: hover) and (pointer: fine) {
+		.tools :global(button:hover:not(:disabled)) {
+			background: #26335f0f;
+		}
 	}
 	.share-note {
 		margin: 10px 0 0;
