@@ -213,6 +213,8 @@
 	</div>
 </div>
 
+<div class="print-only"><PatternView {pattern} main={design.color} contrast={design.contrast} {mode} /></div>
+
 <Confetti bind:this={confetti} colors={confettiColors} />
 
 <button class="fab"type="button" aria-expanded={sheet} onclick={() => (sheet = true)}>Model</button>
@@ -581,12 +583,23 @@
 			}
 		}
 	}
+	.print-only {
+		display: none;
+	}
 	@media print {
+		:global(body) {
+			background: #fff;
+		}
 		.page,
 		.fab,
 		.scrim,
 		.sheet {
 			display: none;
+		}
+		.print-only {
+			display: block;
+			max-width: 170mm;
+			margin: 0 auto;
 		}
 	}
 </style>

@@ -33,6 +33,12 @@
 		flex: 1;
 		flex-direction: column;
 	}
+	@media print {
+		.shell > :global(header),
+		.shell > :global(footer) {
+			display: none;
+		}
+	}
 	:global(*) {
 		box-sizing: border-box;
 	}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy, tick, untrack } from 'svelte';
+	import Qr from './Qr.svelte';
 	import { primer, spellOut, techniques, techniquesIn, type Technique } from './learn';
 	import type { Pattern, PatternSection, Step } from './pattern';
 	import { doneOf, isDone, stepKey, summarize, tasksOf, type Mode, type Progress, type Task } from './progress';
@@ -122,7 +123,7 @@
 
 {#snippet rich(s: string)}{#each parts(s) as p, i (i)}{#if p.bold}<b>{p.text}</b>{:else}{p.text}{/if}{/each}{/snippet}
 
-{#snippet link(t: { label: string; url: string; source: string })}<a href={t.url} target="_blank" rel="noopener noreferrer">{t.label}</a> <span class="source">({t.source})</span>{/snippet}
+{#snippet link(t: { label: string; url: string; source: string })}{#if interactive}<a href={t.url} target="_blank" rel="noopener noreferrer">{t.label}</a> <span class="source">({t.source})</span>{:else}<span class="scan"><span><a href={t.url}>{t.label}</a><span class="source">{t.source}</span></span><Qr url={t.url} label={t.label} /></span>{/if}{/snippet}
 
 {#snippet item(s: PatternSection, pass: number, step: Step, i: number, links: Technique[])}
 	{@const t = taskOf(s, pass, step, i)}
@@ -692,6 +693,44 @@
 	.source {
 		color: var(--muted, #6b6b74);
 	}
+	/* On paper a link cannot be clicked, so it becomes a small card: a QR code to scan, with the name and source beside it. */
+	.scan {
+		display: grid;
+		grid-template-columns: 13mm minmax(0, 1fr);
+		align-items: center;
+		gap: 2.5mm;
+		padding: 1.5mm 2.5mm 1.5mm 1.5mm;
+		border: 0.3mm solid var(--line, #dcdce0);
+		border-radius: 1.5mm;
+		break-inside: avoid;
+		line-height: 1.25;
+	}
+	.scan > :global(.qr) {
+		order: -1;
+		width: 13mm;
+		height: 13mm;
+	}
+	.scan > span {
+		display: grid;
+		gap: 0.5mm;
+		font-size: 0.9em;
+	}
+	.scan .source {
+		font-size: 0.85em;
+	}
+	/* Cards line up in a tidy grid instead of running along the text. */
+	.learn:has(.scan) {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(56mm, 1fr));
+		gap: 2mm 3mm;
+		margin-top: 2.5mm;
+	}
+	.learn:has(.scan) > .sep {
+		display: none;
+	}
+	.learn:has(.scan) > span:first-child:not(.scan) {
+		grid-column: 1 / -1;
+	}
 	.sep {
 		margin: 0 6px;
 		color: var(--muted, #6b6b74);
@@ -723,6 +762,10 @@
 	.refs li {
 		display: block;
 		padding: 0;
+	}
+	.refs:has(.scan) {
+		grid-template-columns: repeat(auto-fill, minmax(56mm, 1fr));
+		gap: 2mm 3mm;
 	}
 
 	figure {
