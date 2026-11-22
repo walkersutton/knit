@@ -6,6 +6,9 @@
 	const DESIGNS_KEY = 'knit-it:designs:v1';
 	const DELETED_KEY = 'knit-it:deleted:v1';
 	let syncing = false;
+	let failed = $state(false);
+	let lastPull = 0;
+	let retry: () => void = () => {};
 	let pending = false;
 	let revision = 0;
 	let timer: ReturnType<typeof setTimeout>;
@@ -96,18 +99,26 @@
 					headers: { 'content-type': 'application/json' },
 					body: JSON.stringify({ revision, data: localData() })
 				});
-				if (response.status === 401) return;
+				if (response.status === 401) {
+					failed = false;
+					return;
+				}
 				if (response.status === 409) {
 					const latest = await response.json();
 					revision = latest.revision;
 					install(mergeData(localData(), latest.data));
 					continue;
 				}
-				if (response.ok) revision = (await response.json()).revision;
+				if (response.ok) {
+					revision = (await response.json()).revision;
+					failed = false;
+				} else failed = true;
 				return;
 			}
+			failed = true;
 		} catch {
 			// Keep local work available when the network is down; the next change retries.
+			failed = true;
 		} finally {
 			syncing = false;
 			if (pending) {
@@ -130,25 +141,73 @@
 		};
 		window.addEventListener('knit:local-save', onSave);
 		window.addEventListener('storage', onStorage);
-		(async () => {
+		async function pull(force: boolean) {
+			if (syncing || Date.now() - lastPull < 5000 && !force) return;
+			lastPull = Date.now();
 			try {
-				const response = await fetch('/api/account');
-				if (!response.ok) return;
+				const response = await fetch('/api/account', { cache: 'no-store' });
+				if (!response.ok) {
+					failed = true;
+					return;
+				}
 				const { account, data, revision: currentRevision } = await response.json();
 				if (!active || !account) return;
+				// Nothing new on the server: our own pushes already cover local edits.
+				if (currentRevision === revision && revision !== 0) {
+					failed = false;
+					return;
+				}
 				revision = currentRevision;
-				const merged = mergeData(localData(), data);
-				install(merged);
+				install(mergeData(localData(), data));
 				await push();
 			} catch {
 				// Offline use continues with this device's saved data.
+				failed = true;
 			}
-		})();
+		}
+		const onVisible = () => {
+			if (document.visibilityState === 'visible') pull(false);
+		};
+		document.addEventListener('visibilitychange', onVisible);
+		window.addEventListener('focus', onVisible);
+		window.addEventListener('online', onVisible);
+		retry = () => pull(true);
+		pull(true);
 		return () => {
 			active = false;
 			clearTimeout(timer);
 			window.removeEventListener('knit:local-save', onSave);
 			window.removeEventListener('storage', onStorage);
+			document.removeEventListener('visibilitychange', onVisible);
+			window.removeEventListener('focus', onVisible);
+			window.removeEventListener('online', onVisible);
 		};
 	});
 </script>
+
+{#if failed}
+	<div class="sync-note" role="status">
+		<span>Couldn't sync your patterns.</span>
+		<button type="button" class="stitch quiet sm" onclick={() => {
+			failed = false;
+			retry();
+		}}>Try again</button>
+	</div>
+{/if}
+
+<style>
+	.sync-note {
+		position: fixed;
+		inset: auto 16px 16px auto;
+		z-index: 50;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 8px 12px;
+		border-radius: 12px;
+		background: var(--cream, #fff8ec);
+		color: var(--navy, #1f2a44);
+		box-shadow: 0 2px 10px rgb(0 0 0 / 0.15);
+		font-size: 0.9rem;
+	}
+</style>

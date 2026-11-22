@@ -10,9 +10,12 @@ const safeReturn = (value: string | null) => (value && /^\/(?![/\\])/.test(value
 
 export const GET: RequestHandler = async ({ cookies, url }) => {
 	if (!ravelryConfigured()) error(503, 'Ravelry sign-in is not configured yet.');
+	// Try a silent sign-in first, so a device already known to Ravelry skips the consent screen;
+	// the callback falls back to the full screen (interactive=1) if Ravelry needs to ask.
+	const interactive = url.searchParams.get('interactive') === '1';
 	const state = randomToken(24);
 	const verifier = randomToken(48);
-	cookies.set('knit_ravelry_oauth', JSON.stringify({ state, verifier, returnTo: safeReturn(url.searchParams.get('return')) }), {
+	cookies.set('knit_ravelry_oauth', JSON.stringify({ state, verifier, returnTo: safeReturn(url.searchParams.get('return')), interactive }), {
 		httpOnly: true,
 		secure: url.protocol === 'https:',
 		sameSite: 'lax',
@@ -27,7 +30,8 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		state,
 		scope: 'offline_access',
 		code_challenge: await pkceChallenge(verifier),
-		code_challenge_method: 'S256'
+		code_challenge_method: 'S256',
+		...(interactive ? {} : { prompt: 'none' })
 	}).toString();
 	redirect(302, authorize);
 };

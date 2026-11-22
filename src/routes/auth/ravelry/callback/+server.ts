@@ -8,7 +8,7 @@ import { cleanBio } from '$lib/server/bio';
 
 export const prerender = false;
 
-type OAuthCookie = { state: string; verifier: string; returnTo?: string };
+type OAuthCookie = { state: string; verifier: string; returnTo?: string; interactive?: boolean };
 type TokenResponse = { access_token?: string; error?: string };
 type CurrentUserResponse = {
 	user?: { id?: number | string; username?: string; small_photo_url?: string; tiny_photo_url?: string; photo_url?: string };
@@ -26,7 +26,12 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	}
 	// Re-validate: the cookie is ours, but only same-site paths are ever redirect targets.
 	const returnTo = oauth?.returnTo && /^\/(?![/\\])/.test(oauth.returnTo) ? oauth.returnTo : '/';
-	if (!oauth || url.searchParams.has('error')) redirect(303, returnTo);
+	if (!oauth) redirect(303, returnTo);
+	if (url.searchParams.has('error')) {
+		// A silent attempt that Ravelry could not complete without asking: retry with the full screen.
+		if (!oauth.interactive) redirect(303, `/auth/ravelry?interactive=1&return=${encodeURIComponent(returnTo)}`);
+		redirect(303, returnTo);
+	}
 	const code = url.searchParams.get('code');
 	if (!code || url.searchParams.get('state') !== oauth.state) error(400, 'Ravelry sign-in could not be verified. Please try again.');
 	const form = new URLSearchParams({
