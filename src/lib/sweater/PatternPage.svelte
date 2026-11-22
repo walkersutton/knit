@@ -195,7 +195,7 @@
 	</div>
 </div>
 
-<Confetti bind:this={confetti} colors={confettiColors} message="You finished it!" />
+<Confetti bind:this={confetti} colors={confettiColors} />
 
 <button class="fab"type="button" aria-expanded={sheet} onclick={() => (sheet = true)}>Model</button>
 {#if sheet}

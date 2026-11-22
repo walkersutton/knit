@@ -1,11 +1,9 @@
 <script lang="ts">
 	/** A grand, multi-stage celebration over the page. Call `burst()`; it plays on a canvas, then clears itself. */
-	let { colors, message = '' }: { colors: string[]; message?: string } = $props();
+	let { colors }: { colors: string[] } = $props();
 
 	let canvas = $state<HTMLCanvasElement>();
 	let frame = 0;
-	let showing = $state(false);
-	let hide: ReturnType<typeof setTimeout> | undefined;
 
 	type Bit = { x: number; y: number; vx: number; vy: number; size: number; angle: number; spin: number; color: string; life: number; shape: 'rect' | 'dot' | 'streamer'; drag: number; born: number };
 
@@ -14,7 +12,6 @@
 	export function burst() {
 		if (!canvas || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 		cancelAnimationFrame(frame);
-		clearTimeout(hide);
 		const ratio = window.devicePixelRatio || 1;
 		const width = innerWidth;
 		const height = innerHeight;
@@ -23,8 +20,6 @@
 		const g = canvas.getContext('2d');
 		if (!g) return;
 		g.scale(ratio, ratio);
-		showing = true;
-		hide = setTimeout(() => (showing = false), 4200);
 
 		const bits: Bit[] = [];
 		const add = (x: number, y: number, angle: number, speed: number, born: number, shape: Bit['shape'], drag = 0.985) =>
@@ -143,11 +138,6 @@
 </script>
 
 <canvas bind:this={canvas} aria-hidden="true"></canvas>
-{#if message}
-	<div class="banner" class:showing role="status" aria-live="polite">
-		<span>{message}</span>
-	</div>
-{/if}
 
 <style>
 	canvas {
@@ -157,34 +147,5 @@
 		height: 100vh;
 		pointer-events: none;
 		z-index: 60;
-	}
-	.banner {
-		position: fixed;
-		left: 50%;
-		top: 32%;
-		z-index: 61;
-		pointer-events: none;
-		transform: translate(-50%, -50%) scale(0.6);
-		opacity: 0;
-		text-align: center;
-		font-family: var(--display);
-		font-size: clamp(2rem, 7vw, 4.5rem);
-		font-weight: 700;
-		line-height: 1;
-		color: #fff;
-		-webkit-text-stroke: 0.06em #26335f;
-		paint-order: stroke fill;
-		text-shadow: 0 0.06em 0 #26335f, 0 0.2em 0.6em rgba(0, 0, 0, 0.25);
-	}
-	@media (prefers-reduced-motion: no-preference) {
-		.banner {
-			transition:
-				opacity 0.3s ease-out,
-				transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
-		}
-	}
-	.banner.showing {
-		opacity: 1;
-		transform: translate(-50%, -50%) scale(1);
 	}
 </style>
