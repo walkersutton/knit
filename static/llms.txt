@@ -1,30 +1,33 @@
 # knit
 
-> knit is a free, browser-based sweater designer for knitters. You choose a garment, size, fit, neckline, sleeves, edge finishes, yarn weight and colours, see the result on a live 3D model, and get a written top-down knitting pattern with stitch counts calculated for that exact design. No account or install is needed. Knitters can optionally sign in with Ravelry to save designs and share patterns and colourwork charts with the community.
+> knit is a free, browser-based knitting pattern designer. You choose a garment (sweater, cardigan, T-shirt, slipover, beanie, socks or scarf), size, fit, yarn weight, edge finishes and colours, see the result on a live 3D model, and get a written knitting pattern with stitch counts calculated for that exact design. Knitters can draw their own colourwork charts and centerpieces. No account or install is needed. Knitters can optionally sign in with Ravelry to save designs and share patterns, colourwork charts and centerpieces with the community.
 
 ## Key facts
 
-- Garments: sweater, T-shirt, cardigan, slipover. Wearers: adult, junior, kid, baby. Sizes XS to XL in fitted, relaxed or oversized fit, or a custom fit from the knitter's own measurements.
+- Garments: sweater, T-shirt, cardigan, slipover, beanie, socks and scarf. Wearers of sweaters and similar garments: adult, junior, kid, baby. Sizes XS to XL in fitted, relaxed or oversized fit, or a custom fit from the knitter's own measurements. Socks are sized by shoe size.
 - Necklines: crew, V-neck, boat, I-cord, mock neck, turtleneck. Sleeves: short, 3/4 or full length; straight, balloon or puff.
-- Every garment comes with a full written pattern, worked top-down and seamless: raglan or set-in sleeves for sleeved garments, rolled armhole edges for slipovers.
+- Beanies: snug or slouchy, spiral or gathered crown, with or without a pom-pom. Socks: ankle, crew or knee length, flap or short-row heel, grafted or round toe. Scarves: narrow, regular or wide; short, regular or long; plain or ribbed ends; no, short or long fringe.
+- Every garment comes with a full written pattern. Sweaters, cardigans, T-shirts and slipovers are worked top-down and seamless: raglan or set-in sleeves for sleeved garments, rolled armhole edges for slipovers.
 - Yarn weights and gauges (stitches per 4 in / 10 cm): fingering 28, DK 22, worsted 18, bulky 13. The pattern can be rewritten for the needle sizes the knitter already owns, keeping the finished size the same.
-- Colourwork: solid, stripes, Fair Isle or a chart the knitter draws, in 12 colours.
+- Colourwork: solid, stripes (pinstripe to bold), Fair Isle motifs in small or large size, or a two-colour chart the knitter draws square by square, in 12 colours.
+- Centerpieces: one word or picture drawn by the knitter and worked once on the front of a sweater, T-shirt or slipover, rather than repeated all over. The pattern includes the chart and its stitch-by-stitch steps.
+- Random designs: the home page can roll random designs for inspiration; any of them can be opened in the designer.
 - Each pattern lists materials, yardage and skeins per colour, needle sizes, gauge, finished measurements (cm and inches), step-by-step instructions with the stitch count after each shaping step, and abbreviations. It can be printed or saved as a PDF.
 - Patterns are rated Beginner or Intermediate. A Concise view uses standard shorthand; a Beginner view writes every abbreviation out, adds tips and links to free tutorials.
-- Steps can be ticked off and repeated rounds counted; the 3D model grows to show the fabric knitted so far. Progress is saved in the browser, and synced across devices with an optional Ravelry sign-in.
+- Steps can be ticked off and repeated rounds counted; the 3D model grows to show the fabric knitted so far, with confetti on finishing. Progress is saved in the browser, and synced across devices with an optional Ravelry sign-in.
 - The pattern calculations run in the browser. Pages are served as static HTML where possible.
 - Free to use. Source code: https://github.com/walkersutton/knit
 
 ## Pages
 
-- [Sweater designer](https://knit.walkersutton.com/design): the interactive 3D designer and pattern generator
-- [Pattern catalogue](https://knit.walkersutton.com/pattern): free sweater, cardigan, slipover and tee patterns shared by knitters, each adjustable to the reader's yarn, gauge and size
-- [Colourwork chart library](https://knit.walkersutton.com/chart): two-colour knitting charts shared by knitters, which can be put on a sweater
+- [Designer](https://knit.walkersutton.com/design): the interactive 3D designer and pattern generator for all garments, with chart and centerpiece designers
+- [Pattern catalogue](https://knit.walkersutton.com/pattern): free patterns shared by knitters, each adjustable to the reader's yarn, gauge and size
+- [Colourwork chart library](https://knit.walkersutton.com/chart): two-colour knitting charts and centerpieces shared by knitters, which can be put on a garment
 - [How it works and FAQ](https://knit.walkersutton.com/about): the design steps, yarn weight table and answers to common questions
 
 ## Shared work
 
-- Each shared pattern is at https://knit.walkersutton.com/pattern/{id} and each shared chart at https://knit.walkersutton.com/chart/{id}, credited to the knitter who shared it.
+- Each shared pattern is at https://knit.walkersutton.com/pattern/{slug} and each shared chart at https://knit.walkersutton.com/chart/{id}, credited to the knitter who shared it.
 - Each knitter has a public page at https://knit.walkersutton.com/people/{ravelry-username} listing what they have shared.
 - All of them are listed in https://knit.walkersutton.com/sitemap.xml
 
