@@ -18,7 +18,7 @@
 	<path {d} fill={color} stroke="#18181b" stroke-opacity=".7" stroke-width="1.5" stroke-linejoin="round" />
 	{#if cells.length}<path {d} fill="url(#{uid})" />{/if}
 	<path {d} fill="none" stroke="#18181b" stroke-opacity=".7" stroke-width="1.5" stroke-linejoin="round" />
-	{#if garment === 'Cardigan'}
+	{#if garment === 'Cardigan' || garment === 'Vest'}
 		<path d="M32 18V56" stroke="#18181b" stroke-opacity=".5" stroke-width="1.2" />
 		{#each [28, 38, 48] as y (y)}<circle cx="35.5" cy={y} r="1.3" fill="#18181b" fill-opacity=".55" />{/each}
 	{/if}

@@ -46,7 +46,7 @@
 
 | | |
 | --- | --- |
-| Garments | Sweater, T-shirt, cardigan, slipover, beanie, socks, scarf |
+| Garments | Sweater, T-shirt, cardigan, slipover, button-up vest, beanie, socks, scarf |
 | Made for | Adult, junior, kid, baby, in XS to XL, or your own measurements; socks by shoe size |
 | Fit | Fitted, relaxed, oversized; cropped, regular or long |
 | Necklines | Crew, V-neck, boat, I-cord, mock neck, turtleneck |

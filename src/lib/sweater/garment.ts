@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { ARM_SHARE, CUSTOM, sizeStep, wearerScale, type Custom } from './fit';
-import { familyOf } from './family';
+import { familyOf, isSleeveless, opensFront } from './family';
 import { lerp, mirrorX, knitAt, roll, se, sheet, smooth, TAU, wob, type PosFn } from './mesh';
 import { stitchGauge } from './needles';
 import { TILE_ROWS, TILE_ST, tileFor } from './motifs';
@@ -142,7 +142,7 @@ export function measureTop(d: Design) {
 	const k = c ? Math.min(1.5, Math.max(0.4, c.chest / 96)) : wearerScale(d.wearer);
 	const sizeAdj = c ? 0 : sizeStep(d.size);
 	const fitAdj = d.fit === 'Fitted' ? -3 : d.fit === 'Oversized' ? 5 : 0;
-	const hasSleeves = d.garment !== 'Slipover';
+	const hasSleeves = !isSleeveless(d);
 	const raglan = d.construction === 'Raglan' && hasSleeves;
 
 	// ── Gauge ───────────────────────────────────────────────────────────
@@ -908,7 +908,7 @@ export function buildTop(d: Design): Garment {
 
 	}
 
-	// ── Slipover: armhole openings with a rolled edge ───────────────────
+	// ── Slipover and vest: armhole openings with a rolled edge ─────────
 	const holes: THREE.BufferGeometry[] = [];
 	if (!hasSleeves) {
 		const AC = 40;
@@ -937,8 +937,8 @@ export function buildTop(d: Design): Garment {
 		rib(d.bodyRib).push(knitAt(edge, PIECE.body, 1), knitAt(mirrorX(edge), PIECE.body, 1));
 	}
 
-	// ── Cardigan: button band + buttons ─────────────────────────────────
-	if (d.garment === 'Cardigan') {
+	// ── Cardigan and vest: button band + buttons ────────────────────────
+	if (opensFront(d)) {
 		const half = 1.7 * Math.sqrt(k);
 		const yTop = top[COLS / 2] + 1.2 * k;
 		const xs = [-half, -half * 0.45, half * 0.45, half];

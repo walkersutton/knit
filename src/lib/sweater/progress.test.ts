@@ -1,3 +1,4 @@
+import { isSleeveless, opensFront } from './family';
 import { describe, expect, it } from 'vitest';
 import { writePattern } from './pattern';
 import { doneOf, isDone, knittedOf, progressAt, signature, summarize, tasksOf } from './progress';
@@ -119,7 +120,7 @@ describe('knittedOf', () => {
 			if (['Beanie', 'Socks', 'Scarf'].includes(d.garment)) {
 				expect(Object.values(k!.parts).some((v) => v > 0)).toBe(true);
 			} else {
-				expect(k).toMatchObject({ yoke: 1, body: 1, sleeves: d.garment === 'Slipover' ? [0, 0] : [1, 1], neck: 1, bands: d.garment === 'Cardigan' ? 1 : 0 });
+				expect(k).toMatchObject({ yoke: 1, body: 1, sleeves: isSleeveless(d) ? [0, 0] : [1, 1], neck: 1, bands: opensFront(d) ? 1 : 0 });
 			}
 			for (const s of p.sections) for (const step of s.steps) expect(step.adds ?? 0).toBeGreaterThanOrEqual(0);
 		}

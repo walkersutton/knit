@@ -24,12 +24,13 @@ describe('3D garment geometry', () => {
 		expect(hashes).toMatchSnapshot();
 	}, 60_000); // builds ~100 full garments
 
-	it('builds finite geometry and names the pieces for all seven garments', () => {
+	it('builds finite geometry and names the pieces for all eight garments', () => {
 		const expected: Record<string, string[]> = {
 			Sweater: ['body', 'sleeve', 'sleeve2', 'neck', 'bands'],
 			'T-shirt': ['body', 'sleeve', 'sleeve2', 'neck', 'bands'],
 			Slipover: ['body', 'sleeve', 'sleeve2', 'neck', 'bands'],
 			Cardigan: ['body', 'sleeve', 'sleeve2', 'neck', 'bands'],
+			Vest: ['body', 'sleeve', 'sleeve2', 'neck', 'bands'],
 			Beanie: ['brim', 'crown'],
 			Socks: ['sock1', 'sock2'],
 			Scarf: ['scarf']

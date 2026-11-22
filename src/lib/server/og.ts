@@ -82,7 +82,7 @@ function sweaterSvg(design: Design): string {
 	const beanie = 'M125 360 Q125 100 250 100 T375 360 V430 H125 Z';
 	const sock = 'M140 80H240V310Q240 370 320 395Q400 420 400 470Q400 500 360 500H140Q110 500 110 470V110Q110 80 140 80Z';
 	const scarf = 'M150 60 Q250 25 350 60 V420 Q250 455 150 420 Z';
-	const shape = garment === 'Beanie' ? beanie : garment === 'Socks' ? sock : garment === 'Scarf' ? scarf : garment === 'Slipover' ? slipover : body;
+	const shape = garment === 'Beanie' ? beanie : garment === 'Socks' ? sock : garment === 'Scarf' ? scarf : garment === 'Slipover' || garment === 'Vest' ? slipover : body;
 	let art = '';
 	if (pattern === 'Stripes') for (let y = 150; y < 440; y += 70) art += `<rect x="0" y="${y}" width="500" height="26" fill="${contrast}"/>`;
 	else if (pattern !== 'Solid')

@@ -22,7 +22,7 @@ const LENGTHS = ['Short', 'Regular', 'Long'];
 
 export const choices: Partial<Record<keyof Design, (string | number)[]>> = {
 	wearer: ['Adult', 'Junior', 'Kid', 'Baby'],
-	garment: ['Sweater', 'T-shirt', 'Slipover', 'Cardigan', 'Beanie', 'Socks', 'Scarf'],
+	garment: ['Sweater', 'T-shirt', 'Slipover', 'Cardigan', 'Vest', 'Beanie', 'Socks', 'Scarf'],
 	construction: ['Raglan', 'Set-in'],
 	size: ['XS', 'S', 'M', 'L', 'XL'],
 	fit: ['Fitted', 'Relaxed', 'Oversized'],

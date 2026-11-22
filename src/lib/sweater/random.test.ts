@@ -34,7 +34,7 @@ describe('randomDesign', () => {
 
 	it('covers every garment and pattern, always in a medium adult size', () => {
 		for (const key of ['garment', 'pattern', 'neckline'] as const)
-			expect(new Set(designs.map((d) => d[key])).size, key).toBe(key === 'neckline' ? 6 : key === 'garment' ? 7 : PATTERNS.length - 1);
+			expect(new Set(designs.map((d) => d[key])).size, key).toBe(key === 'neckline' ? 6 : key === 'garment' ? 8 : PATTERNS.length - 1);
 	});
 
 	it('builds a 3D model with sane measurements for every design', () => {

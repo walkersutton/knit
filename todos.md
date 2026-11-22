@@ -2,7 +2,6 @@
 
 ## More garment types
 
-- Button-up slipover
 - Accessories: mittens, cowl
 
 ## Gendered cuts

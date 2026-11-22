@@ -1,5 +1,5 @@
 import { CUSTOM, standardBody } from './fit';
-import { familyOf, isTop } from './family';
+import { familyOf, isSleeveless, isTop } from './family';
 import type { Design } from './garment';
 import { CUSTOM_PATTERN, PATTERNS, starterMotif, validMotif } from './motifs';
 import { footFromShoe, SHOE_SIZES } from './shoes';
@@ -18,7 +18,7 @@ export type Group = { id: string; label: string; fields: Field[]; show?: (d: Des
 export type Section = { id: string; label: string; groups: Group[] };
 
 const opts = (...labels: string[]): Option[] => labels.map((label) => ({ label, value: label }));
-const sleeved = (d: Design) => isTop(d) && d.garment !== 'Slipover';
+const sleeved = (d: Design) => isTop(d) && !isSleeveless(d);
 const standard = (d: Design) => d.size !== CUSTOM;
 const hat = (d: Design) => familyOf(d) === 'hat';
 const sock = (d: Design) => familyOf(d) === 'sock';
@@ -63,7 +63,7 @@ export const sections: Section[] = [
 			{
 				id: 'garment',
 				label: 'Garment',
-				fields: [{ key: 'garment', label: 'Type', kind: 'choice', options: opts('Sweater', 'T-shirt', 'Slipover', 'Cardigan', 'Beanie', 'Socks', 'Scarf') }]
+				fields: [{ key: 'garment', label: 'Type', kind: 'choice', options: opts('Sweater', 'T-shirt', 'Slipover', 'Cardigan', 'Vest', 'Beanie', 'Socks', 'Scarf') }]
 			},
 			{
 				id: 'construction',
@@ -312,5 +312,5 @@ export const summary = (d: Design) => {
 	if (family === 'sock') return d.shoeSize ? `${d.wearer} socks, shoe size ${d.shoeSize}` : `${d.wearer} socks`;
 	if (family === 'scarf') return `${d.wearer} scarf`;
 	const size = d.size === CUSTOM && d.custom ? `Custom ${d.custom.chest} cm chest` : `${d.wearer} ${d.size}`;
-	return `${size} · ${d.construction === 'Raglan' && d.garment !== 'Slipover' ? `Raglan ${d.garment.toLowerCase()}` : d.garment}`;
+	return `${size} · ${d.construction === 'Raglan' && !isSleeveless(d) ? `Raglan ${d.garment.toLowerCase()}` : d.garment}`;
 };

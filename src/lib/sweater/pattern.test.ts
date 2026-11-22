@@ -2,21 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { isColourwork, writePattern, patternText, type Pattern } from './pattern';
 import { baseDesign, customVariations, needleVariations, randomDesigns, singleVariations } from './testDesigns';
 import { centerpieceOf } from './centerpiece';
-import { isTop } from './family';
+import { isSleeveless, isTop } from './family';
 
 const RIB_REP: Record<string, number> = { '1×1': 2, '2×2': 4, '2×1': 3, Twisted: 2, Stockinette: 1 };
 const designs = [...singleVariations(), ...needleVariations(), ...customVariations(), ...randomDesigns(600, 7)];
-const raglanDesigns = designs.filter((d) => isTop(d) && d.construction === 'Raglan' && d.garment !== 'Slipover');
-const setInDesigns = designs.filter((d) => isTop(d) && d.construction === 'Set-in' && d.garment !== 'Slipover');
+const raglanDesigns = designs.filter((d) => isTop(d) && d.construction === 'Raglan' && !isSleeveless(d));
+const setInDesigns = designs.filter((d) => isTop(d) && d.construction === 'Set-in' && !isSleeveless(d));
 const slipoverDesigns = designs.filter((d) => d.garment === 'Slipover');
+const vestDesigns = designs.filter((d) => d.garment === 'Vest');
 
 /** The first stitch count (**n**) in a step's count line. */
 const countOf = (count: string | undefined) => Number(/\*\*(\d+)\*\*/.exec(count ?? '')?.[1] ?? NaN);
 
 describe('writePattern', () => {
-	it('writes patterns for sweaters, T-shirts, cardigans and slipovers, in either construction', () => {
+	it('writes patterns for sweaters, T-shirts, cardigans, slipovers and vests, in either construction', () => {
 		for (const construction of ['Raglan', 'Set-in']) {
-			for (const garment of ['Sweater', 'T-shirt', 'Cardigan', 'Slipover']) expect(writePattern({ ...baseDesign, construction, garment }).ok, `${construction} ${garment}`).toBe(true);
+			for (const garment of ['Sweater', 'T-shirt', 'Cardigan', 'Slipover', 'Vest']) expect(writePattern({ ...baseDesign, construction, garment }).ok, `${construction} ${garment}`).toBe(true);
 		}
 	});
 
@@ -300,6 +301,30 @@ describe('slipover pattern', () => {
 		expect(c.upperSts).toBeGreaterThan(c.underarm);
 		expect(c.frontRows).toBe(c.backRows - 1);
 		if (d.hemFinish === 'Ribbed') expect(c.bodySts % RIB_REP[d.bodyRib]).toBe(0);
+	});
+});
+
+describe('vests', () => {
+	it.each(vestDesigns.map((d, i) => [i, d] as const))('design %i is a flat, button-up slipover', (_i, d) => {
+		const p = writePattern(d);
+		if (!p.ok || p.construction !== 'Set-in') throw new Error('expected a pattern');
+		const text = patternText(p);
+		expect(text).not.toMatch(/NaN|undefined|Infinity|\*\*-|\*\*0\*\* st|sleeve|cuff/i);
+		for (const [key, v] of Object.entries(p.counts)) {
+			expect(Number.isInteger(v), key).toBe(true);
+			expect(v, key).toBeGreaterThanOrEqual(0);
+		}
+		expect(p.sections.map((s) => s.id).filter((id) => id !== 'colour')).toEqual(['yoke', 'body', 'armholes', 'neck', 'bands', 'finishing']);
+		expect(p.sleeveless).toBe(true);
+		expect(text).toMatch(/buttons/);
+		expect(p.counts.bodySts).toBe(p.counts.front + p.counts.back + 2 * p.counts.underarm);
+	});
+
+	it('is a slipover with the cardigan front, in either construction', () => {
+		for (const construction of ['Raglan', 'Set-in']) {
+			const p = writePattern({ ...baseDesign, construction, garment: 'Vest' });
+			expect(p.ok && p.construction, construction).toBe('Set-in');
+		}
 	});
 });
 

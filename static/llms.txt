@@ -1,13 +1,13 @@
 # knit
 
-> knit is a free, browser-based knitting pattern designer. You choose a garment (sweater, cardigan, T-shirt, slipover, beanie, socks or scarf), size, fit, yarn weight, edge finishes and colours, see the result on a live 3D model, and get a written knitting pattern with stitch counts calculated for that exact design. Knitters can draw their own colourwork charts and centerpieces. No account or install is needed. Knitters can optionally sign in with Ravelry to save designs and share patterns, colourwork charts and centerpieces with the community.
+> knit is a free, browser-based knitting pattern designer. You choose a garment (sweater, cardigan, T-shirt, slipover, button-up vest, beanie, socks or scarf), size, fit, yarn weight, edge finishes and colours, see the result on a live 3D model, and get a written knitting pattern with stitch counts calculated for that exact design. Knitters can draw their own colourwork charts and centerpieces. No account or install is needed. Knitters can optionally sign in with Ravelry to save designs and share patterns, colourwork charts and centerpieces with the community.
 
 ## Key facts
 
-- Garments: sweater, T-shirt, cardigan, slipover, beanie, socks and scarf. Wearers of sweaters and similar garments: adult, junior, kid, baby. Sizes XS to XL in fitted, relaxed or oversized fit, or a custom fit from the knitter's own measurements. Socks are sized by shoe size.
+- Garments: sweater, T-shirt, cardigan, slipover, button-up vest, beanie, socks and scarf. Wearers of sweaters and similar garments: adult, junior, kid, baby. Sizes XS to XL in fitted, relaxed or oversized fit, or a custom fit from the knitter's own measurements. Socks are sized by shoe size.
 - Necklines: crew, V-neck, boat, I-cord, mock neck, turtleneck. Sleeves: short, 3/4 or full length; straight, balloon or puff.
 - Beanies: snug or slouchy, spiral or gathered crown, with or without a pom-pom. Socks: ankle, crew or knee length, flap or short-row heel, grafted or round toe. Scarves: narrow, regular or wide; short, regular or long; plain or ribbed ends; no, short or long fringe.
-- Every garment comes with a full written pattern. Sweaters, cardigans, T-shirts and slipovers are worked top-down and seamless: raglan or set-in sleeves for sleeved garments, rolled armhole edges for slipovers.
+- Every garment comes with a full written pattern. Sweaters, cardigans, T-shirts, slipovers and vests are worked top-down and seamless: raglan or set-in sleeves for sleeved garments, rolled armhole edges for slipovers and vests.
 - Yarn weights and gauges (stitches per 4 in / 10 cm): fingering 28, DK 22, worsted 18, bulky 13. The pattern can be rewritten for the needle sizes the knitter already owns, keeping the finished size the same.
 - Colourwork: solid, stripes (pinstripe to bold), Fair Isle motifs in small or large size, or a two-colour chart the knitter draws square by square, in 12 colours.
 - Centerpieces: one word or picture drawn by the knitter and worked once on the front of a sweater, T-shirt or slipover, rather than repeated all over. The pattern includes the chart and its stitch-by-stitch steps.

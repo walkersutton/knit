@@ -1,3 +1,4 @@
+import { opensFront } from './family';
 import type { Design } from './garment';
 import { tileFor } from './motifs';
 import {
@@ -101,7 +102,7 @@ function runs(labels: string[], first: number, unit: Tally['unit'], countAfter: 
 export function writeSetIn(d: Design, m: Measures): Pattern {
 	const { k, stPerCm, rowPerCm } = m;
 	const { rowsOf, stsOf } = scale(m);
-	const cardigan = d.garment === 'Cardigan';
+	const cardigan = opensFront(d);
 	const vNeck = d.neckline === 'V-neck';
 	const fairIsle = isColourwork(d.pattern);
 	const tile = tileFor(d, m.gauge);
@@ -348,7 +349,7 @@ export function writeSetIn(d: Design, m: Measures): Pattern {
 		});
 		sl.push(...edgeSteps('Rolled edge', d.bodyRib, 0, top, false, k));
 		sl.push({ text: `Work the second armhole the same way.`, note: true });
-		sections.push({ id: 'armholes', title: 'Armhole edges', intro: `A slipover has no sleeves. Each armhole gets a little edge, picked up around the opening, that rolls to the outside by itself. You make two, the same way.`, steps: sl, twice: ['First armhole', 'Second armhole'] });
+		sections.push({ id: 'armholes', title: 'Armhole edges', intro: `${d.garment === 'Vest' ? 'A vest' : 'A slipover'} has no sleeves. Each armhole gets a little edge, picked up around the opening, that rolls to the outside by itself. You make two, the same way.`, steps: sl, twice: ['First armhole', 'Second armhole'] });
 	} else {
 		sl.push({
 			text: `With RS facing and the shorter needle (or DPNs / magic loop), start at the centre of the underarm cast-on: pick up and knit ${sts(u / 2)}, then ${sts(e)} up the armhole edge to the shoulder seam (about ${per} st${per > 1 ? 's' : ''} for every 4 rows), pm for the shoulder, ${sts(e)} down the rest of the armhole edge, and ${sts(u / 2)} along the rest of the cast-on. Pm for BOR. Join to work in the round.`,

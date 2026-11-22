@@ -26,8 +26,8 @@ export function randomDesign(rnd: () => number = Math.random): Design {
 		return options[0][0];
 	};
 
-	const garment = weighted<string>([['Sweater', 30], ['Cardigan', 14], ['T-shirt', 14], ['Slipover', 10], ['Beanie', 12], ['Socks', 10], ['Scarf', 10]]);
-	const sleeved = !['Slipover', 'Beanie', 'Socks', 'Scarf'].includes(garment);
+	const garment = weighted<string>([['Sweater', 30], ['Cardigan', 14], ['T-shirt', 14], ['Slipover', 6], ['Vest', 6], ['Beanie', 12], ['Socks', 10], ['Scarf', 10]]);
+	const sleeved = !['Slipover', 'Vest', 'Beanie', 'Socks', 'Scarf'].includes(garment);
 
 	// Size is always a medium adult: rolling changes the design, not how big it is.
 

@@ -142,7 +142,7 @@ export function readCenterpieceHash(hash: string): { centerpiece: string; color?
 export const isCenterpieceChart = (motif: string) => parseCenterpiece(motif) !== null;
 
 /** The garments a chart can be shown on. */
-export const GARMENTS = ['Sweater', 'T-shirt', 'Slipover', 'Cardigan', 'Beanie', 'Socks', 'Scarf'];
+export const GARMENTS = ['Sweater', 'T-shirt', 'Slipover', 'Cardigan', 'Vest', 'Beanie', 'Socks', 'Scarf'];
 
 /** A chart on a garment: a centerpiece worked once on the front, any other chart all over. */
 export function chartDesign(motif: string, color: string, contrast: string, garment = 'Sweater'): Design {

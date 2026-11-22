@@ -1,5 +1,5 @@
 import { measure, type Design } from './garment';
-import { familyOf, type GarmentFamily } from './family';
+import { familyOf, opensFront, type GarmentFamily } from './family';
 import { needleLabel, needlesOf, weightOf } from './needles';
 import { contrastShare, longestFloat, stripeOf, tileFor, tileOf } from './motifs';
 import { bodyBoxOf, centerpieceOf, countOn, dropRows, longestStrand, offsetSts, rowsOf, type BodyBox, type Centerpiece } from './centerpiece';
@@ -304,7 +304,7 @@ export function colourSection(d: Design, m: Measures, how: { flat: boolean; star
 /** From the underarm down to the hem. `bodySts` are on the needle; a cardigan is worked flat. */
 export function bodySection(d: Design, m: Measures, bodySts: number, intro: string, frontSts?: number, cpDrop?: number): PatternSection {
 	const { k } = m;
-	const cardigan = d.garment === 'Cardigan';
+	const cardigan = opensFront(d);
 	const slits = !cardigan && m.slitH > 0;
 	const body: Step[] = [];
 	const rolled = d.hemFinish === 'Rolled edge' ? 2 * k : 0;

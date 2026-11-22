@@ -12,7 +12,7 @@ const list = (key: keyof Design) => {
 export const faq = [
 	{
 		q: 'What is knit?',
-		a: 'knit is a free garment designer that runs in your browser. You pick a sweater, T-shirt, slipover, cardigan, beanie, socks or scarf, choose its size, fit and finishes, watch the result update on a 3D model, and get a written knitting pattern with stitch counts worked out for that exact design.'
+		a: 'knit is a free garment designer that runs in your browser. You pick a sweater, T-shirt, slipover, cardigan, vest, beanie, socks or scarf, choose its size, fit and finishes, watch the result update on a 3D model, and get a written knitting pattern with stitch counts worked out for that exact design.'
 	},
 	{
 		q: 'Is knit free?',
@@ -24,7 +24,7 @@ export const faq = [
 	},
 	{
 		q: 'Which designs come with a written pattern?',
-		a: 'All seven garment types come with a full written pattern. Sweaters, T-shirts, cardigans and slipovers are worked top-down and seamless, with raglan or set-in sleeves on the sleeved ones. Beanies are worked from the brim to the crown, socks from the cuff to the toe, and scarves from one end to the other.'
+		a: 'All eight garment types come with a full written pattern. Sweaters, T-shirts, cardigans, slipovers and vests are worked top-down and seamless, with raglan or set-in sleeves on the sleeved ones. Beanies are worked from the brim to the crown, socks from the cuff to the toe, and scarves from one end to the other.'
 	},
 	{
 		q: 'What does the pattern include?',
@@ -65,7 +65,7 @@ export const faq = [
 ];
 
 export const steps = [
-	{ id: 'design', name: 'Design', text: 'Pick a sweater, T-shirt, slipover, cardigan, beanie, socks or scarf, who it is for, and its size and fit.' },
+	{ id: 'design', name: 'Design', text: 'Pick a sweater, T-shirt, slipover, cardigan, vest, beanie, socks or scarf, who it is for, and its size and fit.' },
 	{ id: 'details', name: 'Details', text: 'Choose its finishes: rib structure and length, folded hems, brims and cuffs, crown, heel, toe, ends and fringe.' },
 	{ id: 'yarn', name: 'Yarn', text: 'Choose a yarn weight, which sets the gauge and needle size, then a colour and an optional stripe or Fair Isle pattern. Pick the needle sizes you already have and the pattern uses them where it can.' },
 	{ id: 'summary', name: 'Summary', text: 'Check the finished measurements, the yardage, the number of skeins and the skill level.' },
@@ -146,6 +146,7 @@ export const garmentPaths: Record<string, string> = {
 	Sweater: 'M20 12 28 9Q32 15 36 9L44 12 58 38 50 42 44 32V56H20V32L14 42 6 38Z',
 	'T-shirt': 'M20 12 28 9Q32 15 36 9L44 12 56 26 48 31 44 26V56H20V26L16 31 8 26Z',
 	Slipover: 'M22 10 28 9Q32 17 36 9L42 10 46 22 44 24V56H20V24L18 22Z',
+	Vest: 'M22 10 28 9 32 18 36 9 42 10 46 22 44 24V56H20V24L18 22Z',
 	Cardigan: 'M20 12 28 9 32 18 36 9 44 12 58 38 50 42 44 32V56H20V32L14 42 6 38Z',
 	Beanie: 'M16 36Q16 11 32 11T48 36V48H16ZM16 36H48',
 	Socks: 'M14 10H26V34Q26 40 34 43Q46 48 46 56Q46 60 41 60H14Q10 60 10 55V14Q10 10 14 10ZM38 10H50V34Q50 40 58 43H54V60H38Z',

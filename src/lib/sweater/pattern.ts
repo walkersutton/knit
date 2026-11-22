@@ -1,3 +1,4 @@
+import { opensFront } from './family';
 import { measure, type Design } from './garment';
 import { tileFor } from './motifs';
 import {
@@ -71,7 +72,7 @@ type Row = { flat: boolean; rs: boolean; kind: Kind; neck: boolean; co: number }
 
 function writeRaglan(d: Design, m: Measures): Pattern {
 	const { k, stPerCm, rowPerCm } = m;
-	const cardigan = d.garment === 'Cardigan';
+	const cardigan = opensFront(d);
 	const vNeck = d.neckline === 'V-neck';
 	const fairIsle = isColourwork(d.pattern);
 	const slits = !cardigan && m.slitH > 0;
