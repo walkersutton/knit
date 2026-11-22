@@ -4,7 +4,7 @@
 	import { chrome } from '$lib/chrome.svelte';
 </script>
 
-<header class:app={chrome.app} class:has-center={!!chrome.center}>
+<header class:app={chrome.app} class:wide={chrome.wide} class:has-center={!!chrome.center}>
 	<div class="left">
 		<a class="home" href="/" aria-label="knit home"><Logo size={32} word={false} /></a>
 		{#if chrome.left}{@render chrome.left()}{/if}
@@ -51,6 +51,10 @@
 	}
 	header.has-center {
 		grid-template-columns: 1fr auto 1fr;
+	}
+	/* The catalogue pages are wider than a reading page, so the bar opens up to match their edges. */
+	header.wide {
+		max-width: 1180px;
 	}
 	/* The designers run edge to edge, on a frosted strip above their panels. */
 	header.app {

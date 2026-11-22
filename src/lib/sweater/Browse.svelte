@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
+	import { chrome } from '$lib/chrome.svelte';
 	import BrowseCard, { type BrowseItem } from './BrowseCard.svelte';
 	import type { Facet, Sort } from './browse';
 
@@ -45,6 +46,12 @@
 		/** Anything between the heading and the catalogue (the knitter's own work). */
 		children?: Snippet;
 	} = $props();
+
+	// The site bar and footer open up to this page's width, so every edge lines up with the logo.
+	onMount(() => {
+		chrome.wide = true;
+		return () => (chrome.wide = false);
+	});
 
 	let active = $derived(facets.some((f) => f.value));
 	/** This page with the chosen filters, plus (or minus) the given changes. Changing a filter goes back to the first page. */
@@ -159,7 +166,7 @@
 		max-width: 1180px;
 		flex: 1;
 		margin: 0 auto;
-		padding: 48px 24px 96px;
+		padding: 48px 16px 96px;
 		color: var(--ink);
 		font-family: system-ui, -apple-system, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
 	}

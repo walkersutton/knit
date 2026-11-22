@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { SITE } from '$lib/site';
 	import Feedback from '$lib/feedback/Feedback.svelte';
+	import { chrome } from '$lib/chrome.svelte';
 
 	const links = [
 		{ t: 'Design', href: '/design' },
@@ -11,7 +12,7 @@
 </script>
 
 <footer>
-	<div class="body">
+	<div class="body" class:wide={chrome.wide}>
 		<p class="sign">Happy knitting.</p>
 		<nav aria-label="Footer">
 			{#each links as l}<a href={l.href}>{l.t}</a>{/each}
@@ -34,6 +35,9 @@
 		margin: 0 auto;
 		padding: 40px 16px 32px;
 		text-align: center;
+	}
+	.body.wide {
+		max-width: 1180px;
 	}
 	.sign {
 		margin: 0;
