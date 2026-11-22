@@ -3,6 +3,7 @@ import { cleanPhoto } from './members';
 import { digest } from './auth';
 import { DEFAULT_DESIGN } from '$lib/sweater/defaults';
 import { cleanNotes } from '$lib/sweater/library';
+import type { Sort } from '$lib/sweater/browse';
 
 export { cleanNotes };
 import type { Design } from '$lib/sweater/garment';
@@ -148,19 +149,29 @@ export async function getShared(slug: string): Promise<(SharedPattern & { userId
 	return rows[0] ? { ...toPattern(rows[0]), userId: rows[0].user_id } : null;
 }
 
-/** The catalogue, newest first, optionally filtered by words in the name, the garment or the author. */
-export async function listShared(query: string, garment: string, page: number) {
-	const words = query.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6);
+export type ListedPattern = SharedPattern & { likes: number };
+/** Which of the catalogue's facets a list is narrowed by; an empty string leaves that one open. */
+export type PatternFilters = { garment: string; fits: string; pattern: string; colour: string };
+
+/** The catalogue, newest first or most liked first, narrowed by garment, who it is for, its pattern and its main colour. */
+export async function listShared(f: PatternFilters, sort: Sort, page: number) {
 	const rows = await database()`
-		SELECT p.id, p.slug, p.name, p.design, p.created_at, u.ravelry_username AS author, u.photo_url AS author_photo
-		FROM shared_patterns p JOIN users u ON u.id = p.user_id
-		WHERE (${garment} = '' OR p.garment = ${garment})
-			AND NOT EXISTS (
-				SELECT 1 FROM unnest(${words}::text[]) AS w
-				WHERE position(w IN lower(p.name || ' ' || p.garment || ' ' || u.ravelry_username)) = 0
-			)
-		ORDER BY p.created_at DESC
+		SELECT p.id, p.slug, p.name, p.design, p.created_at, l.n AS likes, u.ravelry_username AS author, u.photo_url AS author_photo
+		FROM shared_patterns p
+		JOIN users u ON u.id = p.user_id
+		LEFT JOIN LATERAL (SELECT count(*)::int AS n FROM pattern_likes WHERE pattern_id = p.id) l ON true
+		WHERE (${f.garment} = '' OR p.garment = ${f.garment})
+			AND (${f.fits} = '' OR p.design->>'wearer' = ${f.fits})
+			AND (${f.pattern} = '' OR p.design->>'pattern' = ${f.pattern})
+			AND (${f.colour} = '' OR p.design->>'color' = ${f.colour})
+		ORDER BY (CASE WHEN ${sort} = 'loved' THEN l.n ELSE 0 END) DESC, p.created_at DESC
 		LIMIT ${PAGE_SIZE + 1} OFFSET ${page * PAGE_SIZE}
 	`;
-	return { patterns: rows.slice(0, PAGE_SIZE).map(toPattern), more: rows.length > PAGE_SIZE };
+	return { patterns: rows.slice(0, PAGE_SIZE).map((row): ListedPattern => ({ ...toPattern(row), likes: row.likes })), more: rows.length > PAGE_SIZE };
+}
+
+/** What the filter rail needs from every shared pattern: its garment, who it is for, its pattern and its main colour. */
+export async function listPatternFacets(): Promise<Record<string, string>[]> {
+	const rows = await database()`SELECT garment, design->>'wearer' AS fits, design->>'pattern' AS pattern, design->>'color' AS colour FROM shared_patterns`;
+	return rows.map((row) => ({ garment: row.garment, fits: row.fits ?? '', pattern: row.pattern ?? '', colour: row.colour ?? '' }));
 }

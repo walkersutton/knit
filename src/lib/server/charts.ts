@@ -1,6 +1,7 @@
 import { database } from './db';
 import { cleanPhoto } from './members';
 import { cleanNotes, isPaletteColor } from '$lib/sweater/library';
+import type { Sort } from '$lib/sweater/browse';
 
 export { cleanNotes };
 import { tileOfMotif, validMotif } from '$lib/sweater/motifs';
@@ -71,19 +72,24 @@ export async function getSharedChart(id: string): Promise<(SharedChart & { userI
 	return rows[0] ? { ...toChart(rows[0]), userId: rows[0].user_id } : null;
 }
 
-/** The library, newest first, optionally filtered by size and by words in the name or the author. */
-export async function listSharedCharts(query: string, size: string, page: number) {
-	const words = query.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6);
+export type ListedChart = SharedChart & { likes: number };
+
+/** The library, newest first or most liked first, optionally narrowed to one size and one main colour. */
+export async function listSharedCharts(size: string, colour: string, sort: Sort, page: number) {
 	const rows = await database()`
-		SELECT c.id, c.name, c.motif, c.color, c.contrast, c.created_at, u.ravelry_username AS author, u.photo_url AS author_photo
-		FROM shared_charts c JOIN users u ON u.id = c.user_id
-		WHERE (${size} = '' OR c.size = ${size})
-			AND NOT EXISTS (
-				SELECT 1 FROM unnest(${words}::text[]) AS w
-				WHERE position(w IN lower(c.name || ' ' || u.ravelry_username)) = 0
-			)
-		ORDER BY c.created_at DESC
+		SELECT c.id, c.name, c.motif, c.color, c.contrast, c.created_at, l.n AS likes, u.ravelry_username AS author, u.photo_url AS author_photo
+		FROM shared_charts c
+		JOIN users u ON u.id = c.user_id
+		LEFT JOIN LATERAL (SELECT count(*)::int AS n FROM chart_likes WHERE chart_id = c.id) l ON true
+		WHERE (${size} = '' OR c.size = ${size}) AND (${colour} = '' OR c.color = ${colour})
+		ORDER BY (CASE WHEN ${sort} = 'loved' THEN l.n ELSE 0 END) DESC, c.created_at DESC
 		LIMIT ${PAGE_SIZE + 1} OFFSET ${page * PAGE_SIZE}
 	`;
-	return { charts: rows.slice(0, PAGE_SIZE).map(toChart), more: rows.length > PAGE_SIZE };
+	return { charts: rows.slice(0, PAGE_SIZE).map((row): ListedChart => ({ ...toChart(row), likes: row.likes })), more: rows.length > PAGE_SIZE };
+}
+
+/** What the filter rail needs from every shared chart: its size and main colour. */
+export async function listChartFacets(): Promise<Record<string, string>[]> {
+	const rows = await database()`SELECT size, color FROM shared_charts`;
+	return rows.map((row) => ({ size: row.size, colour: row.color }));
 }

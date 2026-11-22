@@ -1,23 +1,27 @@
 import type { PageServerLoad } from './$types';
-import { listSharedCharts } from '$lib/server/charts';
+import { listChartFacets, listSharedCharts } from '$lib/server/charts';
+import { buildFacets, isPaletteColour, parseSort, type FacetSpec } from '$lib/sweater/browse';
 
 // Shared charts come and go, so this page is built per request rather than ahead of time.
 export const prerender = false;
 
-const SIZES = [
-	{ value: 'standard', label: 'Standard (12 × 16)' },
-	{ value: 'fine', label: 'Fine (24 × 32)' },
-	{ value: 'centerpiece', label: 'Centerpieces' }
+const SIZES = ['standard', 'fine', 'centerpiece'];
+const FACETS: FacetSpec[] = [
+	{ key: 'size', label: 'Size', order: SIZES, words: { standard: 'Standard · 12 × 16', fine: 'Fine · 24 × 32', centerpiece: 'Centerpieces' } },
+	{ key: 'colour', label: 'Colour', swatch: true }
 ];
 
 export const load: PageServerLoad = async ({ url, setHeaders }) => {
-	const q = (url.searchParams.get('q') ?? '').trim().slice(0, 80);
-	const size = SIZES.find((s) => s.value === url.searchParams.get('size'))?.value ?? '';
+	const size = SIZES.find((s) => s === url.searchParams.get('size')) ?? '';
+	const colour = isPaletteColour(url.searchParams.get('colour') ?? '') ? url.searchParams.get('colour')! : '';
+	const sort = parseSort(url.searchParams.get('sort'));
 	const page = Math.min(Math.max(Math.floor(Number(url.searchParams.get('page'))) || 0, 0), 1000);
+	const values = { size, colour };
 	setHeaders({ 'cache-control': 'public, max-age=0, s-maxage=60, stale-while-revalidate=300' });
 	try {
-		return { q, size, page, sizes: SIZES, unavailable: false, ...(await listSharedCharts(q, size, page)) };
+		const [list, rows] = await Promise.all([listSharedCharts(size, colour, sort, page), listChartFacets()]);
+		return { values, sort, page, facets: buildFacets(rows, FACETS, values), unavailable: false, ...list };
 	} catch {
-		return { q, size, page, sizes: SIZES, unavailable: true, charts: [], more: false };
+		return { values, sort, page, facets: buildFacets([], FACETS, values), unavailable: true, charts: [], more: false };
 	}
 };
