@@ -80,7 +80,7 @@
 	<ol class="quilt">
 		{#each steps as s, i (s.id)}
 			<li class="patch {span[i]}" style="--tone:{tone[i]}" use:reveal={i * 70}>
-				<div class="stitch">
+				<div class="seam">
 					<span class="num">{i + 1}</span>
 					<h2>{s.name}</h2>
 					<p>{s.text}</p>
@@ -193,7 +193,7 @@
 		{/each}
 
 		<li class="patch go" use:reveal={100}>
-			<div class="stitch">
+			<div class="seam">
 				<div class="go-art" aria-hidden="true"><Garment garment={design.garment} color={design.color} pattern={design.pattern} size={132} /></div>
 				<div class="go-copy">
 					<h2>Ready to make it yours?</h2>
@@ -280,7 +280,7 @@
 			0 8px 20px rgba(24, 24, 27, 0.05);
 	}
 	/* The running stitch around each patch. */
-	.stitch {
+	.seam {
 		height: 100%;
 		padding: 16px;
 		border: 2px dashed #26335f55;
@@ -305,7 +305,7 @@
 		font-size: 22px;
 		font-weight: 600;
 	}
-	.stitch > p {
+	.seam > p {
 		margin: 0 0 14px;
 		max-width: 54ch;
 		font-size: 14.5px;
@@ -563,7 +563,7 @@
 			0 1px 2px rgba(24, 24, 27, 0.1),
 			0 14px 32px rgba(38, 51, 95, 0.28);
 	}
-	.go .stitch {
+	.go .seam {
 		display: grid;
 		grid-template-columns: auto minmax(0, 1fr);
 		align-items: center;
@@ -679,7 +679,7 @@
 		.preview {
 			order: -1;
 		}
-		.go .stitch {
+		.go .seam {
 			grid-template-columns: 1fr;
 			justify-items: start;
 			padding: 20px;
