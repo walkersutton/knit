@@ -239,8 +239,6 @@
 		--stage-a: #fdf9ec;
 		--stage-b: #f4e9c8;
 		--stage-c: #e8d9ab;
-		height: calc(100dvh - var(--bar));
-		overflow-y: auto;
 		color: var(--ink);
 	}
 	.fab,
@@ -352,7 +350,7 @@
 		top: 0;
 		display: flex;
 		flex-direction: column;
-		height: calc(100dvh - var(--bar));
+		height: 100dvh;
 		border-left: 1px solid var(--hairline);
 		background: radial-gradient(circle at 50% 45%, var(--stage-a), var(--stage-b) 70%, var(--stage-c));
 	}
