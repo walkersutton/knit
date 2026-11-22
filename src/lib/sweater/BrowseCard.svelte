@@ -18,10 +18,28 @@
 	};
 
 	/** One shared chart or pattern: a big picture on a cream panel, the title (which opens it), the knitter, and a line of detail. */
-	let { item: c, picture, n = 0 }: { item: BrowseItem; picture?: string; n?: number } = $props();
+	let { item: c, picture, n = 0, onnear }: { item: BrowseItem; picture?: string; n?: number; onnear?: (id: string) => void } = $props();
+
+	/** Says so once the card is on screen or a screenful away, which is when its picture is worth drawing. */
+	function near(node: HTMLElement) {
+		if (typeof IntersectionObserver === 'undefined') {
+			onnear?.(c.id);
+			return;
+		}
+		const watch = new IntersectionObserver(
+			(seen) => {
+				if (!seen.some((s) => s.isIntersecting)) return;
+				onnear?.(c.id);
+				watch.disconnect();
+			},
+			{ rootMargin: '600px 0px' }
+		);
+		watch.observe(node);
+		return { destroy: () => watch.disconnect() };
+	}
 </script>
 
-<li style:--n={Math.min(n, 8)}>
+<li style:--n={Math.min(n, 8)} use:near>
 	<span class="frame">
 		{#if picture}
 			<img src={picture} alt={c.alt} />

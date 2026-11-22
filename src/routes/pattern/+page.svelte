@@ -13,6 +13,9 @@
 	/** Drawn pictures by pattern; a pattern keeps its picture while it is on the page. */
 	let pictures = $state<Record<string, string>>({});
 
+	/** Patterns whose card is on screen or close; only these are drawn. */
+	let near = $state<Record<string, true>>({});
+
 	let items = $derived<BrowseItem[]>(
 		data.patterns.map((p) => ({
 			id: p.id,
@@ -27,7 +30,7 @@
 			fallback: { color: p.design.color, contrast: p.design.contrast }
 		}))
 	);
-	let jobs = $derived(data.patterns.map((p) => ({ key: p.id, design: p.design })));
+	let jobs = $derived(data.patterns.filter((p) => near[p.id]).map((p) => ({ key: p.id, design: p.design })));
 </script>
 
 <Seo title="Knitting patterns — knit" description="Browse free sweater, cardigan, slipover and tee knitting patterns shared by knitters, and open any of them to adapt to your own yarn, gauge and size." path="/pattern" />
@@ -44,6 +47,7 @@
 	{items}
 	unavailable={data.unavailable}
 	picture={(item) => pictures[item.id]}
+	onnear={(id) => (near[id] = true)}
 >
 	{#snippet blank()}Nobody has shared a pattern yet. <a href="/design">Design one</a> and be the first.{/snippet}
 	<YourWork kind="pattern" />

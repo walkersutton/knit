@@ -20,6 +20,7 @@
 		items,
 		unavailable,
 		picture,
+		onnear,
 		show,
 		blank,
 		children
@@ -36,6 +37,8 @@
 		items: BrowseItem[];
 		unavailable: boolean;
 		picture: (item: BrowseItem) => string | undefined;
+		/** Told when a card is on screen or about to be, so only those pictures get drawn. */
+		onnear?: (id: string) => void;
 		show?: { label: string; options: string[]; value: string; pick: (value: string) => void };
 		/** What to say when nothing has been shared at all. */
 		blank: Snippet;
@@ -132,7 +135,7 @@
 				</p>
 			{:else}
 				<ul class="grid">
-					{#each items as it, n (it.id)}<BrowseCard item={it} picture={picture(it)} {n} />{/each}
+					{#each items as it, n (it.id)}<BrowseCard item={it} picture={picture(it)} {n} {onnear} />{/each}
 				</ul>
 				<nav class="pages" aria-label="More {noun}s">
 					{#if page > 0}<a href={link({ page: page - 1 })} rel="prev">← Newer</a>{/if}

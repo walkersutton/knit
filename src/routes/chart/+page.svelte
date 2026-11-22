@@ -16,6 +16,8 @@
 	let mounted = $state(false);
 	/** Drawn pictures, by garment and chart; a chart keeps its picture while it is on the page. */
 	let pictures = $state<Record<string, string>>({});
+	/** Charts whose card is on screen or close; only these are drawn. */
+	let near = $state<Record<string, true>>({});
 	const key = (g: string, id: string) => `${g}|${id}`;
 
 	onMount(() => {
@@ -55,7 +57,7 @@
 			};
 		})
 	);
-	let jobs = $derived(data.charts.map((c) => ({ key: key(garment, c.id), design: chartDesign(c.motif, c.color, c.contrast, garment) })));
+	let jobs = $derived(data.charts.filter((c) => near[c.id]).map((c) => ({ key: key(garment, c.id), design: chartDesign(c.motif, c.color, c.contrast, garment) })));
 </script>
 
 <Seo title="Colourwork charts — knit" description="Browse two-colour knitting charts shared by knitters, and put any of them on your own sweater with a free written pattern." path="/chart" />
@@ -72,6 +74,7 @@
 	{items}
 	unavailable={data.unavailable}
 	picture={(item) => (mounted ? pictures[key(garment, item.id)] : undefined)}
+	onnear={(id) => (near[id] = true)}
 	show={{ label: 'Show on', options: GARMENTS, value: garment, pick }}
 >
 	{#snippet blank()}Nobody has shared a chart yet. <a href="/design#tool=chart">Draw one</a> and be the first.{/snippet}
