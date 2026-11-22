@@ -102,7 +102,7 @@
 			<div class="shelf" style="--tint: #d7e4d3">
 				<div class="head">
 					<h3>Patterns<span>Whole garments, ready to knit</span></h3>
-					<a href="/patterns">See all</a>
+					<a href="/pattern">See all</a>
 				</div>
 				<ol class="rail" aria-label="Favourite patterns">
 					{#each picks.patterns as p (p.id)}
