@@ -57,7 +57,7 @@
 				</li>
 			{/each}
 		</ul>
-		<button type="button" class="new" onclick={onnewchart}><span aria-hidden="true">+</span> New chart</button>
+		<button type="button" class="chunk sm block new" onclick={onnewchart}><span aria-hidden="true">+</span> New chart</button>
 	</section>
 
 	<section aria-labelledby="lib-centerpieces">
@@ -72,7 +72,7 @@
 				</li>
 			{/each}
 		</ul>
-		<button type="button" class="new" onclick={onnewcenterpiece}><span aria-hidden="true">+</span> New centerpiece</button>
+		<button type="button" class="chunk sm block new" onclick={onnewcenterpiece}><span aria-hidden="true">+</span> New centerpiece</button>
 	</section>
 
 	<section aria-labelledby="lib-patterns">
@@ -87,7 +87,7 @@
 				</li>
 			{/each}
 		</ul>
-		<button type="button" class="new" onclick={onnewpattern}><span aria-hidden="true">+</span> New pattern</button>
+		<button type="button" class="chunk sm block new" onclick={onnewpattern}><span aria-hidden="true">+</span> New pattern</button>
 	</section>
 </nav>
 
@@ -160,23 +160,12 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
-	.new {
-		height: 36px;
-		border: 1.5px dashed var(--line-strong);
-		border-radius: 8px;
-		background: none;
-		color: var(--ink);
-		font: inherit;
-		font-weight: 500;
-		cursor: pointer;
-	}
 	button:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 2px;
 	}
 	@media (hover: hover) and (pointer: fine) {
-		.item:not([aria-current='true']):hover,
-		.new:hover {
+		.item:not([aria-current='true']):hover {
 			background: var(--wash);
 		}
 	}

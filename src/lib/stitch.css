@@ -1,0 +1,185 @@
+/*
+ * Stitched buttons: the site's one button style. A sewn label with a line of stitching just
+ * inside its edge. On hover it grows a touch and the stitching marches. Add `stitch` to a
+ * <button> or <a>, plus any of:
+ *   quiet  cream label for secondary actions (default is the footer blue, for the main action)
+ *   danger quiet, with red text, for destructive actions
+ *   sm     compact, for toolbars and panels
+ *   block  full width
+ * Icon, swatch, radio and tab controls are not buttons in this sense and keep their own styles.
+ */
+.stitch {
+	--stitch: #faf3dc80;
+	--stitch-on: #faf3dc;
+	--grow: 1.04;
+	--dash: linear-gradient(90deg, var(--stitch) 4px, transparent 0);
+	--dash-v: linear-gradient(180deg, var(--stitch) 4px, transparent 0);
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 36px;
+	padding: 0 16px;
+	border: 0;
+	border-radius: 8px;
+	background: #465e9d;
+	color: #faf3dc;
+	font: inherit;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.2;
+	text-decoration: none;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.stitch::after {
+	content: '';
+	position: absolute;
+	inset: 5px;
+	border-radius: 4px;
+	background:
+		var(--dash) 0 0 / 7px 1.5px repeat-x,
+		var(--dash-v) 100% 0 / 1.5px 7px repeat-y,
+		var(--dash) 0 100% / 7px 1.5px repeat-x,
+		var(--dash-v) 0 0 / 1.5px 7px repeat-y;
+	pointer-events: none;
+}
+.stitch.quiet,
+.stitch.danger {
+	--stitch: #c9bb92;
+	--stitch-on: #c8543e;
+	background: #fffdf8;
+	color: #26335f;
+	box-shadow: 0 1px 4px #1a23442e;
+}
+.stitch.danger {
+	--stitch-on: #9b2c1f;
+	color: #9b2c1f;
+}
+.stitch.sm {
+	min-height: 32px;
+	padding: 0 14px;
+	font-size: 14px;
+}
+.stitch.block {
+	display: flex;
+	width: 100%;
+	--grow: 1.02;
+}
+.stitch:focus-visible {
+	outline: 2px solid var(--focus, #2563eb);
+	outline-offset: 2px;
+}
+.stitch:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+.stitch:active:not(:disabled) {
+	transform: scale(0.97);
+	transition-duration: 120ms;
+}
+@media (hover: hover) and (pointer: fine) {
+	.stitch:hover:not(:disabled) {
+		--stitch: var(--stitch-on);
+		transform: scale(var(--grow));
+	}
+	.stitch:hover:not(:disabled)::after {
+		animation: stitch-march 500ms linear infinite;
+	}
+	/* Keep the press smaller than the hover, even while the pointer is still over the button. */
+	.stitch:hover:active:not(:disabled) {
+		transform: scale(0.97);
+	}
+}
+@keyframes stitch-march {
+	to {
+		background-position:
+			7px 0,
+			100% 7px,
+			-7px 100%,
+			0 -7px;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.stitch:hover:not(:disabled) {
+		transform: none;
+	}
+	.stitch:hover:not(:disabled)::after {
+		animation: none;
+	}
+}
+
+/*
+ * Chunky buttons: the home page's "Start designing" look, scaled down. Terracotta (or `quiet`
+ * cream, or `danger`) with a hard shadow that it sinks into when pressed. Use for the big
+ * calls to action in the designer: new chart, get my pattern, print, save. Same modifiers
+ * as `stitch`: sm, block.
+ */
+.chunk {
+	--face: #c8543e;
+	--face-hover: #d0604a;
+	--edge: #8f3a2a;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 40px;
+	padding: 0 18px;
+	border: 0;
+	border-radius: 12px;
+	background: var(--face);
+	box-shadow: 0 3px 0 var(--edge);
+	color: #fff8e6;
+	font-family: var(--display);
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.2;
+	text-decoration: none;
+	white-space: nowrap;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+	transition: transform 120ms ease-out, box-shadow 120ms ease-out, background-color 150ms ease-out;
+}
+.chunk.quiet,
+.chunk.danger {
+	--face: #fffdf8;
+	--face-hover: #fff;
+	--edge: #c9bb92;
+	color: #26335f;
+}
+.chunk.danger {
+	color: #9b2c1f;
+}
+.chunk.sm {
+	min-height: 34px;
+	padding: 0 14px;
+	border-radius: 10px;
+	box-shadow: 0 2px 0 var(--edge);
+	font-size: 15px;
+}
+.chunk.block {
+	display: flex;
+	width: 100%;
+}
+.chunk:focus-visible {
+	outline: 2px solid var(--focus, #2563eb);
+	outline-offset: 3px;
+}
+.chunk:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+.chunk:active:not(:disabled) {
+	transform: translateY(3px);
+	box-shadow: 0 0 0 var(--edge);
+}
+.chunk.sm:active:not(:disabled) {
+	transform: translateY(2px);
+}
+@media (hover: hover) and (pointer: fine) {
+	.chunk:hover:not(:disabled) {
+		background: var(--face-hover);
+	}
+}

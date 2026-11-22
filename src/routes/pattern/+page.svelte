@@ -24,7 +24,7 @@
 	<p class="eyebrow">Shared by knitters</p>
 	<div class="head">
 		<h1>Patterns</h1>
-		<a class="new" href="/design">Design a new pattern</a>
+		<a class="stitch new" href="/design">Design a new pattern</a>
 	</div>
 	<YourWork kind="pattern" />
 	<form role="search" method="get">
@@ -33,7 +33,7 @@
 			<option value="">All garments</option>
 			{#each data.garments as g (g)}<option value={g} selected={g === data.garment}>{g}</option>{/each}
 		</select>
-		<button type="submit">Search</button>
+		<button type="submit" class="stitch">Search</button>
 	</form>
 
 	{#if data.unavailable}
@@ -87,25 +87,6 @@
 		gap: 12px;
 		margin-bottom: 20px;
 	}
-	.new {
-		display: inline-flex;
-		align-items: center;
-		height: 40px;
-		padding: 0 18px;
-		border: 1.5px solid var(--accent-deep);
-		border-radius: 8px;
-		background: var(--accent);
-		color: #fff8e6;
-		font-weight: 500;
-		text-decoration: none;
-	}
-	.new:active {
-		filter: brightness(0.93);
-	}
-	.new:focus-visible {
-		outline: 2px solid var(--focus);
-		outline-offset: 2px;
-	}
 	h1 {
 		margin: 0;
 		font-family: var(--display);
@@ -119,8 +100,7 @@
 		margin-bottom: 24px;
 	}
 	input,
-	select,
-	button {
+	select {
 		height: 40px;
 		border: 1.5px solid var(--line-strong);
 		border-radius: 8px;
@@ -135,16 +115,8 @@
 	select {
 		padding: 0 10px;
 	}
-	button {
-		padding: 0 18px;
-		border-color: var(--accent-deep);
-		background: var(--accent);
-		color: #fff8e6;
-		font-weight: 500;
-		cursor: pointer;
-	}
-	button:active {
-		filter: brightness(0.93);
+	.stitch {
+		height: 40px;
 	}
 	input:focus-visible,
 	select:focus-visible,

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import Seo from '$lib/Seo.svelte';
+	import NameDialog from '$lib/NameDialog.svelte';
 	import PatternPage from '$lib/sweater/PatternPage.svelte';
 	import { DEFAULT_DESIGN } from '$lib/sweater/defaults';
 	import { loadDesigns, saveDesign, type SavedDesign } from '$lib/sweater/designs';
@@ -49,6 +50,7 @@
 		else delete p[key];
 	}
 	const name = () => (design ? summary(design) : '');
+	let naming = $state(false);
 </script>
 
 <Seo title="Your pattern — knit" description="A written knitting pattern for your own sweater design." path="/pattern/view" noindex />
@@ -67,9 +69,15 @@
 		onstep={setStep}
 		onreset={() => delete saved.progress[sig]}
 		onedit={() => goto(`/design#d=${encodeDesign(design!)}`)}
-		onsave={() => {
-			const n = prompt('Name this sweater design:', name());
-			if (n !== null && design) saveDesign(design, n);
-		}}
+		onsave={() => (naming = true)}
 	/>
 {/if}
+<NameDialog
+	bind:open={naming}
+	title="Save this design"
+	lede="Saved in your patterns, so you can come back to it."
+	label="Design name"
+	value={name()}
+	notes=""
+	onsubmit={(n, notes) => design && saveDesign(design, n, undefined, notes)}
+/>

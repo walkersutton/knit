@@ -140,10 +140,10 @@
 			{/key}
 
 			<div class="actions">
-				<a class="use" href={designLink(chart.motif, chart.color, chart.contrast)}>Use on my sweater</a>
+				<a class="stitch block" href={designLink(chart.motif, chart.color, chart.contrast)}>Use on my sweater</a>
 				<div class="row">
-					<a class="btn" href={editLink(chart.motif)}>Edit chart</a>
-					{#if sharedId}<a class="btn" href="/chart/{encodeURIComponent(sharedId)}">Chart page</a>{/if}
+					<a class="stitch quiet block" href={editLink(chart.motif)}>Edit chart</a>
+					{#if sharedId}<a class="stitch quiet block" href="/chart/{encodeURIComponent(sharedId)}">Chart page</a>{/if}
 				</div>
 			</div>
 		</aside>
@@ -271,34 +271,10 @@
 	.row > * {
 		flex: 1;
 	}
-	.btn,
-	.use {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-height: 40px;
-		padding: 0 14px;
-		border: 1.5px solid var(--line-strong);
-		border-radius: 8px;
-		background: #fffdf6;
-		color: var(--ink);
-		font-weight: 500;
-		text-decoration: none;
-	}
-	.use {
-		border-color: var(--accent-deep);
-		background: var(--accent);
-		color: #fff8e6;
-		font-weight: 600;
-	}
-	.btn:active,
-	.use:active,
 	.seg button:active {
 		filter: brightness(0.93);
 	}
-	.seg button:focus-visible,
-	.btn:focus-visible,
-	.use:focus-visible {
+	.seg button:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 2px;
 	}
@@ -307,12 +283,6 @@
 		color: var(--muted);
 	}
 	@media (hover: hover) and (pointer: fine) {
-		.btn:hover {
-			background: var(--wash);
-		}
-		.use:hover {
-			background: #d0604a;
-		}
 		.seg button[aria-checked='false']:hover {
 			background: rgb(255 253 246 / 0.6);
 		}

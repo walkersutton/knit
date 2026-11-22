@@ -41,7 +41,7 @@
 	{:else}
 		<p class="note">Save a design from the sweater designer and it will show up here.</p>
 	{/if}
-	<button class="signout" onclick={signOut} disabled={signingOut}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
+	<button class="stitch quiet sm signout" onclick={signOut} disabled={signingOut}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
 </section>
 
 <style>
@@ -57,6 +57,5 @@
 	li strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	li span { flex: none; color: #76747b; font-size: 11px; }
 	li button { border: 0; background: transparent; color: #76747b; font-size: 20px; cursor: pointer; }
-	.signout { margin-top: 16px; padding: 10px 16px; border: 1px solid #dcdce0; border-radius: 10px; background: white; color: #18181b; font: inherit; font-weight: 650; cursor: pointer; }
-	.signout:disabled { opacity: 0.6; }
+	.signout { margin-top: 16px; }
 </style>

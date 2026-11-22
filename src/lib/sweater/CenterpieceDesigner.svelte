@@ -110,15 +110,15 @@
 					</div>
 				</section>
 				<section class="actions">
-					<button type="button" class="use" onclick={onuse} disabled={!cp}>Use on my sweater</button>
+					<button type="button" class="stitch block" onclick={onuse} disabled={!cp}>Use on my sweater</button>
 					<div class="row">
-						<button type="button" onclick={() => onadd(current.centerpiece, current.name)}>Duplicate</button>
-						<button type="button" class="danger" onclick={onremove}>Delete</button>
+						<button type="button" class="stitch quiet sm block" onclick={() => onadd(current.centerpiece, current.name)}>Duplicate</button>
+						<button type="button" class="stitch danger sm block" onclick={onremove}>Delete</button>
 					</div>
 				</section>
 				<section class="share">
 					<h2>Share</h2>
-					<button type="button" class="pastebtn" onclick={publish} disabled={published === 'busy' || !cp}>{published === 'busy' ? 'Sharing…' : published === 'copied' ? 'Link copied ✓' : 'Share to chart library'}</button>
+					<button type="button" class="stitch quiet sm block" onclick={publish} disabled={published === 'busy' || !cp}>{published === 'busy' ? 'Sharing…' : published === 'copied' ? 'Link copied ✓' : 'Share to chart library'}</button>
 					{#if publishError}<p class="warn" role="status">{publishError}</p>{/if}
 					<p class="browse"><a href="/chart?size=centerpiece">Browse shared centerpieces</a></p>
 				</section>
@@ -267,60 +267,15 @@
 		grid-template-columns: 1fr 1fr;
 		gap: 8px;
 	}
-	.row button {
-		height: 34px;
-		padding: 0 11px;
-		border: 1px solid var(--line-strong);
-		border-radius: 8px;
-		background: #fffdf6;
-		box-shadow: 0 1px 1px rgb(38 51 95 / 0.08);
-		color: var(--ink);
-		font: inherit;
-		font-weight: 500;
-		cursor: pointer;
-	}
-	.pastebtn {
-		height: 34px;
-		border: 1.5px dashed var(--line-strong);
-		border-radius: 8px;
-		background: none;
-		color: var(--ink);
-		font: inherit;
-		font-weight: 500;
-		cursor: pointer;
-	}
-	.use {
-		height: 40px;
-		border: 1px solid var(--accent-deep);
-		border-radius: 8px;
-		background: var(--accent);
-		box-shadow: 0 1px 1px rgb(0 0 0 / 0.15), inset 0 1px 0 rgb(255 255 255 / 0.18);
-		color: #fff8e6;
-		font: inherit;
-		font-weight: 600;
-		cursor: pointer;
-	}
 	button:disabled {
 		opacity: 0.5;
 		cursor: default;
-	}
-	.danger {
-		color: var(--accent-deep) !important;
 	}
 	button:focus-visible,
 	a:focus-visible,
 	.title:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 2px;
-	}
-	@media (hover: hover) and (pointer: fine) {
-		.pastebtn:hover:not(:disabled),
-		.row button:hover {
-			background: var(--wash);
-		}
-		.use:hover:not(:disabled) {
-			background: #d0604a;
-		}
 	}
 	@media (max-width: 900px) {
 		.layout {

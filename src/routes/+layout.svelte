@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '@fontsource-variable/fredoka';
+	import '$lib/stitch.css';
 	import Cursor from '$lib/Cursor.svelte';
 	import AccountSync from '$lib/AccountSync.svelte';
 	import SignInDialog from '$lib/SignInDialog.svelte';

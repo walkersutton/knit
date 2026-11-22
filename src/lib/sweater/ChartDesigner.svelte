@@ -169,10 +169,10 @@
 							<span class="lab">Transform</span>
 							<div class="tf">
 								{#each TRANSFORMS as [tool, name, hint] (tool)}
-									<button type="button" class="btn" onclick={() => editor?.apply(tool)} title={hint}>{name}</button>
+									<button type="button" class="stitch quiet sm block" onclick={() => editor?.apply(tool)} title={hint}>{name}</button>
 								{/each}
 							</div>
-							<button type="button" class="btn danger" onclick={() => editor?.apply('clear')}>Clear chart</button>
+							<button type="button" class="stitch danger sm block" onclick={() => editor?.apply('clear')}>Clear chart</button>
 						</div>
 					{/snippet}
 				</Pop>
@@ -228,21 +228,21 @@
 				{/key}
 			</section>
 			<section class="actions">
-				<button type="button" class="use" onclick={onuse}>Use on my sweater</button>
+				<button type="button" class="stitch block" onclick={onuse}>Use on my sweater</button>
 				<div class="row">
-					<button type="button" onclick={() => onadd(current.motif, current.name)}>Duplicate</button>
-					<button type="button" class="danger" onclick={onremove}>Delete</button>
+					<button type="button" class="stitch quiet sm block" onclick={() => onadd(current.motif, current.name)}>Duplicate</button>
+					<button type="button" class="stitch danger sm block" onclick={onremove}>Delete</button>
 				</div>
 			</section>
 			<section class="share">
 				<h2>Share</h2>
-				<button type="button" class="pastebtn" onclick={publish} disabled={published === 'busy'}>{published === 'busy' ? 'Sharing…' : published === 'copied' ? 'Link copied ✓' : 'Share to chart library'}</button>
+				<button type="button" class="stitch quiet sm block" onclick={publish} disabled={published === 'busy'}>{published === 'busy' ? 'Sharing…' : published === 'copied' ? 'Link copied ✓' : 'Share to chart library'}</button>
 				{#if publishError}<p class="warn" role="status">{publishError}</p>{/if}
 				<p class="browse"><a href="/chart">Browse shared charts</a></p>
 				<h2>Share as text</h2>
 				<div class="row">
-					<button type="button" onclick={copyText}>{copied ? 'Copied ✓' : 'Copy text'}</button>
-					<button type="button" onclick={saveText}>Save .txt</button>
+					<button type="button" class="stitch quiet sm block" onclick={copyText}>{copied ? 'Copied ✓' : 'Copy text'}</button>
+					<button type="button" class="stitch quiet sm block" onclick={saveText}>Save .txt</button>
 				</div>
 				{#if pasting}
 					<label class="paste">
@@ -252,12 +252,12 @@
 					</label>
 					{#if pasteError}<p class="warn" role="alert">{pasteError}</p>{/if}
 					<div class="row">
-						<button type="button" class="primary" onclick={addPasted} disabled={!pasteText.trim()}>Add pattern</button>
-						<button type="button" onclick={closePaste}>Cancel</button>
+						<button type="button" class="stitch sm block" onclick={addPasted} disabled={!pasteText.trim()}>Add pattern</button>
+						<button type="button" class="stitch quiet sm block" onclick={closePaste}>Cancel</button>
 					</div>
 					<label class="file">Or open a .txt file <input type="file" accept=".txt,text/plain" onchange={openFile} /></label>
 				{:else}
-					<button type="button" class="pastebtn" onclick={() => (pasting = true)}>Paste a pattern…</button>
+					<button type="button" class="stitch quiet sm block" onclick={() => (pasting = true)}>Paste a pattern…</button>
 				{/if}
 			</section>
 		</aside>
@@ -365,8 +365,7 @@
 		flex: none;
 		gap: 4px;
 	}
-	.btn,
-	.row button {
+	.btn {
 		min-width: 36px;
 		height: 34px;
 		padding: 0 11px;
@@ -391,8 +390,7 @@
 		color: var(--line-strong);
 		cursor: default;
 	}
-	.btn:active:not(:disabled),
-	.row button:not(.primary):active {
+	.btn:active:not(:disabled) {
 		background: var(--wash);
 	}
 	.menu {
@@ -549,27 +547,6 @@
 	.browse a {
 		color: var(--link, #3d5aa8);
 	}
-	.pastebtn {
-		height: 34px;
-		border: 1.5px dashed var(--line-strong);
-		border-radius: 8px;
-		background: none;
-		color: var(--ink);
-		font: inherit;
-		font-weight: 500;
-		cursor: pointer;
-	}
-	.row .primary {
-		border-color: var(--ink);
-		background: var(--ink);
-		color: #fff8e6;
-	}
-	.row .primary:disabled {
-		border-color: var(--line-strong);
-		background: none;
-		color: var(--line-strong);
-		cursor: default;
-	}
 	.file {
 		color: var(--muted);
 		font-size: 12px;
@@ -580,27 +557,10 @@
 		margin-top: 4px;
 		font-size: 12px;
 	}
-	.use {
-		display: grid;
-		cursor: pointer;
-		font: inherit;
-		place-items: center;
-		height: 40px;
-		border: 1px solid var(--accent-deep);
-		border-radius: 8px;
-		background: var(--accent);
-		box-shadow: 0 1px 1px rgb(0 0 0 / 0.15), inset 0 1px 0 rgb(255 255 255 / 0.18);
-		color: #fff8e6;
-		font-weight: 600;
-		text-decoration: none;
-	}
 	.row {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 8px;
-	}
-	.danger {
-		color: var(--accent-deep) !important;
 	}
 	button:focus-visible,
 	a:focus-visible,
@@ -610,13 +570,8 @@
 	}
 	@media (hover: hover) and (pointer: fine) {
 		.btn:hover:not(:disabled),
-		.seg button[aria-checked='false']:hover,
-		.pastebtn:hover,
-		.row button:not(.primary):hover {
+		.seg button[aria-checked='false']:hover {
 			background: var(--wash);
-		}
-		.use:hover {
-			background: #d0604a;
 		}
 	}
 

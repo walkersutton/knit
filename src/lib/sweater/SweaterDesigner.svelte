@@ -13,6 +13,7 @@
 	import Stage from '$lib/sweater/Stage.svelte';
 	import Stepper from '$lib/sweater/Stepper.svelte';
 	import HeaderSlot from '$lib/HeaderSlot.svelte';
+	import NameDialog from '$lib/NameDialog.svelte';
 	import AccountLink from '$lib/AccountLink.svelte';
 	import HowItWorks from '$lib/sweater/HowItWorks.svelte';
 	import { DEFAULT_DESIGN } from '$lib/sweater/defaults';
@@ -24,7 +25,6 @@
 	import { footLabel, labelOf, sections, summary, visible } from '$lib/sweater/options';
 	import { centerpieceBox, estimate, writePattern } from '$lib/sweater/pattern';
 	import PatternView from '$lib/sweater/PatternView.svelte';
-	import Notes from '$lib/sweater/Notes.svelte';
 	import { readCenterpieceHash, readMotifHash, wantsCenterpiece, wantsChart } from '$lib/sweater/library';
 	import { saveDesign, type SavedDesign } from '$lib/sweater/designs';
 	import { CUSTOM_PATTERN } from '$lib/sweater/motifs';
@@ -77,25 +77,16 @@
 	/** Shown beside the save button so a save is never silent. */
 	let saveNote = $state('');
 	let saveTimer: ReturnType<typeof setTimeout>;
-	function saveCurrentDesign() {
-		const name = prompt('Name this sweater design:', active?.name ?? summary(design));
-		if (name === null) return;
-		const item = saveDesign(knit, name, active?.id, active ? undefined : draftNotes);
+	let naming = $state(false);
+	function saveCurrentDesign(name: string, notes: string) {
+		const item = saveDesign(knit, name, active?.id, notes);
 		saveNote = item ? (item.id === active?.id ? 'Renamed' : 'Saved to your patterns') : 'Could not save: this browser is out of storage';
 		clearTimeout(saveTimer);
 		saveTimer = setTimeout(() => (saveNote = ''), 4000);
 		if (item) {
-			draftNotes = '';
 			onsaved?.(item.id);
 		}
 	}
-
-	/** Notes typed before the design is saved; saving it keeps them. */
-	let draftNotes = $state('');
-	const notesFor = (saved?: SavedDesign) => (text: string) => {
-		if (!saved) draftNotes = text;
-		else if (!saveDesign($state.snapshot(design), saved.name, saved.id, text)) throw new Error('This browser is out of storage.');
-	};
 
 	function apply({ design: next, chart, centerpiece }: Incoming) {
 		if (next) {
@@ -190,14 +181,14 @@
 					<div><dt>Skill</dt><dd>{est.level}</dd></div>
 				</dl>
 				{#if pattern.ok}
-					<button type="button" class="step view" onclick={() => go('pattern')}>Get my pattern</button>
+					<button type="button" class="chunk sm view" onclick={() => go('pattern')}>Get my pattern</button>
 				{/if}
-				<button type="button" class="save" onclick={() => window.print()} disabled={!pattern.ok} title={pattern.ok ? 'Print, or choose “Save as PDF” in the print dialog' : pattern.reason}>
+				<button type="button" class="chunk quiet sm" onclick={() => window.print()} disabled={!pattern.ok} title={pattern.ok ? 'Print, or choose “Save as PDF” in the print dialog' : pattern.reason}>
 					Print pattern
 				</button>
-				<button type="button" class="save save-design" onclick={saveCurrentDesign} disabled={!pattern.ok} title="Save this sweater design to your account or this device">{active ? 'Rename design' : 'Save design'}</button>
+				<button type="button" class="chunk quiet sm" onclick={() => (naming = true)} disabled={!pattern.ok} title="Save this sweater design to your account or this device">{active ? 'Rename design' : 'Save design'}</button>
 				{#if active}
-					<button type="button" class="step danger" onclick={onremove}>Delete design</button>
+					<button type="button" class="chunk danger sm" onclick={onremove}>Delete design</button>
 				{/if}
 				<p class="save-note" role="status">{saveNote}</p>
 			</div>
@@ -226,13 +217,6 @@
 							</section>
 						{/if}
 					{/each}
-					{#if section.id === 'design'}
-						<section>
-							{#key active?.id}
-								<Notes value={active?.notes ?? draftNotes} onsave={notesFor(active)} placeholder="Yarn, fit, who it is for…" hint={active ? 'Kept with this design, and shown on its page when you share it.' : 'Kept when you save the design.'} />
-							{/key}
-						</section>
-					{/if}
 					{#if section.id === 'yarn'}
 						{#if centerpieceGarments.includes(design.garment)}
 							<section>
@@ -261,15 +245,25 @@
 			</div>
 			<div class="steps">
 				{#if tabIndex > 0}
-					<button type="button" class="step" onclick={() => go(tabs[tabIndex - 1].id)}>Back</button>
+					<button type="button" class="chunk quiet block back" onclick={() => go(tabs[tabIndex - 1].id)}>Back</button>
 				{/if}
 				{#if tabIndex < tabs.length - 1}
-					<button type="button" class="step next" onclick={() => go(tabs[tabIndex + 1].id)}>Next: {tabs[tabIndex + 1].label}</button>
+					<button type="button" class="chunk block next" onclick={() => go(tabs[tabIndex + 1].id)}>Next: {tabs[tabIndex + 1].label}</button>
 				{:else}
-					<button type="button" class="step next" onclick={() => go('pattern')} disabled={!pattern.ok} title={pattern.ok ? undefined : pattern.reason}>Get my pattern</button>
+					<button type="button" class="chunk block next" onclick={() => go('pattern')} disabled={!pattern.ok} title={pattern.ok ? undefined : pattern.reason}>Get my pattern</button>
 				{/if}
 			</div>
 		</aside>
+<NameDialog
+	bind:open={naming}
+	title={active ? 'Rename this design' : 'Save this design'}
+	lede={active ? 'Change its name or notes. The design itself stays as it is.' : 'Saved in your patterns, so you can come back to it.'}
+	label="Design name"
+	value={active?.name ?? summary(design)}
+	notes={active?.notes ?? ''}
+	confirm={active ? 'Rename' : 'Save'}
+	onsubmit={saveCurrentDesign}
+/>
 	</div>
 </div>
 <div class="print-only"><PatternView {pattern} main={design.color} contrast={design.contrast} {mode} /></div>
@@ -315,21 +309,6 @@
 		border-left: 1px solid var(--hairline);
 		background: var(--surface);
 	}
-	.step:focus-visible {
-		outline: 2px solid var(--focus);
-		outline-offset: 1px;
-	}
-	@media (hover: hover) and (pointer: fine) {
-		.step:hover {
-			background: var(--wash);
-		}
-		.steps .step:hover:not(:disabled) {
-			background: #e6ecf9;
-		}
-		.steps .step.next:hover:not(:disabled) {
-			background: #4d6cbc;
-		}
-	}
 	section {
 		padding: 16px 0 18px;
 		border-bottom: 1px solid var(--hairline);
@@ -357,23 +336,11 @@
 		backdrop-filter: saturate(180%) blur(20px);
 		-webkit-backdrop-filter: saturate(180%) blur(20px);
 	}
-	.step,
-	.save {
-		height: 32px;
-		padding: 0 14px;
-		border: 1px solid var(--line-strong);
-		border-radius: 8px;
-		background: #fffdf6;
-		box-shadow: 0 1px 1px rgb(38 51 95 / 0.08);
-		color: var(--ink);
-		font: inherit;
-		font-weight: 500;
-		white-space: nowrap;
-		transition: background-color 120ms ease-out, filter 120ms ease-out;
+	.back {
+		grid-column: 1;
 	}
-	.step.danger {
-		grid-column: 1 / -1;
-		color: #9b2c1f;
+	.next {
+		grid-column: 2;
 	}
 	.save-note {
 		grid-column: 1 / -1;
@@ -384,39 +351,6 @@
 	}
 	.save-note:empty {
 		display: none;
-	}
-	.step {
-		grid-column: 1;
-	}
-	.step.next,
-	.save {
-		grid-column: 2;
-		border-color: var(--accent-deep);
-		background: var(--accent);
-		box-shadow: 0 1px 1px rgb(0 0 0 / 0.15), inset 0 1px 0 rgb(255 255 255 / 0.18);
-		color: #fff8e6;
-	}
-	/* Sidebar Back/Next are blue; the Print/Save buttons keep the accent. */
-	.steps .step {
-		border-color: var(--link);
-		color: var(--link);
-	}
-	.steps .step.next:not(:disabled) {
-		border-color: #2c4585;
-		background: var(--link);
-		color: #fff;
-	}
-	.steps .step:disabled,
-	.step:disabled,
-	.save:disabled {
-		border-color: var(--line);
-		background: var(--wash);
-		box-shadow: none;
-		color: var(--muted);
-	}
-	.step:active:not(:disabled),
-	.save:active:not(:disabled) {
-		filter: brightness(0.93);
 	}
 	h2 {
 		margin: 0 0 10px;
@@ -469,6 +403,7 @@
 	}
 	.pattern {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 8px;
 		flex: none;
@@ -492,9 +427,8 @@
 		font-weight: 500;
 		font-variant-numeric: tabular-nums;
 	}
-	.step.view {
+	.view {
 		flex: none;
-		white-space: nowrap;
 	}
 	.print-only {
 		display: none;
@@ -511,10 +445,6 @@
 			max-width: 170mm;
 			margin: 0 auto;
 		}
-	}
-	.save:focus-visible {
-		outline: 2px solid var(--focus);
-		outline-offset: 1px;
 	}
 	@media (max-width: 760px) {
 		.app {
@@ -541,7 +471,7 @@
 		dl {
 			gap: 2px 16px;
 		}
-		.step.view {
+		.view {
 			display: none;
 		}
 		aside {

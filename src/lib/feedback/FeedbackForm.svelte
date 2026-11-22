@@ -63,7 +63,7 @@
 			<span class="badge" aria-hidden="true">✓</span>
 			<h2 {id}>Thank you</h2>
 			<p class="lede">Every note gets read. It really does help shape what knit becomes.</p>
-			<button type="button" class="send" onclick={onclose}>Back to knitting</button>
+			<button type="button" class="stitch" onclick={onclose}>Back to knitting</button>
 		</div>
 	{:else}
 		<form onsubmit={submit}>
@@ -86,7 +86,7 @@
 			<div class="challenge" bind:this={challenge}></div>
 			{#if error}<p class="err" role="alert">{error}</p>{/if}
 			<div class="actions">
-				<button type="submit" class="send" disabled={busy}>{busy ? 'Sending…' : 'Send feedback'}</button>
+				<button type="submit" class="stitch" disabled={busy}>{busy ? 'Sending…' : 'Send feedback'}</button>
 			</div>
 		</form>
 	{/if}
@@ -179,32 +179,9 @@
 		color: #b4432f;
 		font-size: 13px;
 	}
-	.patch .send {
-		min-height: 42px;
-		padding: 0 22px;
-		border: 0;
-		border-radius: 999px;
-		background: #465e9d;
-		color: #faf3dc;
-		font: inherit;
-		font-weight: 600;
-		cursor: pointer;
-		transition: background-color 150ms ease-out, transform 120ms ease-out;
-	}
-	@media (hover: hover) and (pointer: fine) {
-		.patch .send:hover:not(:disabled) {
-			background: #3a4f8a;
-		}
-	}
-	.patch .send:active:not(:disabled) {
-		transform: scale(0.97);
-	}
-	.patch .send:disabled {
-		opacity: 0.6;
-		cursor: default;
-	}
 	.patch button:focus-visible {
 		outline: 2px solid #2563eb;
+		outline-style: solid;
 		outline-offset: 2px;
 	}
 	@media (max-width: 480px) {

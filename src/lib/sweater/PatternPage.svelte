@@ -145,7 +145,7 @@
 	});
 
 	onMount(() => {
-		const k = (e: KeyboardEvent) => e.key === 'Escape' && (sheet = false);
+		const k =(e: KeyboardEvent) => e.key === 'Escape' && (sheet = false);
 		document.addEventListener('keydown', k);
 		return () => document.removeEventListener('keydown', k);
 	});
@@ -170,13 +170,13 @@
 			</dl>
 			{#if onnotes || notes.trim()}<div class="notes"><Notes value={notes} onsave={onnotes} label={author ? 'From the designer' : 'Notes'} hint={notesHint} /></div>{/if}
 			<div class="actions">
-				<button class="primary" type="button" onclick={() => reader?.scrollIntoView({ behavior: 'smooth' })}>Start knitting ↓</button>
-				<button class="ghost" type="button" onclick={onedit}>{author ? 'Adapt in designer' : '← Edit design'}</button>
-				<button class="ghost" type="button" onclick={() => window.print()}>Print</button>
-				<button class="ghost" type="button" onclick={onsave} title="Save this design to your account or this device">Save design</button>
-				<button class="ghost" type="button" onclick={share} disabled={shareState === 'busy'}>{shareState === 'busy' ? 'Sharing…' : shareState === 'copied' ? 'Link copied' : link ? 'Copy link' : 'Share'}</button>
+				<button class="stitch sm" type="button" onclick={() => reader?.scrollIntoView({ behavior: 'smooth' })}>Start knitting ↓</button>
+				<button class="stitch quiet sm" type="button" onclick={onedit}>{author ? 'Adapt in designer' : '← Edit design'}</button>
+				<button class="stitch quiet sm" type="button" onclick={() => window.print()}>Print</button>
+				<button class="stitch quiet sm" type="button" onclick={onsave} title="Save this design to your account or this device">Save design</button>
+				<button class="stitch quiet sm" type="button" onclick={share} disabled={shareState === 'busy'}>{shareState === 'busy' ? 'Sharing…' : shareState === 'copied' ? 'Link copied' : link ? 'Copy link' : 'Share'}</button>
 				{#if likes && sharedId}<LikeButton kind="pattern" id={sharedId} likes={likes.count} liked={likes.liked} signedIn={likes.signedIn} />{/if}
-				{#if onunshare}<button class="ghost" type="button" onclick={onunshare}>Unshare</button>{/if}
+				{#if onunshare}<button class="stitch quiet sm" type="button" onclick={onunshare}>Unshare</button>{/if}
 			</div>
 			<p class="share-note" role="status">
 				{#if shareError}{shareError}{:else if link && !author}Shared at <a href={link}>{link}</a>.{/if}
@@ -197,7 +197,7 @@
 
 <Confetti bind:this={confetti} colors={confettiColors} message="You finished it!" />
 
-<button class="fab" type="button" aria-expanded={sheet} onclick={() => (sheet = true)}>Model</button>
+<button class="fab"type="button" aria-expanded={sheet} onclick={() => (sheet = true)}>Model</button>
 {#if sheet}
 	<button class="scrim" type="button" aria-label="Close model" onclick={() => (sheet = false)}></button>
 	<section class="sheet" aria-label="Model at this step">
@@ -328,48 +328,10 @@
 	.share-note a {
 		color: var(--link);
 	}
-	.ghost:disabled {
-		color: var(--muted);
-		cursor: default;
-	}
-	.primary,
-	.ghost {
-		display: inline-flex;
-		align-items: center;
-		height: 38px;
-		padding: 0 16px;
-		border: 1px solid var(--line-strong);
-		border-radius: 8px;
-		background: #fffdf6;
-		color: var(--ink);
-		font: inherit;
-		font-weight: 500;
-		cursor: pointer;
-		transition: background-color 120ms ease-out, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
-	}
-	.primary {
-		border-color: var(--accent-deep);
-		background: var(--accent);
-		color: #fff8e6;
-	}
-	.primary:active,
-	.ghost:active {
-		transform: scale(0.97);
-	}
-	.primary:focus-visible,
-	.ghost:focus-visible,
 	.fab:focus-visible,
 	.sheet header button:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 2px;
-	}
-	@media (hover: hover) and (pointer: fine) {
-		.ghost:hover {
-			background: var(--wash);
-		}
-		.primary:hover {
-			background: #d0604a;
-		}
 	}
 	/* ── Reading: the text with the model beside it, at the step being read ── */
 	.read {

@@ -91,21 +91,21 @@
 			{#if float > 5}<p class="warn">Floats of {float} stitches can snag; the written pattern says where to catch them.</p>{/if}
 			<LikeButton kind="chart" id={chart.id} likes={data.likes} liked={data.liked} signedIn={data.signedIn} />
 			{#if cp}
-				<a class="use" href={centerpieceDesignLink(chart.motif, chart.color, chart.contrast)}>Use on my sweater</a>
+				<a class="stitch block" href={centerpieceDesignLink(chart.motif, chart.color, chart.contrast)}>Use on my sweater</a>
 			{:else}
-				<a class="use" href={designLink(chart.motif, chart.color, chart.contrast)}>Use on my sweater</a>
-				<a class="btn" href={previewLink(chart.motif, chart.color, chart.contrast, undefined, chart.id)}>Preview in 3D</a>
+				<a class="stitch block" href={designLink(chart.motif, chart.color, chart.contrast)}>Use on my sweater</a>
+				<a class="stitch quiet block" href={previewLink(chart.motif, chart.color, chart.contrast, undefined, chart.id)}>Preview in 3D</a>
 			{/if}
 			<div class="row">
-				<button type="button" onclick={save}>{status === 'saved' ? 'Saved ✓' : cp ? 'Save to my centerpieces' : 'Save to my charts'}</button>
-				<a class="btn" href={cp ? centerpieceEditLink(chart.motif) : `/design#${new URLSearchParams({ tool: 'chart', motif: chart.motif })}`}>Edit</a>
+				<button type="button" class="stitch quiet block" onclick={save}>{status === 'saved' ? 'Saved ✓' : cp ? 'Save to my centerpieces' : 'Save to my charts'}</button>
+				<a class="stitch quiet block" href={cp ? centerpieceEditLink(chart.motif) : `/design#${new URLSearchParams({ tool: 'chart', motif: chart.motif })}`}>Edit</a>
 			</div>
 			<div class="row">
-				<button type="button" onclick={() => copy(location.href, 'linked')}>{status === 'linked' ? 'Link copied' : 'Copy link'}</button>
-				{#if !cp}<button type="button" onclick={() => copy(chartToText(chart.name, chart.motif, chart.color, chart.contrast), 'texted')}>{status === 'texted' ? 'Copied ✓' : 'Copy text'}</button>{/if}
+				<button type="button" class="stitch quiet block" onclick={() => copy(location.href, 'linked')}>{status === 'linked' ? 'Link copied' : 'Copy link'}</button>
+				{#if !cp}<button type="button" class="stitch quiet block" onclick={() => copy(chartToText(chart.name, chart.motif, chart.color, chart.contrast), 'texted')}>{status === 'texted' ? 'Copied ✓' : 'Copy text'}</button>{/if}
 			</div>
 			{#if shareError}<textarea readonly rows="6" onfocus={(e) => e.currentTarget.select()}>{shareError}</textarea>{/if}
-			{#if data.mine}<button type="button" class="danger" onclick={unshare}>Unshare</button>{/if}
+			{#if data.mine}<button type="button" class="stitch danger block" onclick={unshare}>Unshare</button>{/if}
 		</aside>
 	</div>
 </main>
@@ -187,31 +187,6 @@
 	.row > * {
 		flex: 1;
 	}
-	button,
-	.btn,
-	.use {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		height: 40px;
-		padding: 0 14px;
-		border: 1.5px solid var(--line-strong);
-		border-radius: 8px;
-		background: #fffdf6;
-		color: var(--ink);
-		font: inherit;
-		text-decoration: none;
-		cursor: pointer;
-	}
-	.use {
-		border-color: var(--accent-deep);
-		background: var(--accent);
-		color: #fff8e6;
-		font-weight: 500;
-	}
-	.danger {
-		color: var(--accent-deep);
-	}
 	textarea {
 		width: 100%;
 		border: 1.5px solid var(--line-strong);
@@ -220,23 +195,9 @@
 		color: var(--ink);
 		font: 12px/1.4 ui-monospace, monospace;
 	}
-	button:active,
-	.btn:active,
-	.use:active {
-		filter: brightness(0.93);
-	}
-	button:focus-visible,
-	.btn:focus-visible,
-	.use:focus-visible,
 	textarea:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 2px;
-	}
-	@media (hover: hover) and (pointer: fine) {
-		button:hover,
-		.btn:hover {
-			background: var(--wash);
-		}
 	}
 	@media (max-width: 720px) {
 		.layout {
