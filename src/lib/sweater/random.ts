@@ -1,5 +1,4 @@
 import { DEFAULT_DESIGN } from './defaults';
-import { CUSTOM, clamp, round } from './fit';
 import type { Design } from './garment';
 import { colors, summary, yarnWeights } from './options';
 
@@ -18,7 +17,7 @@ export function seeded(seed: number): () => number {
 
 type Weighted<T> = [T, number][];
 
-/** A random garment: its shape, size, finishes and yarn. Always a design the pattern can be written for. */
+/** A random garment: its shape, finishes and yarn. Always a design the pattern can be written for. */
 export function randomDesign(rnd: () => number = Math.random): Design {
 	const pick = <T>(options: T[]): T => options[Math.floor(rnd() * options.length)];
 	const weighted = <T>(options: Weighted<T>): T => {
@@ -30,13 +29,7 @@ export function randomDesign(rnd: () => number = Math.random): Design {
 	const garment = weighted<string>([['Sweater', 30], ['Cardigan', 14], ['T-shirt', 14], ['Slipover', 10], ['Beanie', 12], ['Socks', 10], ['Scarf', 10]]);
 	const sleeved = !['Slipover', 'Beanie', 'Socks', 'Scarf'].includes(garment);
 
-	// Size: usually a standard one for an adult, junior, kid or baby; sometimes a body of its own.
-	const custom = rnd() < 0.25;
-	const wearer = custom ? 'Adult' : weighted<string>([['Adult', 60], ['Junior', 15], ['Kid', 15], ['Baby', 10]]);
-	const chest = round(56 + rnd() * 74);
-	const body = custom
-		? { chest: clamp('chest', chest), length: clamp('length', round(chest * (0.5 + rnd() * 0.18))), arm: clamp('arm', round(chest * (0.4 + rnd() * 0.1))) }
-		: null;
+	// Size is always a medium adult: rolling changes the design, not how big it is.
 
 	const color = pick(colors);
 	const contrast = pick(colors.filter((c) => c !== color));
@@ -49,11 +42,11 @@ export function randomDesign(rnd: () => number = Math.random): Design {
 
 	return {
 		...DEFAULT_DESIGN,
-		wearer,
+		wearer: 'Adult',
 		garment,
 		construction: pick(['Raglan', 'Set-in']),
-		size: custom ? CUSTOM : pick(['XS', 'S', 'M', 'L', 'XL']),
-		custom: body,
+		size: 'M',
+		custom: null,
 		fit: weighted<string>([['Fitted', 25], ['Relaxed', 45], ['Oversized', 30]]),
 		bodyLength: weighted<string>([['Cropped', 25], ['Regular', 55], ['Long', 20]]),
 		sleeveLength: garment === 'T-shirt' ? 'Short' : sleeved ? weighted<string>([['Full', 70], ['3/4', 30]]) : 'Full',

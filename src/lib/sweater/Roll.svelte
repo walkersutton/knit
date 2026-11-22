@@ -154,7 +154,7 @@
 
 <section class="roll" aria-labelledby="roll-h" bind:this={section}>
 	<h2 id="roll-h">Feeling lucky?</h2>
-	<p class="sub">Roll the yarn and see what comes off the needles. Every sweater is a different shape and size.</p>
+	<p class="sub">Roll the yarn and see what comes off the needles. Every sweater is a different shape and colour.</p>
 
 	<ul>
 		{#each slots as slot, n (n)}

@@ -1,6 +1,5 @@
 import { PATTERNS } from './motifs';
 import { describe, expect, it } from 'vitest';
-import { CUSTOM, LIMITS } from './fit';
 import { buildGarment, measure } from './garment';
 import { choices } from './testDesigns';
 import { designDetail, designName, randomDesign, seeded } from './random';
@@ -17,8 +16,6 @@ describe('randomDesign', () => {
 		for (const d of designs)
 			for (const [key, values] of Object.entries(choices)) {
 				const v = d[key as keyof typeof d];
-				// A custom body replaces the XS to XL sizes.
-				if (key === 'size' && v === CUSTOM) continue;
 				expect(values, `${key}=${String(v)}`).toContain(v);
 			}
 	});
@@ -28,19 +25,15 @@ describe('randomDesign', () => {
 			expect(d.contrast).not.toBe(d.color);
 			expect(d.sleeveLength === 'Short').toBe(d.garment === 'T-shirt');
 			expect(d.needle).toBe(0);
-			if (d.size === CUSTOM) {
-				expect(d.wearer).toBe('Adult');
-				for (const k of ['chest', 'length', 'arm'] as const) {
-					expect(d.custom![k]).toBeGreaterThanOrEqual(LIMITS[k].min);
-					expect(d.custom![k]).toBeLessThanOrEqual(LIMITS[k].max);
-				}
-			} else expect(d.custom).toBeNull();
+			expect(d.wearer).toBe('Adult');
+			expect(d.size).toBe('M');
+			expect(d.custom).toBeNull();
 		}
 	});
 
-	it('covers every garment, size and pattern', () => {
-		for (const key of ['garment', 'wearer', 'size', 'pattern', 'neckline'] as const)
-			expect(new Set(designs.map((d) => d[key])).size, key).toBe(key === 'size' ? 6 : key === 'wearer' ? 4 : key === 'neckline' ? 6 : key === 'garment' ? 7 : PATTERNS.length - 1);
+	it('covers every garment and pattern, always in a medium adult size', () => {
+		for (const key of ['garment', 'pattern', 'neckline'] as const)
+			expect(new Set(designs.map((d) => d[key])).size, key).toBe(key === 'neckline' ? 6 : key === 'garment' ? 7 : PATTERNS.length - 1);
 	});
 
 	it('builds a 3D model with sane measurements for every design', () => {
