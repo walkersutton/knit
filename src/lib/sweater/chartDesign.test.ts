@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { chartDesign } from './library';
+import { choose } from './options';
 import { blankCenterpiece, encodeCenterpiece } from './centerpiece';
 import { CUSTOM_PATTERN, starterMotif } from './motifs';
 
@@ -14,6 +15,14 @@ describe('chartDesign', () => {
 	it('gives a T-shirt short sleeves', () => {
 		expect(chartDesign(MOTIF, '#111111', '#eeeeee', 'T-shirt').sleeveLength).toBe('Short');
 		expect(chartDesign(MOTIF, '#111111', '#eeeeee', 'Sweater').sleeveLength).toBe('Full');
+	});
+
+	it('lets a cardigan keep short sleeves when switched from a T-shirt', () => {
+		const d = chartDesign(MOTIF, '#111111', '#eeeeee', 'T-shirt');
+		choose(d, 'garment', 'Cardigan');
+		expect(d.sleeveLength).toBe('Short');
+		choose(d, 'garment', 'Sweater');
+		expect(d.sleeveLength).toBe('Full');
 	});
 
 	it('works a centerpiece once on the front of a plain garment', () => {

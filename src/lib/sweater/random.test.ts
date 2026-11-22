@@ -23,7 +23,8 @@ describe('randomDesign', () => {
 	it('keeps the choices consistent with each other', () => {
 		for (const d of designs) {
 			expect(d.contrast).not.toBe(d.color);
-			expect(d.sleeveLength === 'Short').toBe(d.garment === 'T-shirt');
+			if (d.garment === 'T-shirt') expect(d.sleeveLength).toBe('Short');
+			else if (d.garment !== 'Cardigan') expect(d.sleeveLength).not.toBe('Short');
 			expect(d.needle).toBe(0);
 			expect(d.wearer).toBe('Adult');
 			expect(d.size).toBe('M');

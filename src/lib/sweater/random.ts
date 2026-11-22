@@ -49,7 +49,7 @@ export function randomDesign(rnd: () => number = Math.random): Design {
 		custom: null,
 		fit: weighted<string>([['Fitted', 25], ['Relaxed', 45], ['Oversized', 30]]),
 		bodyLength: weighted<string>([['Cropped', 25], ['Regular', 55], ['Long', 20]]),
-		sleeveLength: garment === 'T-shirt' ? 'Short' : sleeved ? weighted<string>([['Full', 70], ['3/4', 30]]) : 'Full',
+		sleeveLength: garment === 'T-shirt' ? 'Short' : garment === 'Cardigan' ? weighted<string>([['Full', 60], ['3/4', 25], ['Short', 15]]) : sleeved ? weighted<string>([['Full', 70], ['3/4', 30]]) : 'Full',
 		neckline: pick(['Crew', 'V-neck', 'Boat', 'I-cord', 'Mock neck', 'Turtleneck']),
 		sleeveShape: weighted<string>([['Straight', 55], ['Balloon', 25], ['Puff', 20]]),
 		hemFinish,

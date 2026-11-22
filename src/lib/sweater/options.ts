@@ -294,7 +294,7 @@ export function choose(d: Design, key: keyof Design, value: string | number) {
 		// Centerpieces are placed on torsos; accessories keep their repeating charts only.
 		if (!isTop(d)) d.centerpiece = '';
 		if (d.garment === 'T-shirt') d.sleeveLength = 'Short';
-		else if (isTop(d) && d.sleeveLength === 'Short') d.sleeveLength = 'Full';
+		else if (isTop(d) && d.sleeveLength === 'Short' && d.garment !== 'Cardigan') d.sleeveLength = 'Full';
 	}
 }
 
