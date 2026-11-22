@@ -287,6 +287,7 @@
 		padding: 24px;
 	}
 	.model {
+		--knit: none;
 		height: min(560px, 70dvh);
 		border-radius: 18px;
 		background: radial-gradient(circle at 50% 40%, var(--stage-a), var(--stage-b) 60%, var(--stage-c));
@@ -426,6 +427,7 @@
 		--sticky-top: 0px;
 	}
 	.rail {
+		--knit: none;
 		position: sticky;
 		top: 0;
 		display: flex;
@@ -498,6 +500,7 @@
 			background: rgb(38 51 95 / 0.25);
 		}
 		.sheet {
+			--knit: none;
 			position: fixed;
 			left: 0;
 			right: 0;
