@@ -7,6 +7,7 @@
 	import Stage from './Stage.svelte';
 	import PatternView from './PatternView.svelte';
 	import Notes from './Notes.svelte';
+	import Confetti from './Confetti.svelte';
 	import { needleLabel } from './needles';
 	import { jpegStill } from './still';
 	import { knittedOf, progressAt, tasksOf, type Mode, type Progress } from './progress';
@@ -126,6 +127,23 @@
 		return t && pattern.ok ? pattern.sections.find((s) => s.id === t.section)?.title : undefined;
 	});
 
+	// Confetti the first time the knitter reaches the last step of the pattern.
+	let confetti = $state<Confetti>();
+	let celebrated = false;
+	let confettiColors = $derived([design.color, design.contrast, '#f2b84b', '#e0654a', '#4d8fd1', '#faf3dc']);
+	$effect(() => {
+		const last = tasks.at(-1)?.key;
+		if (!last) return;
+		if (viewing !== last) {
+			// Scrolling back up re-arms it, so a second trip to the end gets its own burst.
+			celebrated = false;
+			return;
+		}
+		if (celebrated) return;
+		celebrated = true;
+		confetti?.burst();
+	});
+
 	onMount(() => {
 		const k = (e: KeyboardEvent) => e.key === 'Escape' && (sheet = false);
 		document.addEventListener('keydown', k);
@@ -176,6 +194,8 @@
 		</aside>
 	</div>
 </div>
+
+<Confetti bind:this={confetti} colors={confettiColors} message="You finished it!" />
 
 <button class="fab" type="button" aria-expanded={sheet} onclick={() => (sheet = true)}>Model</button>
 {#if sheet}
