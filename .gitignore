@@ -10,8 +10,8 @@ coverage/
 .idea/
 .vscode/
 
-# Local browser/agent runtime state (may contain session credentials)
-.gstack/
+# Local Claude Code state (worktrees, local settings, preview config)
+.claude/
 .vercel
 .env*
 !.env.example
