@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Seo from '$lib/Seo.svelte';
-	import AccountControls from '$lib/AccountControls.svelte';
+	import OwnerProfile from '$lib/OwnerProfile.svelte';
 	import ChartCard from '$lib/sweater/ChartCard.svelte';
 	import PatternCard from '$lib/sweater/PatternCard.svelte';
 	import type { PageProps } from './$types';
@@ -37,48 +37,50 @@
 <Seo title="{p.username} — knit" description="{p.username} on knit: {p.patterns.length} shared {p.patterns.length === 1 ? 'pattern' : 'patterns'} and {p.charts.length} shared {p.charts.length === 1 ? 'chart' : 'charts'}." path="/people/{encodeURIComponent(p.username)}" type="profile" image="/og/people/{encodeURIComponent(p.username)}.png" imageAlt="{p.username} on knit" />
 
 <main>
-	<header class="who">
-		<span class="avatar" aria-hidden="true">
-			{#if p.photo && !broken}
-				<img src={p.photo} alt="" width="72" height="72" referrerpolicy="no-referrer" onerror={() => (broken = true)} />
-			{:else}{(p.username.match(/[\p{L}\p{N}]/u)?.[0] ?? '?').toUpperCase()}{/if}
-		</span>
-		<div>
-			<p class="eyebrow">Knitter · joined {joined}</p>
-			<h1>{p.username}</h1>
-			<a class="rav" href="https://www.ravelry.com/people/{encodeURIComponent(p.username)}" target="_blank" rel="noopener">View on Ravelry</a>
-		</div>
-	</header>
+	{#if isMe}
+		<OwnerProfile {p} {joined} />
+	{:else}
+		<header class="who">
+			<span class="avatar" aria-hidden="true">
+				{#if p.photo && !broken}
+					<img src={p.photo} alt="" width="72" height="72" referrerpolicy="no-referrer" onerror={() => (broken = true)} />
+				{:else}{(p.username.match(/[\p{L}\p{N}]/u)?.[0] ?? '?').toUpperCase()}{/if}
+			</span>
+			<div>
+				<p class="eyebrow">Knitter · joined {joined}</p>
+				<h1>{p.username}</h1>
+				<a class="rav" href="https://www.ravelry.com/people/{encodeURIComponent(p.username)}" target="_blank" rel="noopener">View on Ravelry</a>
+			</div>
+		</header>
 
-	{#if p.bio}
-		<section class="bio" aria-label="About {p.username}">
-			{#if p.bio.about}<p class="about">{p.bio.about}</p>{/if}
-			{#if facts.length}
-				<dl>{#each facts as [label, value] (label)}<div><dt>{label}</dt><dd>{value}</dd></div>{/each}</dl>
+		{#if p.bio}
+			<section class="bio" aria-label="About {p.username}">
+				{#if p.bio.about}<p class="about">{p.bio.about}</p>{/if}
+				{#if facts.length}
+					<dl>{#each facts as [label, value] (label)}<div><dt>{label}</dt><dd>{value}</dd></div>{/each}</dl>
+				{/if}
+			</section>
+		{/if}
+
+		<section aria-labelledby="patterns-h">
+			<h2 id="patterns-h">Shared patterns <small>{p.patterns.length}</small></h2>
+			{#if p.patterns.length}{@render patternList(p.patterns)}{:else}<p class="empty">No patterns shared yet.</p>{/if}
+		</section>
+		<section aria-labelledby="charts-h">
+			<h2 id="charts-h">Shared charts <small>{p.charts.length}</small></h2>
+			{#if p.charts.length}{@render chartList(p.charts)}{:else}<p class="empty">No charts shared yet.</p>{/if}
+		</section>
+		<section aria-labelledby="likes-h">
+			<h2 id="likes-h">Likes <small>{liked}</small></h2>
+			{#if liked}
+				{#if p.likedPatterns.length}<h3>Patterns</h3>{@render patternList(p.likedPatterns)}{/if}
+				{#if p.likedCharts.length}<h3>Charts</h3>{@render chartList(p.likedCharts)}{/if}
+			{:else}
+				<p class="empty">Nothing liked yet.</p>
 			{/if}
 		</section>
+		{#if !shared && !liked}<p class="empty">{p.username} has not shared or liked anything yet.</p>{/if}
 	{/if}
-
-	{#if isMe}<AccountControls />{/if}
-
-	<section aria-labelledby="patterns-h">
-		<h2 id="patterns-h">Shared patterns <small>{p.patterns.length}</small></h2>
-		{#if p.patterns.length}{@render patternList(p.patterns)}{:else}<p class="empty">No patterns shared yet.</p>{/if}
-	</section>
-	<section aria-labelledby="charts-h">
-		<h2 id="charts-h">Shared charts <small>{p.charts.length}</small></h2>
-		{#if p.charts.length}{@render chartList(p.charts)}{:else}<p class="empty">No charts shared yet.</p>{/if}
-	</section>
-	<section aria-labelledby="likes-h">
-		<h2 id="likes-h">Likes <small>{liked}</small></h2>
-		{#if liked}
-			{#if p.likedPatterns.length}<h3>Patterns</h3>{@render patternList(p.likedPatterns)}{/if}
-			{#if p.likedCharts.length}<h3>Charts</h3>{@render chartList(p.likedCharts)}{/if}
-		{:else}
-			<p class="empty">Nothing liked yet.</p>
-		{/if}
-	</section>
-	{#if !shared && !liked}<p class="empty">{p.username} has not shared or liked anything yet.</p>{/if}
 </main>
 
 <style>
