@@ -183,12 +183,12 @@
 				{#if pattern.ok}
 					<button type="button" class="chunk sm view" onclick={() => go('pattern')}>Get my pattern</button>
 				{/if}
-				<button type="button" class="chunk quiet sm" onclick={() => window.print()} disabled={!pattern.ok} title={pattern.ok ? 'Print, or choose “Save as PDF” in the print dialog' : pattern.reason}>
+				<button type="button" class="chunk quiet sm print" onclick={() => window.print()} disabled={!pattern.ok} title={pattern.ok ? 'Print, or choose “Save as PDF” in the print dialog' : pattern.reason}>
 					Print pattern
 				</button>
 				<button type="button" class="chunk quiet sm" onclick={() => (naming = true)} disabled={!pattern.ok} title="Save this sweater design to your account or this device">{active ? 'Rename design' : 'Save design'}</button>
 				{#if active}
-					<button type="button" class="chunk danger sm" onclick={onremove}>Delete design</button>
+					<button type="button" class="chunk danger sm delete" onclick={onremove}>Delete design</button>
 				{/if}
 				<p class="save-note" role="status">{saveNote}</p>
 			</div>
@@ -241,6 +241,13 @@
 							</div>
 						</section>
 					{/if}
+				{/if}
+			</div>
+			<!-- On a phone the bar under the model has room only for the sums and Save; the rest waits at the end of the options. -->
+			<div class="more">
+				<button type="button" class="chunk quiet sm" onclick={() => window.print()} disabled={!pattern.ok} title={pattern.ok ? 'Print, or choose “Save as PDF” in the print dialog' : pattern.reason}>Print pattern</button>
+				{#if active}
+					<button type="button" class="chunk danger sm" onclick={onremove}>Delete design</button>
 				{/if}
 			</div>
 			<div class="steps">
@@ -430,7 +437,8 @@
 	.view {
 		flex: none;
 	}
-	.print-only {
+	.print-only,
+	.more {
 		display: none;
 	}
 	@media print {
@@ -446,37 +454,94 @@
 			margin: 0 auto;
 		}
 	}
+	/* Phones: a fixed app screen. The model and its sums stay put at the top, the options scroll beneath them,
+	   and Back/Next sit at the bottom with the main action across the width. */
 	@media (max-width: 760px) {
 		.app {
-			height: auto;
-			min-height: calc(100dvh - var(--bar));
+			height: 100%;
 		}
 		.layout {
 			display: flex;
 			flex-direction: column;
 		}
 		main {
-			position: sticky;
-			top: 0;
-			z-index: 1;
-			border-bottom: 1px solid var(--line);
+			flex: none;
+			border-bottom: 1px solid var(--hairline);
 		}
 		.stage {
 			flex: none;
-			height: 40dvh;
+			height: 32dvh;
 		}
 		.pattern {
-			padding: 8px 12px;
+			position: relative;
+			flex-wrap: nowrap;
+			gap: 10px;
+			padding: 6px 8px 6px 12px;
 		}
+		/* The sums on one line that scrolls sideways, rather than wrapping into a block. */
 		dl {
-			gap: 2px 16px;
+			flex-wrap: nowrap;
+			gap: 0;
+			min-width: 0;
+			overflow-x: auto;
+			scrollbar-width: none;
+			font-size: 13px;
+			white-space: nowrap;
 		}
-		.view {
+		dl > div + div::before {
+			content: '·';
+			margin: 0 10px;
+			color: var(--line-strong);
+		}
+		dl > div {
+			display: flex;
+		}
+		dt {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			overflow: hidden;
+			clip-path: inset(50%);
+		}
+		.view,
+		.print,
+		.delete {
 			display: none;
 		}
+		.save-note {
+			position: absolute;
+			top: calc(100% + 8px);
+			right: 12px;
+			z-index: 3;
+			padding: 6px 10px;
+			border-radius: 8px;
+			background: var(--ink);
+			color: var(--on-ink);
+		}
 		aside {
-			overflow: visible;
+			flex: 1;
+			min-height: 0;
+			overscroll-behavior: contain;
 			border-left: 0;
+		}
+		.more {
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 8px;
+			padding: 4px 0 20px;
+		}
+		.steps {
+			display: flex;
+			padding-bottom: max(10px, env(safe-area-inset-bottom));
+		}
+		.back {
+			flex: none;
+			width: auto;
+			padding-inline: 22px;
+		}
+		.next {
+			flex: 1;
 		}
 	}
 </style>

@@ -234,13 +234,21 @@
 		min-width: 0;
 		min-height: 0;
 	}
+	/* Phones: an app screen, not a web page. The shell fills the screen under the site bar and never scrolls;
+	   the designer scrolls inside it, so the page doesn't bounce or run out. */
 	@media (max-width: 760px) {
+		:global(body:has(.shell)) {
+			overscroll-behavior: none;
+		}
 		.shell {
-			display: block;
-			height: auto;
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
 		}
 		.work {
-			min-height: calc(100dvh - var(--bar));
+			flex: 1;
+			overflow-y: auto;
+			overscroll-behavior: contain;
 		}
 	}
 	@media print {
