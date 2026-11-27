@@ -154,7 +154,7 @@
 
 <section class="roll" aria-labelledby="roll-h" bind:this={section}>
 	<h2 id="roll-h">Feeling lucky?</h2>
-	<p class="sub">Roll the yarn and see what comes off the needles. Every sweater is a different shape and colour.</p>
+	<p class="sub">Roll the yarn and see what comes off the needles. Every one is a different garment, shape and colour.</p>
 
 	<ul>
 		{#each slots as slot, n (n)}
@@ -203,7 +203,7 @@
 	{/if}
 
 	<button type="button" class="go" onclick={roll} disabled={free === 0}>
-		{free === 0 ? 'Everything is kept' : free === 3 ? 'Roll three sweaters' : `Roll ${free === 1 ? 'the other one' : 'the other two'}`}
+		{free === 0 ? 'Everything is kept' : free === 3 ? 'Roll three designs' : `Roll ${free === 1 ? 'the other one' : 'the other two'}`}
 	</button>
 </section>
 
