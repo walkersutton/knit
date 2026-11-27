@@ -1,11 +1,14 @@
 import { database } from './db';
 import { cleanPhoto } from './members';
 import { readBio, type Bio } from './bio';
+import { SEED_USER } from './seed';
 import type { SharedChart } from './charts';
 import type { SharedPattern } from './patterns';
 
 export type Profile = {
 	username: string;
+	/** knit's own house account (see seed.ts): a server account with no Ravelry person behind it. */
+	house: boolean;
 	photo: string | null;
 	joinedAt: string;
 	bio: Bio | null;
@@ -26,7 +29,7 @@ export async function getProfile(username: string): Promise<Profile | null> {
 	if (!username || username.length > 100) return null;
 	const sql = database();
 	const users = await sql`
-		SELECT id, ravelry_username AS username, photo_url AS photo, created_at, bio
+		SELECT id, ravelry_user_id, ravelry_username AS username, photo_url AS photo, created_at, bio
 		FROM users WHERE lower(ravelry_username) = lower(${username}) LIMIT 1
 	`;
 	const user = users[0];
@@ -55,6 +58,7 @@ export async function getProfile(username: string): Promise<Profile | null> {
 	]);
 	return {
 		username: String(user.username),
+		house: user.ravelry_user_id === SEED_USER.ravelryUserId,
 		photo: cleanPhoto(user.photo),
 		joinedAt: user.created_at,
 		bio: readBio(user.bio),

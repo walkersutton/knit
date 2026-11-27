@@ -47,9 +47,9 @@
 				{:else}{(p.username.match(/[\p{L}\p{N}]/u)?.[0] ?? '?').toUpperCase()}{/if}
 			</span>
 			<div>
-				<p class="eyebrow">Knitter · joined {joined}</p>
+				<p class="eyebrow">{p.house ? 'The knit team · since' : 'Knitter · joined'} {joined}</p>
 				<h1>{p.username}</h1>
-				<a class="rav" href="https://www.ravelry.com/people/{encodeURIComponent(p.username)}" target="_blank" rel="noopener">View on Ravelry</a>
+				{#if !p.house}<a class="rav" href="https://www.ravelry.com/people/{encodeURIComponent(p.username)}" target="_blank" rel="noopener">View on Ravelry</a>{/if}
 			</div>
 		</header>
 
