@@ -29,6 +29,7 @@
 	import { saveDesign, type SavedDesign } from '$lib/sweater/designs';
 	import { CUSTOM_PATTERN } from '$lib/sweater/motifs';
 	import { decodeDesign, encodeDesign, load, save, signature, type Mode, type Progress } from '$lib/sweater/progress';
+	import { surpriseDesign } from '$lib/sweater/random';
 
 	let { incoming, active, onconsumed, onsaved, onremove, onEditChart }: { incoming?: Incoming; active?: SavedDesign; onconsumed?: () => void; onsaved?: (id: string) => void; onremove?: () => void; onEditChart: (motif: string) => void } = $props();
 
@@ -88,7 +89,23 @@
 		}
 	}
 
+	// ── Surprise me ──
+	/** Designs replaced by Surprise me, newest last, so a roll never loses the knitter's work. */
+	let rolledFrom = $state<Design[]>([]);
+	function surprise() {
+		rolledFrom = [...rolledFrom.slice(-19), $state.snapshot(design)];
+		design = surpriseDesign(design);
+	}
+	function undoSurprise() {
+		const last = rolledFrom.at(-1);
+		if (!last) return;
+		rolledFrom = rolledFrom.slice(0, -1);
+		design = last;
+	}
+
 	function apply({ design: next, chart, centerpiece }: Incoming) {
+		// Another design opened: Undo would bring back one that belongs to something else.
+		rolledFrom = [];
 		if (next) {
 			// Designs saved before a field existed take its default.
 			design = { ...DEFAULT_DESIGN, ...next };
@@ -172,7 +189,23 @@
 <div class="app">
 	<div class="layout">
 		<main>
-			<div class="stage"><Stage design={knit} /></div>
+			<div class="stage">
+				<Stage design={knit} />
+				<div class="lucky">
+					{#if rolledFrom.length}
+						<button type="button" class="stitch quiet sm" onclick={undoSurprise} title="Go back to the design before this roll">Undo</button>
+					{/if}
+					<button type="button" class="stitch quiet sm" onclick={surprise} title="Roll a new garment, pattern and colours in the same size">
+						<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+							<rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="1.6" />
+							<circle cx="5" cy="5" r="1.3" fill="currentColor" />
+							<circle cx="8" cy="8" r="1.3" fill="currentColor" />
+							<circle cx="11" cy="11" r="1.3" fill="currentColor" />
+						</svg>
+						Surprise me
+					</button>
+				</div>
+			</div>
 			<div class="pattern">
 				<dl>
 					<div><dt>Yarn</dt><dd>{est.yards} yd · {est.skeins} {est.skeins === 1 ? 'skein' : 'skeins'}</dd></div>
@@ -405,8 +438,17 @@
 		min-height: 0;
 	}
 	.stage {
+		position: relative;
 		flex: 1;
 		min-height: 0;
+	}
+	/* Bottom right of the model, the one corner the stage's own labels leave free. */
+	.lucky {
+		position: absolute;
+		right: 12px;
+		bottom: 12px;
+		display: flex;
+		gap: 8px;
 	}
 	.pattern {
 		display: flex;

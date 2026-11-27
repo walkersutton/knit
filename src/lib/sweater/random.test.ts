@@ -2,7 +2,8 @@ import { PATTERNS } from './motifs';
 import { describe, expect, it } from 'vitest';
 import { buildGarment, measure } from './garment';
 import { choices } from './testDesigns';
-import { designDetail, designName, randomDesign, seeded } from './random';
+import { designDetail, designName, randomDesign, seeded, surpriseDesign } from './random';
+import { standardBody } from './fit';
 
 const designs = Array.from({ length: 300 }, (_, i) => randomDesign(seeded(i + 1)));
 
@@ -49,5 +50,24 @@ describe('randomDesign', () => {
 		const d = { ...randomDesign(seeded(1)), garment: 'Cardigan', neckline: 'Turtleneck', pattern: 'Stripes', color: '#78917a' };
 		expect(designName(d)).toBe('Sage Striped Turtleneck Cardigan');
 		expect(designDetail(d)).toContain('·');
+	});
+});
+
+describe('surpriseDesign', () => {
+	it('rolls a new design but keeps who it is for and how big', () => {
+		const custom = standardBody('Kid', 'L');
+		const mine = { ...randomDesign(seeded(3)), wearer: 'Kid', size: 'Custom', custom, shoeSize: 'EU 32' };
+		const rolled = Array.from({ length: 40 }, (_, i) => surpriseDesign(mine, seeded(i + 1)));
+		for (const d of rolled) {
+			expect(d).toMatchObject({ wearer: 'Kid', size: 'Custom', custom, shoeSize: 'EU 32' });
+			expect(d.custom).not.toBe(custom);
+		}
+		expect(new Set(rolled.map((d) => d.garment)).size).toBeGreaterThan(3);
+		expect(surpriseDesign(mine, seeded(9))).toEqual({ ...randomDesign(seeded(9)), wearer: 'Kid', size: 'Custom', custom, shoeSize: 'EU 32' });
+	});
+
+	it('keeps a standard size without inventing measurements', () => {
+		const d = surpriseDesign({ ...randomDesign(seeded(4)), wearer: 'Baby', size: 'XS', custom: null, shoeSize: '' }, seeded(2));
+		expect(d).toMatchObject({ wearer: 'Baby', size: 'XS', custom: null, shoeSize: '' });
 	});
 });

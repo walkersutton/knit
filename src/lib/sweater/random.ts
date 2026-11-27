@@ -90,6 +90,15 @@ export function randomDesign(rnd: () => number = Math.random): Design {
 	};
 }
 
+/**
+ * A random design for the designer's Surprise me button: a new garment, finishes and yarn, but still made
+ * for the same person, so the knitter's wearer, size, own measurements and shoe size carry over.
+ */
+export function surpriseDesign(current: Design, rnd: () => number = Math.random): Design {
+	const { wearer, size, custom, shoeSize } = current;
+	return { ...randomDesign(rnd), wearer, size, custom: custom && { ...custom }, shoeSize };
+}
+
 const colorName = (hex: string) => colors.find((c) => c.value === hex)?.label ?? 'Wool';
 
 /** "Sage Striped Turtleneck Cardigan" */
