@@ -70,7 +70,6 @@
 
 	const perks = [
 		{ label: 'Free', tone: 'mustard' },
-		{ label: 'Optional account', tone: 'sage' },
 		{ label: 'Runs in your browser', tone: 'sky' }
 	];
 	const steps = [

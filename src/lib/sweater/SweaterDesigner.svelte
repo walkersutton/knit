@@ -15,7 +15,6 @@
 	import HeaderSlot from '$lib/HeaderSlot.svelte';
 	import NameDialog from '$lib/NameDialog.svelte';
 	import AccountLink from '$lib/AccountLink.svelte';
-	import HowItWorks from '$lib/sweater/HowItWorks.svelte';
 	import { DEFAULT_DESIGN } from '$lib/sweater/defaults';
 	import { centerpieceGarments } from '$lib/sweater/family';
 	import { NEEDLES, mainSizes, needleLabel, pickNeedles } from '$lib/sweater/needles';
@@ -182,7 +181,7 @@
 </script>
 
 {#snippet center()}<Stepper steps={tabs} {tab} onTab={go} />{/snippet}
-{#snippet right()}<HowItWorks /><AccountLink />{/snippet}
+{#snippet right()}<AccountLink />{/snippet}
 <!-- Reading the pattern gets the same plain bar as the home and about pages. -->
 <HeaderSlot app {center} {right} />
 
